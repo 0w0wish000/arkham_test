@@ -49,6 +49,22 @@ cd client && npm install && npm run dev    # 前端 @ http://localhost:5173
 python3 -m http.server 8131 --directory prototype   # 開 http://localhost:8131
 ```
 
+## 區域網路(LAN)多人
+
+**任何一位玩家都能當主機**(和遊戲內首席調查員無關)。完整說明見 [docs/07-lan-setup.md](docs/07-lan-setup.md)。
+
+主機(誰都行)開兩個終端機:
+```bash
+./start-server.sh     # A:印出你的區網 IP,例如 192.168.1.50
+./start-client.sh     # B
+```
+所有人用瀏覽器開(各挑不同調查員,同房 = 同一場):
+```
+http://192.168.1.50:5173/?inv=joe_diamond      # 你
+http://192.168.1.50:5173/?inv=daniela           # 隊友
+```
+(或每人各自 `./start-client.sh 192.168.1.50` 再開自己的 localhost。)
+
 ## 現況
 
 - ✅ 設計書 6 份、規則引擎規格(對齊官方規則書)

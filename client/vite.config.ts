@@ -7,11 +7,12 @@ export default defineConfig({
     alias: { "@protocol": resolve(__dirname, "../protocol") },
   },
   server: {
+    host: true, // 綁 0.0.0.0:區網其他人可用 http://<這台IP>:5173 連進來
     port: 5173,
     fs: { allow: [".."] }, // 允許 import 專案根的 ../protocol/*
     proxy: {
-      // 轉發 WebSocket 到 Java 遊戲伺服器
-      "/ws": { target: "ws://localhost:8080", ws: true },
+      // 轉發 WebSocket 到 Java 遊戲伺服器;VITE_SERVER 可指向別台(LAN),預設本機
+      "/ws": { target: process.env.VITE_SERVER || "ws://localhost:8080", ws: true, changeOrigin: true },
     },
   },
 });

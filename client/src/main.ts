@@ -34,11 +34,15 @@ async function main() {
   // 點地點 → 送 MOVE 意圖
   view.onMove = (toLocationId) => conn.intent("MOVE", { toLocationId });
 
+  // 房間與調查員由網址參數決定(LAN 多人):?room=xxx&inv=joe_diamond|daniela
+  const params = new URLSearchParams(location.search);
+  const room = params.get("room") || "demo-session";
+  const inv = params.get("inv") || "joe_diamond";
   try {
-    await conn.connect("demo-session", "joe_diamond");
-    log("已連線,送出 JOIN。等待伺服器狀態…");
+    await conn.connect(room, inv);
+    log(`已連線:房間「${room}」· 調查員「${inv}」。等待伺服器狀態…`);
   } catch {
-    log("⚠️ 無法連線。請先啟動 Java 伺服器:./gradlew :server:bootRun");
+    log("⚠️ 無法連線。請先在 host 端啟動伺服器:./start-server.sh");
   }
 }
 
