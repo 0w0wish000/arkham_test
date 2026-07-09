@@ -1,0 +1,13 @@
+{
+  "packs": [
+    {
+      "code": "core",
+      "name": "Revised Core Set",
+      "nameZh": "修訂核心盒",
+      "environment": "current",
+      "released": true,
+      "campaign": "brethren_of_ash",
+      "counts": { "player": 224, "scenario": 133 }
+    }
+  ]
+}

@@ -30,22 +30,18 @@
 
 ## 快速開始
 
-> **前置需求:** JDK **21**(引擎用到 Java 21 的 pattern-switch)、**Gradle 8.x**、Node 18+。
-> 本 repo **未含 Gradle wrapper**;裝好 Gradle 後先跑 `gradle wrapper` 產生 `./gradlew`,或把下列 `./gradlew` 換成系統 `gradle`。
+> **前置需求:** 一套 **JDK**(理想 21;若只有較舊版,Gradle 會透過 foojay 自動下載 21 toolchain)、**Node 18+**、首次執行需**網路**(自動下載 Gradle / JDK / 相依)。**Gradle wrapper 已內含**,不需另裝 Gradle。
 
-**規則引擎測試**(不需網路服務):
+**一鍵端到端**(伺服器 + 前端,Ctrl+C 一起關閉):
 ```bash
-./gradlew :engine:test
+./run-dev.sh     # 前端 http://localhost:5173 · 伺服器 ws://localhost:8080/ws/game
 ```
 
-**啟動遊戲伺服器**(WebSocket @ `ws://localhost:8080/ws/game`):
+或分開跑:
 ```bash
-./gradlew :server:bootRun
-```
-
-**啟動前端**(另一個終端):
-```bash
-cd client && npm install && npm run dev   # http://localhost:5173
+./gradlew :engine:test                     # 規則引擎單元測試
+./gradlew :server:bootRun                  # 遊戲伺服器 @ ws://localhost:8080/ws/game
+cd client && npm install && npm run dev    # 前端 @ http://localhost:5173
 ```
 
 **只看原型**(不需上面任何服務):

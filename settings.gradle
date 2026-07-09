@@ -1,3 +1,9 @@
+// Auto-provision the Java 21 toolchain: if no JDK 21 is installed, Gradle downloads one.
+// Lets `./gradlew` build with only a JDK present (docs: 一裝好 JDK 就能跑).
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.8.0'
+}
+
 rootProject.name = 'arkham'
 
 include ':engine'

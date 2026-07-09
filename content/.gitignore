@@ -1,0 +1,3 @@
+# 卡圖為 FFG / Asmodee 版權素材,不進版控(見 ../docs/06-card-data-and-images.md §9)。
+# 開發期放私有資產庫 / 物件儲存;repo 只保留 JSON 結構。
+images/

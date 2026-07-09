@@ -1,0 +1,24 @@
+{
+  "_comment": "多語系範本(繁中):以 code 為 key,對應 cards 的可翻譯欄位。修訂核心盒請用官方譯名。",
+  "core_ex_investigator": {
+    "name": "喬·戴蒙",
+    "subtitle": "私家偵探",
+    "traits": ["偵探"],
+    "text": "在你成功調查後:抽 1 張牌。(每回合限一次。)"
+  },
+  "core_ex_asset": {
+    "name": "放大鏡",
+    "traits": ["道具", "工具"],
+    "text": "你的智力 +1。"
+  },
+  "core_ex_enemy": {
+    "name": "烈焰僕從",
+    "traits": ["人型", "邪教徒", "精英"],
+    "text": "獵人。反擊。"
+  },
+  "core_ex_location": {
+    "name": "友人房間",
+    "traits": ["米大"],
+    "text": "快速。交戰:選擇相連地點的一個敵人。該敵人移動到此地點並與你交戰。此行動不引發趁隙攻擊。"
+  }
+}

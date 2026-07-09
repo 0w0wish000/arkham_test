@@ -30,6 +30,7 @@
 | [03-tech-requirements.md](03-tech-requirements.md) | **技術需求盤點** — 核心技術需求、Java 可行性評估、連線架構(LAN→雲端)、資料儲存策略、技術選型建議。 |
 | [04-roadmap-risks.md](04-roadmap-risks.md) | **開發路線圖與風險** — 分期里程碑、工作量量級估算、風險清單(含 IP 授權)、關鍵決策待辦。 |
 | [05-rules-engine-spec.md](05-rules-engine-spec.md) | **規則引擎規格** — 直接取自官方規則書(`rulebook/ahc100_rulebook-web.pdf`)的引擎行為合約:回合序列、技能檢定 8 步、能力/時機分類、**關鍵字登記表**、卡牌解剖→資料欄位、易漏規則測試案例。 |
+| [06-card-data-and-images.md](06-card-data-and-images.md) | **卡片資料庫與卡圖規範** — 交付給資料庫開發者:目錄結構、`code` 命名規則、卡圖格式/尺寸/命名、`CardDefinition` schema、多語系、版權界線、交付物與驗收。 |
 
 ## 建議閱讀順序
 

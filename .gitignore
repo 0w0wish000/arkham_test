@@ -10,6 +10,9 @@ bin/
 out/
 *.class
 
+# Gradle wrapper jar 必須入庫(否則 ./gradlew 無法運作;使用者全域 ~/.gitignore_global 排除了 *.jar)
+!gradle/wrapper/gradle-wrapper.jar
+
 # IDE
 .idea/
 .vscode/
