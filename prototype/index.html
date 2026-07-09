@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Arkham 電子化原型 — 圖版分佈 + 戰鬥流程</title>
+<style>
+  :root{
+    --bg:#0d1117; --bg2:#141b24; --panel:#1a2430; --panel2:#22303f;
+    --ink:#e8e2d0; --muted:#93a4b3; --gold:#c9a24b; --teal:#3fa9a0;
+    --red:#c0392b; --blue:#3d6fb4; --green:#4c8f5b; --purple:#8e6fb8;
+    --line:#3a4b5c; --shadow:0 6px 20px rgba(0,0,0,.45);
+    --card-radius:12px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:radial-gradient(1200px 800px at 70% -10%, #1c2a1e 0%, transparent 60%), var(--bg);
+    color:var(--ink); font-family:"Iowan Old Style","Palatino Linotype",Georgia,"PingFang TC","Microsoft JhengHei",serif;
+    overflow:hidden;
+  }
+  .app{display:grid; grid-template-columns:1fr 340px; grid-template-rows:auto 1fr; height:100vh;}
+  /* ---------- Top bar ---------- */
+  header{
+    grid-column:1/3; display:flex; align-items:center; gap:18px; padding:10px 18px;
+    background:linear-gradient(180deg,#161f2a,#0e151d); border-bottom:1px solid var(--line); box-shadow:var(--shadow); z-index:5;
+  }
+  header .title{font-size:18px; font-weight:700; letter-spacing:.5px; color:var(--gold);}
+  header .title small{display:block; font-size:11px; color:var(--muted); font-weight:400; letter-spacing:2px;}
+  .phasechip{padding:4px 12px; border-radius:20px; background:var(--panel2); border:1px solid var(--line); font-size:13px;}
+  .phasechip b{color:var(--teal);}
+  .actions-left{margin-left:auto; display:flex; gap:6px; align-items:center;}
+  .actpip{width:26px;height:26px;border-radius:50%;border:2px solid var(--gold);display:grid;place-items:center;font-size:12px;color:var(--gold);background:#0e151d;}
+  .actpip.spent{opacity:.25; border-color:var(--muted); color:var(--muted);}
+  .vital{display:flex;align-items:center;gap:6px;font-size:14px;}
+  .vital .dot{width:12px;height:12px;border-radius:50%;}
+  .vital.hp .dot{background:var(--red)} .vital.san .dot{background:var(--blue)} .vital.res .dot{background:var(--gold)}
+  /* ---------- Map ---------- */
+  .mapwrap{position:relative; overflow:hidden; min-height:500px; background:
+     radial-gradient(900px 600px at 30% 20%, #10201a 0%, transparent 55%), var(--bg2);}
+  #edges{position:absolute; inset:0; width:100%; height:100%; pointer-events:none;}
+  .loc{
+    position:absolute; width:172px; min-height:96px; transform:translate(-50%,-50%);
+    background:linear-gradient(180deg,var(--panel),var(--panel2)); border:1px solid var(--line);
+    border-radius:var(--card-radius); box-shadow:var(--shadow); padding:10px 12px; cursor:default; transition:.15s;
+  }
+  .loc.unrevealed{background:repeating-linear-gradient(45deg,#161d26,#161d26 8px,#1a232e 8px,#1a232e 16px); color:var(--muted);}
+  .loc.here{border-color:var(--gold); box-shadow:0 0 0 2px var(--gold),var(--shadow);}
+  .loc.movable{cursor:pointer; border-color:var(--teal);}
+  .loc.movable:hover{transform:translate(-50%,-50%) scale(1.04); box-shadow:0 0 0 2px var(--teal),var(--shadow);}
+  .loc .lname{font-weight:700; font-size:14px; margin-bottom:6px;}
+  .loc .lrow{display:flex; gap:12px; align-items:center; font-size:12px; color:var(--muted);}
+  .loc .badge{display:inline-flex; align-items:center; gap:3px;}
+  .loc .shroud{color:#cbb6e0;} .loc .clue{color:var(--gold);}
+  .keyhole{position:absolute; top:8px; right:10px; font-size:14px; opacity:.5;}
+  .tok-invest{position:absolute; bottom:-14px; left:50%; transform:translateX(-50%);
+    width:30px;height:30px;border-radius:50%; background:radial-gradient(circle at 35% 30%, #ffe7a8, var(--gold));
+    border:2px solid #6b531e; display:grid; place-items:center; font-size:13px; color:#3a2c07; font-weight:800; box-shadow:var(--shadow);}
+  .loc .enemymini{position:absolute; top:-16px; right:-10px; background:var(--red); color:#fff; font-size:11px;
+    padding:2px 7px; border-radius:10px; border:1px solid #7d241b; box-shadow:var(--shadow);}
+  .clues-on{display:flex; gap:3px; margin-top:6px; flex-wrap:wrap;}
+  .cluepip{width:14px;height:14px;border-radius:50%; background:radial-gradient(circle at 35% 30%,#ffe7a8,#c9a24b); border:1px solid #6b531e;}
+  /* ---------- Sidebar ---------- */
+  aside{grid-column:2; grid-row:2; background:linear-gradient(180deg,#121a23,#0d141b); border-left:1px solid var(--line);
+    display:flex; flex-direction:column; min-height:0;}
+  .side-scroll{overflow:auto; padding:14px; display:flex; flex-direction:column; gap:12px;}
+  .card{background:linear-gradient(180deg,var(--panel),var(--panel2)); border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow);}
+  .card h3{margin:0; padding:9px 12px; font-size:13px; letter-spacing:1px; color:var(--gold); border-bottom:1px solid var(--line); text-transform:uppercase;}
+  .card .body{padding:11px 12px;}
+  .invcard .statgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin:4px 0 10px;}
+  .stat{text-align:center; background:#0e151d; border:1px solid var(--line); border-radius:8px; padding:6px 0;}
+  .stat b{display:block; font-size:18px;}
+  .stat span{font-size:10px; color:var(--muted); letter-spacing:1px;}
+  .stat.will b{color:#a9c7ff} .stat.int b{color:#c6a8e6} .stat.comb b{color:#f0a99c} .stat.agi b{color:#a6e6b6}
+  .track{display:flex; align-items:center; gap:8px; margin:6px 0; font-size:13px;}
+  .track .bar{flex:1; height:12px; border-radius:6px; background:#0e151d; border:1px solid var(--line); overflow:hidden;}
+  .track .fill{height:100%;}
+  .track.hp .fill{background:linear-gradient(90deg,#e05545,#7d241b)} .track.san .fill{background:linear-gradient(90deg,#5b8ad6,#274a80)}
+  .enemycard{border-color:#5b2a24;}
+  .enemycard h3{color:#e8998c; border-color:#5b2a24;}
+  .enemy-stats{display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:8px;}
+  .enemy-stats .stat b{color:#f0a99c;}
+  .kw{display:inline-block; font-size:10px; background:#3a201c; color:#e8998c; padding:2px 7px; border-radius:10px; margin:2px 3px 0 0; border:1px solid #5b2a24;}
+  .enemyhp{display:flex; gap:4px; margin-top:6px; flex-wrap:wrap;}
+  .hppip{width:15px;height:15px;border-radius:3px;background:#3a2020;border:1px solid #5b2a24;}
+  .hppip.gone{background:var(--red); box-shadow:0 0 6px #c0392b;}
+  /* ---------- Actions ---------- */
+  .actionbar{padding:12px; border-top:1px solid var(--line); background:#0c1219; display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  button.act{
+    font-family:inherit; font-size:13px; padding:10px 8px; border-radius:9px; cursor:pointer; color:var(--ink);
+    background:linear-gradient(180deg,#233140,#18222d); border:1px solid var(--line); transition:.12s; position:relative;
+  }
+  button.act:hover:not(:disabled){border-color:var(--gold); transform:translateY(-1px);}
+  button.act:disabled{opacity:.35; cursor:not-allowed;}
+  button.act.primary{background:linear-gradient(180deg,#2e5b52,#1d3d37); border-color:var(--teal);}
+  button.act.danger{background:linear-gradient(180deg,#5b2a24,#3a1c18); border-color:#7d241b;}
+  button.act .hint{display:block; font-size:10px; color:var(--muted); margin-top:2px;}
+  /* ---------- Log ---------- */
+  .logwrap{grid-column:1; grid-row:2; display:none;} /* log lives in map overlay */
+  #log{position:absolute; left:14px; bottom:14px; width:min(46%,420px); max-height:34%; overflow:auto;
+    background:rgba(8,12,17,.82); border:1px solid var(--line); border-radius:10px; padding:8px 12px; font-size:12px; backdrop-filter:blur(3px);}
+  #log .l{padding:3px 0; border-bottom:1px dashed #22303f; color:var(--muted);}
+  #log .l:last-child{border-bottom:0;}
+  #log .l.big{color:var(--ink);} #log .l .g{color:var(--gold)} #log .l .r{color:#e8998c} #log .l .t{color:var(--teal)}
+  .flowtag{position:absolute; top:12px; left:14px; display:flex; gap:8px;}
+  .flowbtn{font-family:inherit;font-size:12px;padding:6px 12px;border-radius:20px;border:1px solid var(--line);
+    background:rgba(8,12,17,.7);color:var(--muted);cursor:pointer;}
+  .flowbtn.on{color:#0d1117;background:var(--gold);border-color:var(--gold);font-weight:700;}
+  /* ---------- Skill test modal ---------- */
+  .overlay{position:fixed; inset:0; background:rgba(4,7,11,.72); display:none; place-items:center; z-index:40; backdrop-filter:blur(4px);}
+  .overlay.show{display:grid;}
+  .test{width:440px; max-width:92vw; background:linear-gradient(180deg,#1b2531,#111922); border:1px solid var(--gold);
+    border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.6); padding:20px 22px; text-align:center;}
+  .test h2{margin:0 0 4px; color:var(--gold); font-size:19px;}
+  .test .sub{color:var(--muted); font-size:13px; margin-bottom:14px;}
+  .steps{display:flex; justify-content:space-between; margin:0 0 16px; font-size:10px; color:var(--muted);}
+  .steps .s{flex:1; padding:5px 2px; border-bottom:2px solid var(--line); transition:.2s;}
+  .steps .s.on{color:var(--teal); border-color:var(--teal);}
+  .steps .s.done{color:var(--ink); border-color:var(--gold);}
+  .calc{display:flex; align-items:center; justify-content:center; gap:10px; margin:10px 0; font-size:15px;}
+  .calc .box{min-width:44px; padding:8px 10px; border-radius:8px; background:#0e151d; border:1px solid var(--line);}
+  .calc .op{color:var(--muted);}
+  .token{width:110px;height:110px;margin:6px auto; border-radius:50%; display:grid; place-items:center; font-size:40px;
+    background:radial-gradient(circle at 35% 30%,#243244,#0b1119); border:3px solid var(--line); box-shadow:var(--shadow);
+    transform:scale(0); transition:transform .4s cubic-bezier(.2,1.4,.4,1);}
+  .token.reveal{transform:scale(1);}
+  .token.good{border-color:var(--teal); color:var(--teal);} .token.bad{border-color:var(--red); color:#e8998c;}
+  .token.sym{border-color:var(--purple); color:#d9c2f0; font-size:30px;}
+  .result{font-size:22px; font-weight:800; margin:10px 0; min-height:28px;}
+  .result.win{color:var(--teal);} .result.lose{color:#e8998c;}
+  .test .go{margin-top:10px; padding:11px 26px; font-size:15px;}
+  .commit-note{font-size:11px;color:var(--muted);margin-top:8px;}
+  /* ---- 投入判定(隊友協助)---- */
+  #t-commit-zone{margin:4px 0 10px;}
+  .commit-row{margin:10px 0;}
+  .commit-label{font-size:12px;color:var(--muted);margin-bottom:7px;text-align:left;}
+  .commit-label b{color:var(--teal);}
+  .hand{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
+  .chip{width:80px;min-height:66px;border-radius:9px;padding:7px 6px;cursor:pointer;text-align:center;
+    background:linear-gradient(180deg,#243244,#18222d);border:1px solid var(--line);transition:.12s;}
+  .chip:hover:not(.inelig){border-color:var(--gold);transform:translateY(-2px);}
+  .chip.committed{border-color:var(--teal);box-shadow:0 0 0 2px var(--teal);transform:translateY(-5px);}
+  .chip.inelig{opacity:.32;cursor:not-allowed;filter:grayscale(.8);}
+  .chip .cn{font-size:11px;margin-bottom:6px;line-height:1.2;}
+  .chip .cics{display:flex;gap:3px;justify-content:center;}
+  .ic{width:19px;height:19px;border-radius:4px;font-size:11px;display:grid;place-items:center;font-weight:700;}
+  .ic.willpower{background:#274a80;color:#a9c7ff} .ic.intellect{background:#3f2a63;color:#c6a8e6}
+  .ic.combat{background:#5b2a24;color:#f0a99c} .ic.agility{background:#274a34;color:#a6e6b6} .ic.wild{background:#5b471c;color:#ffd98a}
+  .commit-total{margin-top:10px;font-size:14px;color:var(--muted);}
+  .commit-total b{font-size:18px;}
+  .ally-tag{display:inline-block;font-size:10px;background:#1d3d37;color:var(--teal);padding:1px 7px;border-radius:9px;margin-left:4px;}
+  /* ---------- Game over ---------- */
+  .gover{position:fixed; inset:0; background:rgba(4,7,11,.9); display:none; place-items:center; z-index:50;}
+  .gover.show{display:grid;}
+  .gover .inner{text-align:center;} .gover h1{font-size:40px; margin:.2em;}
+  .gover.win h1{color:var(--teal);} .gover.lose h1{color:var(--red);}
+  .gover button{margin-top:16px;padding:12px 30px;font-size:16px;font-family:inherit;border-radius:10px;cursor:pointer;
+    background:var(--gold);border:0;color:#0d1117;font-weight:700;}
+  .toast{position:fixed;top:64px;left:50%;transform:translateX(-50%);background:rgba(8,12,17,.92);border:1px solid var(--gold);
+    color:var(--ink);padding:10px 18px;border-radius:24px;font-size:13px;z-index:60;opacity:0;transition:.3s;pointer-events:none;box-shadow:var(--shadow);}
+  .toast.show{opacity:1;}
+  @media (max-width:720px){ .app{grid-template-columns:1fr;} aside{grid-column:1;grid-row:auto;} }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="title">ARKHAM HORROR<small>電子化原型 · 修訂核心盒</small></div>
+    <div class="phasechip">回合 <b id="round">1</b> · <b id="phase">調查階段</b></div>
+    <div class="actions-left">
+      <span style="font-size:12px;color:var(--muted)">行動</span>
+      <div id="actpips"></div>
+      <span style="width:14px"></span>
+      <div class="vital hp"><span class="dot"></span><span id="h-hp">7/7</span></div>
+      <div class="vital san"><span class="dot"></span><span id="h-san">7/7</span></div>
+      <div class="vital res"><span class="dot"></span><span id="h-res">5</span></div>
+    </div>
+  </header>
+
+  <div class="mapwrap" id="mapwrap">
+    <svg id="edges"></svg>
+    <div class="flowtag">
+      <button class="flowbtn on" id="fb-map">① 圖版分佈流程</button>
+      <button class="flowbtn on" id="fb-combat">② 戰鬥流程</button>
+    </div>
+    <!-- locations injected here -->
+    <div id="log"></div>
+  </div>
+
+  <aside>
+    <div class="side-scroll">
+      <div class="card invcard">
+        <h3 id="inv-name">Joe Diamond · 探求者</h3>
+        <div class="body">
+          <div class="statgrid">
+            <div class="stat will"><b id="s-will">2</b><span>意志</span></div>
+            <div class="stat int"><b id="s-int">4</b><span>智力</span></div>
+            <div class="stat comb"><b id="s-comb">3</b><span>戰鬥</span></div>
+            <div class="stat agi"><b id="s-agi">3</b><span>敏捷</span></div>
+          </div>
+          <div class="track hp"><span>生命</span><div class="bar"><div class="fill" id="hpfill" style="width:100%"></div></div><span id="hptxt">7/7</span></div>
+          <div class="track san"><span>理智</span><div class="bar"><div class="fill" id="sanfill" style="width:100%"></div></div><span id="santxt">7/7</span></div>
+          <div style="font-size:12px;color:var(--muted);margin-top:6px">線索持有:<b id="held" style="color:var(--gold)">0</b> · ⭐效果:成功再抽1張+獲1資源</div>
+        </div>
+      </div>
+
+      <div class="card enemycard" id="enemybox" style="display:none">
+        <h3 id="e-name">Servant of Flame</h3>
+        <div class="body">
+          <div class="enemy-stats">
+            <div class="stat"><b id="e-fight">4</b><span>戰鬥值</span></div>
+            <div class="stat"><b id="e-eva">2</b><span>閃避值</span></div>
+            <div class="stat"><b id="e-dmg">1/1</b><span>傷/恐</span></div>
+          </div>
+          <div id="e-kw"></div>
+          <div style="font-size:12px;color:var(--muted);margin-top:8px">生命</div>
+          <div class="enemyhp" id="ehp"></div>
+          <div id="e-state" style="font-size:12px;color:var(--muted);margin-top:8px"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>幕 ACT 1 · Where There's Smoke…</h3>
+        <div class="body" style="font-size:12px;color:var(--muted)">
+          目標:調查取得線索,湊滿 <b style="color:var(--gold)">2</b> 個線索即可推進幕(獲勝)。<br>
+          已投入:<b id="act-clues" style="color:var(--gold)">0</b> / 2
+        </div>
+      </div>
+
+      <div class="card" style="border-color:#5b2a24">
+        <h3 style="color:#e8998c;border-color:#5b2a24">密謀 AGENDA · Past Curfew</h3>
+        <div class="body" style="font-size:12px;color:var(--muted)">
+          神話階段每輪累積毀滅;達 <b style="color:#e8998c">5</b> 個即密謀推進(落敗)。<br>
+          目前毀滅:<b id="agenda-doom" style="color:#e8998c">0</b> / 5
+        </div>
+      </div>
+    </div>
+
+    <div class="actionbar">
+      <button class="act primary" id="btn-invest">🔍 調查<span class="hint">智力 vs 遮蔽</span></button>
+      <button class="act" id="btn-move">🚶 移動<span class="hint">往相連地點</span></button>
+      <button class="act danger" id="btn-fight">⚔️ 戰鬥<span class="hint">戰鬥 vs 戰鬥值</span></button>
+      <button class="act" id="btn-evade">💨 閃避<span class="hint">敏捷 vs 閃避值</span></button>
+      <button class="act" id="btn-engage">🎯 交戰<span class="hint">拉敵人到自己</span></button>
+      <button class="act" id="btn-advance" style="display:none">📖 推進幕<span class="hint">花費 2 線索</span></button>
+      <button class="act" id="btn-end" style="grid-column:1/3">⏭️ 結束回合 → 敵人階段</button>
+    </div>
+  </aside>
+</div>
+
+<!-- Skill test modal -->
+<div class="overlay" id="overlay">
+  <div class="test">
+    <h2 id="t-title">技能檢定</h2>
+    <div class="sub" id="t-sub"></div>
+    <div class="steps" id="t-steps"></div>
+    <div id="t-commit-zone" style="display:none">
+      <div class="commit-row"><div class="commit-label">你的手牌(可投入<b>多張</b>;僅相符/百搭圖示計入)</div><div class="hand" id="perf-hand"></div></div>
+      <div class="commit-row"><div class="commit-label" id="ally-label"></div><div class="hand" id="ally-hand"></div></div>
+      <div class="commit-total">投入後技能值:<b id="commit-total" style="color:var(--teal)">0</b> / 難度 <b id="commit-diff">0</b></div>
+    </div>
+    <div class="token" id="t-token"></div>
+    <div class="calc" id="t-calc" style="visibility:hidden"></div>
+    <div class="result" id="t-result"></div>
+    <div class="commit-note" id="t-commit"></div>
+    <button class="act primary go" id="t-go">抽取混沌標記</button>
+  </div>
+</div>
+
+<div class="gover" id="gover"><div class="inner"><h1 id="go-title"></h1><p id="go-sub" style="color:var(--muted)"></p><button onclick="location.reload()">再玩一次</button></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================================
+   Arkham 電子化原型 — 展示「圖版分佈流程」與「戰鬥流程」
+   本檔為前端 UI + 遊戲流程原型。真實產品中,以下遊戲邏輯應搬到
+   Java「權威伺服器」的規則引擎(headless),客戶端只送意圖、收狀態。
+   程式結構刻意分成:State / ChaosBag / SkillTest / Actions / Render,
+   對應設計書 docs/02、docs/05。
+   ========================================================================= */
+
+/* ---------- 場景資料(簡化自 Spreading Flames) ---------- */
+const LOCATIONS = {
+  friends_room:{ name:"Your Friend's Room", zh:"友人房間", shroud:2, clueValue:2, revealed:true,  x:.16, y:.32, conn:["dormitories"] },
+  dormitories: { name:"Dormitories",         zh:"宿舍",     shroud:2, clueValue:1, revealed:false, x:.44, y:.24, conn:["friends_room","quad"], spawn:"servant" },
+  quad:        { name:"Miskatonic Quad",     zh:"米大廣場", shroud:1, clueValue:1, revealed:false, x:.44, y:.74, conn:["dormitories","science","library"] },
+  science:     { name:"Science Building",    zh:"科學大樓", shroud:3, clueValue:2, revealed:false, x:.15, y:.74, conn:["quad"] },
+  library:     { name:"Orne Library",        zh:"歐恩圖書館",shroud:4, clueValue:2, revealed:false, x:.80, y:.52, conn:["quad"], victory:true },
+};
+const ENEMY_DEF = {
+  servant:{ name:"Servant of Flame", zh:"烈焰僕從",   fight:4, health:5, evade:2, damage:1, horror:1, kw:["Hunter 獵人","Retaliate 反擊"] },
+  acolyte:{ name:"Acolyte",          zh:"信徒",       fight:1, health:1, evade:2, damage:1, horror:0, kw:["Hunter 獵人"] },
+  wraith: { name:"Fire Vampire",     zh:"火焰吸血鬼", fight:3, health:3, evade:3, damage:0, horror:2, kw:["Hunter 獵人","Alert 警覺"] },
+};
+
+/* ---------- 混沌袋(標準難度示意,16 顆) ---------- */
+function freshBag(){ return [
+  {v:1},{v:1},{v:0},{v:0},{v:-1},{v:-1},{v:-1},{v:-2},{v:-2},{v:-3},{v:-4},
+  {s:'skull'},{s:'skull'},{s:'cultist'},{s:'autofail'},{s:'eldersign'} ]; }
+const SYMBOL = {
+  skull:    { icon:'💀', mod:-2, name:'骷髏',   fx:'劇本:-2' },
+  cultist:  { icon:'🌙', mod:-1, name:'邪教徒', fx:'劇本:-1' },
+  tablet:   { icon:'📜', mod:-3, name:'石板',   fx:'劇本:-3' },
+  eldthing: { icon:'🐙', mod:-2, name:'遠古種', fx:'劇本:-2' },
+  autofail: { icon:'🐙', mod:null, name:'自動失敗', fx:'技能值歸 0' },
+  eldersign:{ icon:'⭐', mod:1, name:'古老印記', fx:'調查員:+1' },
+};
+
+/* ---------- 遊戲狀態 ---------- */
+const S = {
+  round:1, phase:'investigation', actions:3, maxActions:3,
+  inv:{ name:"Joe Diamond", zh:"探求者", will:2, int:4, comb:3, agi:3,
+        health:7, sanity:7, dmg:0, hor:0, res:5, clues:0, weaponBonus:0, loc:'friends_room', engaged:[] },
+  locs:JSON.parse(JSON.stringify(LOCATIONS)),
+  enemies:{}, bag:freshBag(), enemySeq:0, actClues:0, over:false,
+};
+/* 起始:友人房間揭示,放線索(= clueValue × 玩家數;此處 1 人) */
+S.locs.friends_room.clues = S.locs.friends_room.clueValue;
+
+/* 技能圖示 */
+const ICONS = { willpower:'意', intellect:'智', combat:'戰', agility:'敏', wild:'★' };
+/* 進行檢定者的手牌(技能卡;真實遊戲來自牌組) */
+S.inv.hand = [
+  { name:'Vicious Blow',        zh:'兇狠打擊', icons:['combat'] },
+  { name:'Overpower',           zh:'制伏',     icons:['combat','combat'] },
+  { name:'Unexpected Courage',  zh:'意外勇氣', icons:['wild','wild'] },
+  { name:'Deduction',           zh:'推理',     icons:['intellect'] },
+];
+/* 同地點的隊友(示意:守護者 Daniela,可協助投入至多 1 張) */
+S.ally = { name:'Daniela Reyes', zh:'守護者', atSameLoc:true, hand:[
+  { name:'Vicious Blow', zh:'兇狠打擊', icons:['combat'] },
+  { name:'Guts',         zh:'膽識',     icons:['willpower','willpower'] },
+]};
+/* 密謀(doom 累積達門檻 → 推進落敗) */
+S.agenda = { name:'Past Curfew', doom:0, threshold:5 };
+/* 遭遇牌堆(神話階段每輪抽 1;敵人或詭計) */
+S.encounterDeck = [
+  { type:'enemy',     def:'acolyte' },
+  { type:'treachery', zh:'恐懼凍結', name:'Frozen in Fear',    fx:'horror', n:1 },
+  { type:'enemy',     def:'wraith' },
+  { type:'treachery', zh:'宇宙邪惡', name:'Cosmic Evils',      fx:'doom',   n:1 },
+  { type:'enemy',     def:'acolyte' },
+  { type:'treachery', zh:'虛驚一場', name:'Quiet Halls',       fx:'nothing' },
+];
+S.encPtr = 0;
+
+/* ---------- 工具 ---------- */
+const $ = s=>document.querySelector(s);
+const rnd = a=>a[Math.floor(Math.random()*a.length)];
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1800); }
+function log(html, big){ const d=document.createElement('div'); d.className='l'+(big?' big':''); d.innerHTML=html; const L=$('#log'); L.appendChild(d); L.scrollTop=L.scrollHeight; }
+
+/* ---------- 敵人生成 ---------- */
+function spawnEnemy(defKey, locId, engageInv){
+  const def = ENEMY_DEF[defKey]; const id = 'e'+(++S.enemySeq);
+  S.enemies[id] = { id, def:defKey, name:def.name, zh:def.zh, fight:def.fight, health:def.health, evade:def.evade,
+    damage:def.damage, horror:def.horror, kw:def.kw, dmgOn:0, exhausted:false, loc:locId, engagedWith: engageInv?'inv':null };
+  if(engageInv && !S.inv.engaged.includes(id)) S.inv.engaged.push(id);
+  log(`⚠️ <span class="r">${def.name}</span> 出現在 ${S.locs[locId].zh}${engageInv?',並與你交戰':''}!`, true);
+  return id;
+}
+
+/* =========================================================================
+   技能檢定引擎 —— 忠實對應 docs/05 §2 的 8 步驟 + 混沌袋
+   ========================================================================= */
+const STEP_LABELS = ['①決定技能','②投入','③抽標記','④結算符號','⑤算技能值','⑥判定','⑦套用','⑧結束'];
+function runSkillTest({title, skill, skillKey, base, difficulty, isPeril=false, onDone}){
+  const ov=$('#overlay'); ov.classList.add('show');
+  $('#t-title').textContent = title;
+  $('#t-sub').textContent = `使用【${skill}】基礎值 ${base} · 難度 ${difficulty}`;
+  $('#t-steps').innerHTML = STEP_LABELS.map((l,i)=>`<div class="s" data-i="${i}">${l}</div>`).join('');
+  const tok=$('#t-token'); tok.className='token'; tok.textContent='?'; tok.style.display='none';
+  $('#t-calc').style.visibility='hidden'; $('#t-calc').innerHTML='';
+  $('#t-result').textContent=''; $('#t-result').className='result';
+  $('#t-commit').textContent='';
+  markStep(0,true); markStep(1,false);
+
+  /* ---- Step 2:投入判定(本人多張 + 同地點隊友至多 1 張)---- */
+  const perfSel = new Set();   // inv.hand 索引
+  let allySel = null;          // ally.hand 索引(至多 1)
+  const iconMatch = ic => ic===skillKey || ic==='wild';
+  const cardBonus = c => c.icons.filter(iconMatch).length;   // 只計相符/百搭
+  const cardEligible = c => c.icons.some(iconMatch);
+  const commitBonus = () => {
+    let b=0; perfSel.forEach(i=>b+=cardBonus(S.inv.hand[i]));
+    if(allySel!=null) b+=cardBonus(S.ally.hand[allySel]);
+    return b;
+  };
+  const chip = (c,i,committed)=>`<div class="chip ${committed?'committed':''} ${cardEligible(c)?'':'inelig'}" data-i="${i}">
+      <div class="cn">${c.zh}</div><div class="cics">${c.icons.map(ic=>`<span class="ic ${ic}">${ICONS[ic]}</span>`).join('')}</div></div>`;
+  const czone=$('#t-commit-zone');
+  function renderCommit(){
+    $('#perf-hand').innerHTML = S.inv.hand.map((c,i)=>chip(c,i,perfSel.has(i))).join('') || '<span style="color:var(--muted);font-size:12px">(手牌用盡)</span>';
+    $('#ally-label').innerHTML = isPeril
+      ? `🤝 隊友 ${S.ally.zh} <span class="ally-tag">Peril:無法協助</span>`
+      : `🤝 隊友 ${S.ally.zh}(同地點)<span class="ally-tag">至多 1 張</span>`;
+    $('#ally-hand').innerHTML = isPeril ? '' : (S.ally.hand.map((c,i)=>chip(c,i,allySel===i)).join('') || '<span style="color:var(--muted);font-size:12px">(手牌用盡)</span>');
+    $('#commit-total').textContent = base + commitBonus();
+    $('#commit-diff').textContent = difficulty;
+    $('#perf-hand').querySelectorAll('.chip:not(.inelig)').forEach(el=>el.onclick=()=>{
+      const i=+el.dataset.i; perfSel.has(i)?perfSel.delete(i):perfSel.add(i); renderCommit(); });
+    if(!isPeril) $('#ally-hand').querySelectorAll('.chip:not(.inelig)').forEach(el=>el.onclick=()=>{
+      const i=+el.dataset.i; allySel = (allySel===i)?null:i; renderCommit(); });   // 至多 1:再點取消/換卡
+  }
+  czone.style.display=''; renderCommit();
+
+  const go=$('#t-go'); go.style.display=''; go.textContent='完成投入 → 抽標記';
+  go.onclick = ()=>{
+    czone.style.display='none'; go.style.display='none';
+    markStep(1,true);
+    const bonus = commitBonus(); const effBase = base + bonus;
+    const names=[...perfSel].map(i=>S.inv.hand[i].zh);
+    if(allySel!=null) names.push(`<span class="t">${S.ally.zh}的${S.ally.hand[allySel].zh}</span>`);
+    if(names.length) log(`🃏 投入:${names.join('、')}(技能 ${base}→<b>${effBase}</b>)`);
+    // Step 3:抽標記
+    tok.style.display=''; markStep(2,false);
+    const drawn = rnd(S.bag);
+    tok.classList.add('reveal');
+    let mod=0, symInfo=null, auto=false;
+    if('v' in drawn){ mod=drawn.v; tok.textContent=(mod>=0?'+':'')+mod; tok.classList.add(mod>=0?'good':'bad'); }
+    else { symInfo=SYMBOL[drawn.s]; tok.classList.add('sym'); tok.textContent=symInfo.icon;
+           if(symInfo.mod===null){ auto=true; } else { mod=symInfo.mod; } }
+    setTimeout(()=>{
+      markStep(2,true); markStep(3,true);
+      if(symInfo) log(`抽到 <span class="t">${symInfo.icon} ${symInfo.name}</span>(${symInfo.fx})`);
+      else log(`抽到混沌標記 <span class="t">${(mod>=0?'+':'')+mod}</span>`);
+      markStep(4,true);
+      const total = auto ? 0 : (effBase + mod);
+      const c=$('#t-calc'); c.style.visibility='visible';
+      c.innerHTML = auto
+        ? `<span class="box">自動失敗</span><span class="op">→ 技能值</span><span class="box">0</span>`
+        : `<span class="box" title="基礎+投入">${effBase}</span><span class="op">＋</span><span class="box">${(mod>=0?'+':'')+mod}</span><span class="op">＝</span><span class="box"><b>${total}</b></span>`;
+      markStep(5,true);
+      const success = !auto && total>=difficulty;
+      markStep(6,true); markStep(7,true);
+      const r=$('#t-result'); r.textContent = success? '✔ 成功' : '✘ 失敗';
+      r.className='result '+(success?'win':'lose');
+      // 檢定結束:投入的卡進棄牌堆(原型直接移除)
+      [...perfSel].sort((a,b)=>b-a).forEach(i=>S.inv.hand.splice(i,1));
+      if(allySel!=null) S.ally.hand.splice(allySel,1);
+      go.style.display=''; go.textContent='確認';
+      go.onclick=()=>{ ov.classList.remove('show'); onDone({success, token:drawn, symInfo, elderSign: drawn.s==='eldersign'}); };
+    }, 480);
+  };
+}
+function markStep(i, done){ const el=document.querySelector(`.steps .s[data-i="${i}"]`); if(!el)return; el.classList.toggle('done',!!done); el.classList.toggle('on',!done); }
+
+/* =========================================================================
+   行動(Actions)—— 圖版流程 + 戰鬥流程
+   ========================================================================= */
+function spendAction(n=1){ S.actions-=n; render(); }
+function readyEnemiesEngaged(){ return S.inv.engaged.map(id=>S.enemies[id]).filter(e=>e&&!e.exhausted); }
+
+/* 趁隙攻擊:執行 Fight/Evade/Parley/Resign 以外的行動時觸發 */
+function attackOfOpportunity(reason){
+  const atk = readyEnemiesEngaged();
+  if(atk.length){ log(`↩︎ <span class="r">趁隙攻擊</span>(${reason}):`); atk.forEach(e=>enemyHit(e)); }
+}
+
+/* 移動(圖版流程核心:相連判定 → 揭示 → 放線索) */
+function doMove(toId){
+  if(S.phase!=='investigation'||S.actions<=0||S.over) return;
+  const here=S.locs[S.inv.loc];
+  if(!here.conn.includes(toId)) { toast('該地點與你目前所在地不相連'); return; }
+  attackOfOpportunity('移動');
+  if(S.over) return;
+  S.inv.loc=toId; const dest=S.locs[toId];
+  if(!dest.revealed){
+    dest.revealed=true; dest.clues=dest.clueValue; // 首次進入:揭示 + 放線索
+    log(`🗺️ 進入並<span class="g">揭示</span> ${dest.zh},放上 ${dest.clues} 線索。`, true);
+    if(dest.spawn){ spawnEnemy(dest.spawn, toId, true); } // 揭示可能生成敵人
+  } else {
+    log(`🚶 移動到 ${dest.zh}。`);
+  }
+  // 移動後,與同地點未交戰敵人交戰(簡化:自動交戰)
+  Object.values(S.enemies).forEach(e=>{ if(e.loc===toId && !S.inv.engaged.includes(e.id)){ S.inv.engaged.push(e.id); e.engagedWith='inv'; log(`${e.zh} 與你交戰。`);} });
+  spendAction();
+}
+
+/* 調查(圖版流程:智力 vs 遮蔽 → 取線索) */
+function doInvestigate(){
+  if(S.phase!=='investigation'||S.actions<=0||S.over) return;
+  const loc=S.locs[S.inv.loc];
+  if(loc.clues<=0){ toast('此地點已無線索'); return; }
+  attackOfOpportunity('調查');
+  if(S.over) return;
+  runSkillTest({ title:'調查', skill:'智力', skillKey:'intellect', base:S.inv.int, difficulty:loc.shroud, onDone:(r)=>{
+    if(r.success){
+      loc.clues--; S.inv.clues++;
+      log(`🔎 調查成功,取得 1 線索(持有 ${S.inv.clues})。`, true);
+      if(r.elderSign){ S.inv.res++; log(`⭐ 古老印記:再抽 1 張、獲得 1 資源。`); }
+    } else { log(`🔎 調查失敗,未取得線索。`); }
+    spendAction();
+    checkAdvanceAvailable();
+  }});
+}
+
+/* 戰鬥(戰鬥流程:戰鬥 vs 戰鬥值 → 造成傷害;失敗遇 Retaliate 反擊) */
+function doFight(){
+  const e=currentEnemy(); if(!e){toast('此地無敵人');return;}
+  if(S.phase!=='investigation'||S.actions<=0||S.over) return;
+  runSkillTest({ title:`戰鬥:${e.zh}`, skill:'戰鬥', skillKey:'combat', base:S.inv.comb, difficulty:e.fight, onDone:(r)=>{
+    if(r.success){
+      const dmg=1+S.inv.weaponBonus; e.dmgOn+=dmg;
+      log(`⚔️ 戰鬥成功,對 ${e.zh} 造成 ${dmg} 傷害(${e.dmgOn}/${e.health})。`, true);
+      if(e.dmgOn>=e.health){ defeatEnemy(e); }
+    } else {
+      log(`⚔️ 戰鬥失敗。`);
+      if(e.kw.some(k=>k.includes('Retaliate'))){ log(`<span class="r">反擊 Retaliate</span>!`); enemyHit(e); }
+    }
+    spendAction();
+  }});
+}
+
+/* 閃避(戰鬥流程:敏捷 vs 閃避值 → 敵人耗竭脫離) */
+function doEvade(){
+  const e=currentEnemy(); if(!e){toast('此地無交戰敵人');return;}
+  if(S.phase!=='investigation'||S.actions<=0||S.over) return;
+  runSkillTest({ title:`閃避:${e.zh}`, skill:'敏捷', skillKey:'agility', base:S.inv.agi, difficulty:e.evade, onDone:(r)=>{
+    if(r.success){
+      e.exhausted=true; e.engagedWith=null; S.inv.engaged=S.inv.engaged.filter(id=>id!==e.id);
+      log(`💨 閃避成功,${e.zh} 耗竭並脫離交戰。`, true);
+    } else { log(`💨 閃避失敗。`); }
+    spendAction();
+  }});
+}
+
+/* 交戰(把同地點敵人拉進威脅區) */
+function doEngage(){
+  const here=Object.values(S.enemies).find(e=>e.loc===S.inv.loc && !S.inv.engaged.includes(e.id));
+  if(!here){ toast('沒有可交戰的敵人'); return; }
+  if(S.phase!=='investigation'||S.actions<=0||S.over) return;
+  S.inv.engaged.push(here.id); here.engagedWith='inv';
+  log(`🎯 你與 ${here.zh} 交戰。`);
+  spendAction();
+}
+
+function currentEnemy(){ // 目前可打的敵人:優先交戰中、同地點
+  const eng=S.inv.engaged.map(id=>S.enemies[id]).filter(Boolean);
+  if(eng.length) return eng[0];
+  return Object.values(S.enemies).find(e=>e.loc===S.inv.loc)||null;
+}
+function defeatEnemy(e){
+  log(`☠️ <span class="g">${e.zh} 被擊敗!</span>`, true);
+  S.inv.engaged=S.inv.engaged.filter(id=>id!==e.id); delete S.enemies[e.id];
+}
+
+/* 敵人攻擊(對調查員造成傷害+恐懼) */
+function enemyHit(e){
+  S.inv.dmg+=e.damage; S.inv.hor+=e.horror;
+  log(`💥 <span class="r">${e.zh} 攻擊</span>:${e.damage} 傷害、${e.horror} 恐懼。`);
+  checkDefeat();
+}
+function checkDefeat(){
+  if(S.inv.dmg>=S.inv.health){ gameOver(false,'你的調查員傷重被擊敗(生命歸零)。'); }
+  else if(S.inv.hor>=S.inv.sanity){ gameOver(false,'你的調查員精神崩潰(理智歸零)。'); }
+}
+
+/* =========================================================================
+   回合流程:調查階段 → 敵人階段 → 整備 → 下一輪神話
+   ========================================================================= */
+function endTurn(){
+  if(S.over) return;
+  // 敵人階段
+  S.phase='enemy'; render();
+  log(`—— <span class="t">敵人階段</span> ——`, true);
+  // 1) 移動:hunter 敵人朝調查員靠近
+  Object.values(S.enemies).forEach(e=>{
+    if(e.exhausted||S.inv.engaged.includes(e.id)) return;
+    if(e.kw.some(k=>k.includes('Hunter'))){
+      const step=nextStepToward(e.loc, S.inv.loc);
+      if(step){ e.loc=step; log(`🐾 ${e.zh}(獵人)移動到 ${S.locs[step].zh}。`);
+        if(step===S.inv.loc){ S.inv.engaged.push(e.id); e.engagedWith='inv'; log(`${e.zh} 與你交戰。`);} }
+    }
+  });
+  // 2) 攻擊:交戰中且 ready 的敵人攻擊
+  readyEnemiesEngaged().forEach(e=>{ enemyHit(e); e.exhausted=true; });
+  if(S.over) return;
+  // 整備階段
+  setTimeout(()=>{
+    if(S.over) return;
+    log(`—— <span class="t">整備階段</span> ——`);
+    Object.values(S.enemies).forEach(e=>e.exhausted=false); // ready 所有敵人
+    S.inv.res+=1; // 抽1(略)+ 獲1資源
+    // 下一輪:先跑神話階段(第 2 輪起不再跳過),再進調查階段
+    S.round++;
+    log(`—— <span class="g">第 ${S.round} 輪</span> ——`, true);
+    mythosPhase();
+    if(S.over) return;
+    S.phase='investigation'; S.actions=S.maxActions;
+    log(`—— <span class="t">調查階段</span> ——`);
+    render();
+  }, 700);
+}
+function nextStepToward(from, to){ // BFS 最短路徑第一步
+  if(from===to) return null;
+  const q=[[from]], seen=new Set([from]);
+  while(q.length){ const path=q.shift(); const last=path[path.length-1];
+    for(const n of S.locs[last].conn){ if(seen.has(n))continue; if(!S.locs[n].revealed)continue;
+      const np=[...path,n]; if(n===to) return np[1]; seen.add(n); q.push(np); } }
+  return null;
+}
+
+/* ---------- 神話階段(第 2 輪起):累積毀滅 + 抽遭遇卡 ---------- */
+function mythosPhase(){
+  S.phase='mythos'; render();
+  log(`—— <span class="r">神話階段</span> ——`, true);
+  // 1) 當前密謀 +1 毀滅;達門檻即推進(落敗)
+  S.agenda.doom++;
+  log(`🕯️ 密謀累積毀滅:${S.agenda.doom}/${S.agenda.threshold}。`);
+  if(S.agenda.doom>=S.agenda.threshold){ gameOver(false,'密謀推進 —— 黑暗吞噬了阿卡姆大學。'); return; }
+  // 2) 每位調查員抽 1 張遭遇卡(此處僅 Joe)
+  const card = S.encounterDeck[S.encPtr % S.encounterDeck.length]; S.encPtr++;
+  resolveEncounter(card);
+}
+function resolveEncounter(card){
+  if(card.type==='enemy'){
+    // 敵人 spawn:此處刻意讓其在「遠處已揭示地點」現身、未交戰,
+    // 以在敵人階段展示「獵人追人」;若無遠處則與 Joe 交戰。
+    const remote = pickRemoteRevealed();
+    if(remote){ spawnEnemy(card.def, remote, false);
+      log(`🃏 遭遇(敵人):於 ${S.locs[remote].zh} 現身、未交戰 → 敵人階段將<span class="r">獵人追擊</span>。`); }
+    else spawnEnemy(card.def, S.inv.loc, true);
+  } else { // 詭計 treachery
+    log(`🃏 遭遇(詭計):<span class="r">${card.zh}</span>(${card.name})。`);
+    if(card.fx==='horror'){ S.inv.hor+=card.n; log(`受到 ${card.n} 恐懼。`); checkDefeat(); }
+    else if(card.fx==='doom'){ S.agenda.doom+=card.n; log(`密謀 +${card.n} 毀滅(${S.agenda.doom}/${S.agenda.threshold})。`);
+      if(S.agenda.doom>=S.agenda.threshold){ gameOver(false,'密謀推進 —— 黑暗吞噬了阿卡姆大學。'); } }
+    else log(`(無事發生。)`);
+  }
+}
+function pickRemoteRevealed(){ // 選一個已揭示、非 Joe 所在的地點(讓敵人 spawn 後獵人追人)
+  const cands = Object.keys(S.locs).filter(id=>S.locs[id].revealed && id!==S.inv.loc);
+  return cands.length ? cands[cands.length-1] : null;
+}
+
+/* 推進幕(獲勝條件) */
+function checkAdvanceAvailable(){
+  const btn=$('#btn-advance');
+  btn.style.display = (S.inv.clues>=2)?'':'none';
+}
+function doAdvance(){
+  if(S.inv.clues<2) return;
+  S.inv.clues-=2; S.actClues+=2;
+  gameOver(true,'你湊齊線索、推進了幕 —— 揭開了友人失蹤的真相!');
+}
+function gameOver(win, sub){
+  S.over=true; const g=$('#gover'); g.classList.add('show'); g.classList.add(win?'win':'lose');
+  $('#go-title').textContent = win?'調查成功':'調查失敗';
+  $('#go-sub').textContent = sub;
+}
+
+/* =========================================================================
+   Render —— 把狀態畫成畫面
+   ========================================================================= */
+function render(){
+  // top
+  $('#round').textContent=S.round;
+  $('#phase').textContent={investigation:'調查階段',enemy:'敵人階段',upkeep:'整備階段',mythos:'神話階段'}[S.phase];
+  const pips=[...Array(S.maxActions)].map((_,i)=>`<div class="actpip ${i>=S.actions?'spent':''}">${i<S.actions?'●':'○'}</div>`).join('');
+  $('#actpips').innerHTML=pips;
+  // vitals
+  const inv=S.inv, hp=inv.health-inv.dmg, san=inv.sanity-inv.hor;
+  $('#h-hp').textContent=`${hp}/${inv.health}`; $('#h-san').textContent=`${san}/${inv.sanity}`; $('#h-res').textContent=inv.res;
+  $('#hptxt').textContent=`${hp}/${inv.health}`; $('#santxt').textContent=`${san}/${inv.sanity}`;
+  $('#hpfill').style.width=Math.max(0,hp/inv.health*100)+'%'; $('#sanfill').style.width=Math.max(0,san/inv.sanity*100)+'%';
+  $('#held').textContent=inv.clues; $('#act-clues').textContent=S.actClues;
+  $('#agenda-doom').textContent=S.agenda.doom;
+  // enemy card
+  const e=currentEnemy(); const eb=$('#enemybox');
+  if(e){ eb.style.display=''; $('#e-name').textContent=`${e.name} · ${e.zh}`;
+    $('#e-fight').textContent=e.fight; $('#e-eva').textContent=e.evade; $('#e-dmg').textContent=`${e.damage}/${e.horror}`;
+    $('#e-kw').innerHTML=e.kw.map(k=>`<span class="kw">${k}</span>`).join('');
+    $('#ehp').innerHTML=[...Array(e.health)].map((_,i)=>`<div class="hppip ${i<e.dmgOn?'gone':''}"></div>`).join('');
+    $('#e-state').textContent = (S.inv.engaged.includes(e.id)?'● 與你交戰中':'○ 同地點,未交戰') + (e.exhausted?' · 已耗竭':'');
+  } else eb.style.display='none';
+  // map
+  renderMap();
+  // action buttons legality
+  const canAct=S.phase==='investigation'&&S.actions>0&&!S.over;
+  const loc=S.locs[inv.loc];
+  $('#btn-invest').disabled=!(canAct&&loc.clues>0);
+  $('#btn-move').disabled=!canAct;
+  $('#btn-fight').disabled=!(canAct&&!!currentEnemy());
+  $('#btn-evade').disabled=!(canAct&&S.inv.engaged.length>0);
+  $('#btn-engage').disabled=!(canAct&&Object.values(S.enemies).some(en=>en.loc===inv.loc&&!S.inv.engaged.includes(en.id)));
+  $('#btn-end').disabled=S.over||S.phase!=='investigation';
+  checkAdvanceAvailable();
+  $('#btn-move').classList.toggle('primary', canAct);
+}
+
+let moveMode=false;
+function renderMap(){
+  const wrap=$('#mapwrap'); const W=wrap.clientWidth, H=wrap.clientHeight;
+  // edges
+  const svg=$('#edges'); svg.setAttribute('viewBox',`0 0 ${W} ${H}`); let lines='';
+  const drawn=new Set();
+  for(const [id,l] of Object.entries(S.locs)){
+    for(const n of l.conn){ const key=[id,n].sort().join('-'); if(drawn.has(key))continue; drawn.add(key);
+      const a=S.locs[id], b=S.locs[n];
+      lines+=`<line x1="${a.x*W}" y1="${a.y*H}" x2="${b.x*W}" y2="${b.y*H}" stroke="#3a4b5c" stroke-width="2" stroke-dasharray="5 6"/>`; }
+  }
+  svg.innerHTML=lines;
+  // location cards
+  wrap.querySelectorAll('.loc').forEach(n=>n.remove());
+  const here=S.locs[S.inv.loc];
+  for(const [id,l] of Object.entries(S.locs)){
+    const el=document.createElement('div'); el.className='loc'+(l.revealed?'':' unrevealed');
+    el.style.left=(l.x*W)+'px'; el.style.top=(l.y*H)+'px';
+    const isHere=id===S.inv.loc; if(isHere) el.classList.add('here');
+    const movable = moveMode && here.conn.includes(id);
+    if(movable) el.classList.add('movable');
+    const enemiesHere=Object.values(S.enemies).filter(e=>e.loc===id);
+    el.innerHTML = l.revealed ? `
+        <div class="lname">${l.zh}</div>
+        <div class="lrow"><span class="badge shroud">🌫️ 遮蔽 ${l.shroud}</span><span class="badge clue">🔎 ${l.clues}</span></div>
+        ${l.clues>0?`<div class="clues-on">${[...Array(l.clues)].map(()=>'<div class="cluepip"></div>').join('')}</div>`:''}
+        ${l.victory?'<div style="font-size:10px;color:var(--gold);margin-top:4px">★ Victory</div>':''}
+        ${enemiesHere.length?`<div class="enemymini">⚔️ ${enemiesHere.length}</div>`:''}
+        ${isHere?'<div class="tok-invest">JD</div>':''}
+      ` : `<div class="keyhole">🔒</div><div class="lname">未揭示地點</div>
+           <div class="lrow"><span style="font-size:11px">${l.zh}</span></div>
+           ${isHere?'<div class="tok-invest">JD</div>':''}`;
+    if(movable) el.onclick=()=>{ moveMode=false; doMove(id); };
+    wrap.appendChild(el);
+  }
+}
+
+/* ---------- 事件綁定 ---------- */
+$('#btn-invest').onclick=doInvestigate;
+$('#btn-fight').onclick=doFight;
+$('#btn-evade').onclick=doEvade;
+$('#btn-engage').onclick=doEngage;
+$('#btn-advance').onclick=doAdvance;
+$('#btn-end').onclick=endTurn;
+$('#btn-move').onclick=()=>{ moveMode=!moveMode; toast(moveMode?'選擇要移動到的相連地點(綠框)':'取消移動'); renderMap(); };
+$('#fb-map').onclick=e=>e.target.classList.toggle('on');
+$('#fb-combat').onclick=e=>e.target.classList.toggle('on');
+window.addEventListener('resize', renderMap);
+
+/* ---------- 開場 ---------- */
+log('🎬 <span class="g">遊戲開始</span> · 第 1 輪跳過神話階段,直接進入調查階段。', true);
+log('流程:①<span class="g">移動</span>進未揭示地點=圖版分佈(揭示+放線索);②<span class="g">調查</span>取線索,湊 2 個推進幕(勝);③宿舍<span class="r">遇敵</span>=戰鬥/閃避+投入判定;④<span class="t">結束回合</span>看敵人階段(獵人追人),第 2 輪起有神話階段(抽遭遇卡、密謀累積毀滅→落敗)。');
+render();
+</script>
+</body>
+</html>

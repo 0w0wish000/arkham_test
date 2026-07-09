@@ -1,0 +1,4 @@
+rootProject.name = 'arkham'
+
+include ':engine'
+include ':server'

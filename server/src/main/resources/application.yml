@@ -1,0 +1,12 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: arkham-server
+
+# The game WebSocket endpoint is registered at /ws/game by config.WebSocketConfig,
+# so clients connect at ws://localhost:8080/ws/game (protocol.md).
+logging:
+  level:
+    com.arkham: INFO

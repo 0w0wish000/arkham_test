@@ -1,0 +1,8 @@
+// Root build for the Arkham monorepo.
+// Each module (engine/, server/) is self-contained and declares its own plugins,
+// repositories, Java toolchain (21) and dependencies. This file only shares the
+// group/version coordinates so the two modules stay aligned.
+allprojects {
+    group = 'com.arkham'
+    version = '0.1.0'
+}

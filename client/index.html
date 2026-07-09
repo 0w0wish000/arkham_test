@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Arkham — 客戶端</title>
+  <style>
+    html,body{margin:0;height:100%;background:#0d1117;color:#e8e2d0;
+      font-family:system-ui,"PingFang TC","Microsoft JhengHei",sans-serif;overflow:hidden}
+    #app{width:100vw;height:100vh}
+    #log{position:fixed;left:12px;bottom:12px;max-height:30%;overflow:auto;font-size:12px;
+      background:rgba(8,12,17,.82);border:1px solid #3a4b5c;border-radius:8px;padding:8px 12px;width:min(40%,380px)}
+    #log div{padding:2px 0;color:#93a4b3}
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="log"></div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

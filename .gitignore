@@ -1,0 +1,23 @@
+# Node / client
+node_modules/
+client/dist/
+*.log
+
+# Java / Gradle
+.gradle/
+build/
+bin/
+out/
+*.class
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+
+# Env
+.env
+.env.local

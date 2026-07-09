@@ -1,0 +1,35 @@
+plugins {
+    id 'java-library'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Pure-Java rules engine: no framework dependencies.
+    // Jackson annotations are available (compileOnly) should a model ever need
+    // to influence JSON shape, but the records already match the wire contract
+    // by field name, so none are required today.
+    compileOnly 'com.fasterxml.jackson.core:jackson-annotations:2.17.2'
+
+    testImplementation platform('org.junit:junit-bom:5.10.3')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+// Keep record component names in the bytecode so the server's Jackson can bind
+// these records to/from JSON reliably.
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs << '-parameters'
+}
