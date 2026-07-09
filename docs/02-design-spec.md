@@ -232,7 +232,7 @@ GameSession      id, campaignId?, scenarioId, players[], rngSeed,
                  gameState(serialized), eventLog[]   // 進行中對局(可存/續)
 ```
 
-> **🔧 建模重點:** 靜態與動態徹底分離。牌組/戰役只存「卡片 id 與成長」,不複製卡牌定義。對局狀態要能**完整序列化**(存檔、續玩、重連、重播)。
+> **🔧 建模重點:** 靜態與動態徹底分離。牌組/戰役只存「卡片 id 與成長」,不複製卡牌定義。對局狀態要能**完整序列化**(存檔、續玩、重連、重播)。**存檔機制與「遊戲紀錄→當時牌組」的溯源設計,詳見 [08-save-and-provenance.md](08-save-and-provenance.md)。**
 
 ---
 
