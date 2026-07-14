@@ -85,13 +85,13 @@ async function main() {
     const A = new Client("Easy");
     await A.open();
     const v = await soloStart(A, "gp-easy", "簡單團", "EASY");
-    check(v.chaosBagSummary.total === 15, "EASY 袋 15 顆", `total=${v.chaosBagSummary.total}`);
+    check(v.chaosBagSummary.total === 14, "EASY 袋 14 顆", `total=${v.chaosBagSummary.total}`);
     A.close();
     await sleep(200);
     const B = new Client("Expert");
     await B.open();
     const v2 = await soloStart(B, "gp-exp", "專家團", "EXPERT");
-    check(v2.chaosBagSummary.total === 17, "EXPERT 袋 17 顆(負值更多更深)", `total=${v2.chaosBagSummary.total}`);
+    check(v2.chaosBagSummary.total === 18, "EXPERT 袋 18 顆(負值更多更深)", `total=${v2.chaosBagSummary.total}`);
     B.close();
   }
   await sleep(300);

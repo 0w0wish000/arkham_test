@@ -17,10 +17,12 @@ class ChaosBagTest {
     }
 
     @Test
-    void standardBagCompositionMatchesPrototypeFreshBag() {
+    void standardBagCompositionMatchesOfficialRulebook() {
+        // 官方規則書 p7 首戰 16 顆:+1、0×2、-1×3、-2×2、-3、-4、
+        // 骷髏×2、異教徒、石板、自動失敗、古老印記(2026-07 對照 PDF 核實)。
         List<ChaosToken> tokens = ChaosBag.standard().tokens();
 
-        assertEquals(2, countNumeric(tokens, 1));
+        assertEquals(1, countNumeric(tokens, 1));
         assertEquals(2, countNumeric(tokens, 0));
         assertEquals(3, countNumeric(tokens, -1));
         assertEquals(2, countNumeric(tokens, -2));
@@ -29,12 +31,13 @@ class ChaosBagTest {
 
         assertEquals(2, countSymbol(tokens, ChaosSymbol.SKULL));
         assertEquals(1, countSymbol(tokens, ChaosSymbol.CULTIST));
+        assertEquals(1, countSymbol(tokens, ChaosSymbol.TABLET));
         assertEquals(1, countSymbol(tokens, ChaosSymbol.AUTOFAIL));
         assertEquals(1, countSymbol(tokens, ChaosSymbol.ELDER_SIGN));
 
-        // 11 numeric + 5 symbol = 16
-        assertEquals(11, tokens.stream().filter(t -> t instanceof ChaosToken.Numeric).count());
-        assertEquals(5, tokens.stream().filter(t -> t instanceof ChaosToken.Symbol).count());
+        // 10 numeric + 6 symbol = 16
+        assertEquals(10, tokens.stream().filter(t -> t instanceof ChaosToken.Numeric).count());
+        assertEquals(6, tokens.stream().filter(t -> t instanceof ChaosToken.Symbol).count());
     }
 
     @Test
