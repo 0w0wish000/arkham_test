@@ -10,6 +10,13 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+# 首次啟動:卡片資料(FFG 版權,不進 git,docs/06 §9)不存在就自動抓一次。
+# 失敗(無 python3 / 無網路)不擋遊戲 —— 目前對局用內建卡目錄;之後可手動跑 ./setup-content.sh
+if ! ls content/cards/generated/*.json >/dev/null 2>&1; then
+  echo "▶ 首次啟動:載入卡片資料(僅此一次)…"
+  bash ./setup-content.sh || echo "⚠️ 卡片資料載入失敗,先略過(不影響目前遊玩);之後可手動跑 ./setup-content.sh"
+fi
+
 # 取得本機區網 IP(給隊友連)
 lan_ip() {
   if command -v ipconfig >/dev/null 2>&1; then

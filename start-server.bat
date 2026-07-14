@@ -11,6 +11,19 @@ setlocal enabledelayedexpansion
 chcp 65001 >nul
 cd /d "%~dp0"
 
+rem 首次啟動：卡片資料（FFG 版權，不進 git）不存在就自動抓一次；失敗不擋遊戲。
+if not exist "content\cards\generated\*.json" (
+  echo ▶ 首次啟動：載入卡片資料（僅此一次）…
+  set "PYCMD="
+  where py >nul 2>nul && set "PYCMD=py -3"
+  if not defined PYCMD ( where python >nul 2>nul && set "PYCMD=python" )
+  if defined PYCMD (
+    !PYCMD! content\tools\build_cards.py || echo ⚠️ 載入失敗，先略過（不影響目前遊玩）；之後可執行 setup-content.bat
+  ) else (
+    echo ⚠️ 找不到 Python，先略過（不影響目前遊玩）；安裝 Python 3 後執行 setup-content.bat
+  )
+)
+
 rem 取得本機區網 IP（給隊友連）—— 用 PowerShell 抓「有預設閘道的網卡」，跨語系可靠
 set "IP="
 for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "(Get-NetIPConfiguration ^| Where-Object {$_.IPv4DefaultGateway} ^| Select-Object -First 1).IPv4Address.IPAddress" 2^>NUL`) do set "IP=%%i"

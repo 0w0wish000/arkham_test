@@ -93,11 +93,14 @@ stateDiagram-v2
 
 ### 最省事:主機一台跑兩個,其他人只要瀏覽器
 
-| 平台 | 伺服器 | 前端 | 一鍵兩者 |
-|---|---|---|---|
-| 🪟 **Windows** | 雙擊 `start-server.bat` | 雙擊 `start-client.bat` | 雙擊 `run-dev.bat` |
-| 🍎 **macOS** | 雙擊 `start-server.command` | 雙擊 `start-client.command` | 雙擊 `run-dev.command` |
-| 🐧 終端機 | `./start-server.sh` | `./start-client.sh` | `./run-dev.sh` |
+| 平台 | 伺服器 | 前端 | 一鍵兩者 | 卡片資料(clone 後一次) |
+|---|---|---|---|---|
+| 🪟 **Windows** | 雙擊 `start-server.bat` | 雙擊 `start-client.bat` | 雙擊 `run-dev.bat` | 雙擊 `setup-content.bat` |
+| 🍎 **macOS** | 雙擊 `start-server.command` | 雙擊 `start-client.command` | 雙擊 `run-dev.command` | 雙擊 `setup-content.command` |
+| 🐧 終端機 | `./start-server.sh` | `./start-client.sh` | `./run-dev.sh` | `./setup-content.sh` |
+
+> 卡片完整文字為 FFG 版權**不進 git**(docs/06 §9)—— 新 clone 沒有 `content/cards/generated/`。
+> `setup-content` 只需跑一次(需 Python 3);**忘了跑也沒關係:`start-server` 首次啟動會自動抓**,失敗不擋遊戲。更新用 `--refresh`。
 
 ```mermaid
 sequenceDiagram

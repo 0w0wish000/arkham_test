@@ -11,6 +11,12 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+# 首次啟動:卡片資料不存在就自動抓一次(失敗不擋遊戲;詳見 setup-content.sh)
+if ! ls content/cards/generated/*.json >/dev/null 2>&1; then
+  echo "▶ 首次啟動:載入卡片資料(僅此一次)…"
+  bash ./setup-content.sh || echo "⚠️ 卡片資料載入失敗,先略過;之後可手動跑 ./setup-content.sh"
+fi
+
 SERVER_PID=""
 cleanup() {
   echo ""
