@@ -25,6 +25,8 @@
 - **首次啟動**:彈窗要求輸入顯示名稱 → 產生 `playerId`(UUID)+ `displayName`,寫入本機 profile(`localStorage`)。
 - **之後**:自動帶入,不再詢問。
 - **改名**:設定裡可改 `displayName`(`playerId` 不變,記錄不斷)。
+- **同組玩家怎麼被認出(續玩)**:`campaignId` 認「團」、`playerId` 認「人」—— 載檔開桌後,加入者以 playerId 對回名冊席位,自動還原其角色/牌組;戰役中只接受名冊內的 playerId(接手)。
+- ⚠️ **已知缺口**:playerId 綁瀏覽器 localStorage,**換裝置/清資料 = 新身分,舊席位認不回**(牌組階段會被當新人)。待辦:「認領席位」流程或 profile 匯出/匯入(排 P6)。
 - **有無記錄**:連上主機時送 `HELLO { playerId }`;主機用 `playerId` 去**存檔名冊**比對此人參與過哪些戰役(用於「加載存檔」清單標示「你在此檔中帶 XXX」)。
 
 ---
