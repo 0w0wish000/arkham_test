@@ -1,7 +1,7 @@
 import { Connection } from "./net/Connection";
 import { Lobby } from "./ui/Lobby";
 import { loadProfile, createProfile, renameProfile } from "./profile";
-import { storeSave, listSaves } from "./saves";
+import { storeSave, listSaves, deleteSave } from "./saves";
 import type { CommitCardsOptions } from "./protocol";
 // 戰役板(進戰役才載入;docs/09 P2 由 START_SCENARIO/STATE 觸發)
 import { GameView } from "./render/GameView";
@@ -76,7 +76,7 @@ async function main() {
       if (board) lines.forEach((l) => board!.hud.log(l));
       else pendingLog.push(...lines);
     },
-    onError: (m) => { window.alert("⚠️ " + m); },
+    onError: (m) => { hideMask(); window.alert("⚠️ " + m); },   // 遮罩先收,避免錯誤時蓋死畫面
   });
 
   // ── 大廳 callbacks ──
@@ -103,6 +103,7 @@ async function main() {
   lobby.onLoadSave = (save) => { showMask("載入存檔中…"); conn.offerSave(save); };
   lobby.onReadyLoad = (ready) => conn.readyLoad(ready);   // 等待進度看名冊「就緒 X/N」,不遮罩
   lobby.onRefreshSaves = () => lobby.renderSaves(listSaves());
+  lobby.onDeleteSave = (campaignId) => { deleteSave(campaignId); lobby.renderSaves(listSaves()); };
   lobby.onSitOut = (sitOut) => conn.sitOut(sitOut);       // 本章中離/歸隊(docs/09 §9)
   lobby.onProposeNewChar = (playerId) => conn.proposeNewCharacter(playerId);   // 死亡換角(§10)
 

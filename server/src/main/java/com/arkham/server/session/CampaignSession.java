@@ -101,13 +101,46 @@ public final class CampaignSession {
         broadcastRoster();
     }
 
+    /** 接手寬限計時器:掉線者逾時未歸隊 → 檢定視為不投入(解開卡住的屏障)。daemon,不擋 JVM 結束。 */
+    private static final java.util.concurrent.ScheduledExecutorService GRACE_TIMER =
+            java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "arkham-takeover-grace");
+                t.setDaemon(true);
+                return t;
+            });
+    private static final long TAKEOVER_GRACE_MS = graceMs();   // 預設 60s;e2e 可用環境變數縮短
+
+    private static long graceMs() {
+        try {
+            String v = System.getenv("ARKHAM_TAKEOVER_GRACE_MS");
+            if (v != null) return Long.parseLong(v.trim());
+        } catch (Exception ignored) { /* 用預設 */ }
+        return 60_000;
+    }
+
     /** 連線中斷 / 離桌。戰役中保留名冊 + session(可重連接手);大廳/載入階段則離桌。 */
     public synchronized void disconnect(String playerId) throws IOException {
         clients.remove(playerId);
         Member m = roster.get(playerId);
+
+        // 掉線者不再擋任何進行中的投票(否則存檔/換角投票會永久懸置)
+        if (saveVote != null && saveVote.outstanding.remove(playerId)) {
+            resolveSaveVoteIfComplete();
+        }
+        if (charVote != null && charVote.outstanding.remove(playerId) && charVote.outstanding.isEmpty()) {
+            resolveCharVote();
+        }
+
         if (game != null) {
+            if (m != null && m.investigatorId != null) {
+                game.detach(m.investigatorId);   // 屏障保留,等原玩家接手(重打那一動)
+                final String inv = m.investigatorId;
+                final GameSession g = game;
+                GRACE_TIMER.schedule(() -> g.autoSkipIfAbsent(inv),
+                        TAKEOVER_GRACE_MS, java.util.concurrent.TimeUnit.MILLISECONDS);
+            }
             if (m != null) broadcast(new ServerMessage.Event("disconnect",
-                    m.displayName + " 掉線了(可重連接手其調查員)。"));
+                    m.displayName + " 掉線了(可重連接手;逾時未歸隊則該次檢定視為不投入)。"));
             return;   // 保留名冊 + session
         }
         roster.remove(playerId);
@@ -324,10 +357,14 @@ public final class CampaignSession {
         if (saveVote == null || !saveVote.requestId.equals(requestId)) return;
         if (!saveVote.outstanding.remove(playerId)) return;
         if (vote) saveVote.yes++;
-        if (saveVote.outstanding.isEmpty()) {
-            if (saveVote.yes >= 1) commitSave();
-            else { broadcast(new ServerMessage.Event("save", "存檔已取消(全員未同意)")); saveVote = null; }
-        }
+        resolveSaveVoteIfComplete();
+    }
+
+    /** 待回覆者清空(投完或掉線)即結案:任一同意 → 存;否則取消。 */
+    private void resolveSaveVoteIfComplete() throws IOException {
+        if (saveVote == null || !saveVote.outstanding.isEmpty()) return;
+        if (saveVote.yes >= 1) commitSave();
+        else { broadcast(new ServerMessage.Event("save", "存檔已取消(全員未同意)")); saveVote = null; }
     }
 
     private void commitSave() throws IOException {
@@ -395,6 +432,7 @@ public final class CampaignSession {
             if (inv != null) game.join(inv, e.getValue());   // 送初始 STATE → client 切到戰役板
         }
         pendingSnapshot = null;
+        pendingEventLog = List.of();   // 回放完釋放
     }
 
     public synchronized SessionSummary summary() {

@@ -222,6 +222,9 @@ public class GameSocketHandler extends TextWebSocketHandler {
             GameSession session = sessions.get(sessionId);
             if (session != null) {
                 session.leave(investigatorId);
+                if (session.isEmpty()) {
+                    sessions.remove(sessionId);   // 空房回收(否則舊 room 永不釋放)
+                }
             }
         }
         // 大廳路徑(docs/09):離桌 + 退出主選單清單

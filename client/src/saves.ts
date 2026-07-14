@@ -20,3 +20,10 @@ export function storeSave(save: CampaignSave) {
 export function listSaves(): CampaignSave[] {
   return Object.values(readAll()).sort((a, b) => a.name.localeCompare(b.name));
 }
+
+/** 刪除一份本機存檔(localStorage 約 5MB 上限,長戰役快照不小,要能清)。 */
+export function deleteSave(campaignId: string) {
+  const all = readAll();
+  delete all[campaignId];
+  localStorage.setItem(KEY, JSON.stringify(all));
+}

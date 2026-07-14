@@ -111,6 +111,8 @@ async function startServer() {
     stdio: ["ignore", "inherit", "inherit"],
     shell: isWin,
     detached: !isWin, // POSIX:自成行程群組,連 fork 出的 JVM 一起收掉
+    // 縮短「接手寬限」讓 stability-e2e 能在秒級驗證屏障逾時逃生(正式啟動維持預設 60s)
+    env: { ...process.env, ARKHAM_TAKEOVER_GRACE_MS: process.env.ARKHAM_TAKEOVER_GRACE_MS || "3000" },
   });
   server.on("error", (e) => console.error(`啟動伺服器失敗:${e.message}`));
 
@@ -162,8 +164,9 @@ async function main() {
     const rosterCode = await run(node, [path.join("e2e", "dynamic-roster-e2e.mjs"), "ws://localhost:8080"], { shell: false });
     const voteCode = await run(node, [path.join("e2e", "char-vote-e2e.mjs"), "ws://localhost:8080"], { shell: false });
     const sandboxCode = await run(node, [path.join("e2e", "sandbox-e2e.mjs"), "ws://localhost:8080"], { shell: false });
+    const stabilityCode = await run(node, [path.join("e2e", "stability-e2e.mjs"), "ws://localhost:8080"], { shell: false });
     const flowCode = await run(node, [path.join("e2e", "protocol-e2e.mjs"), "ws://localhost:8080"], { shell: false });
-    protocolCode = lobbyCode || deckCode || saveCode || rosterCode || voteCode || sandboxCode || flowCode;   // 任一失敗即失敗
+    protocolCode = lobbyCode || deckCode || saveCode || rosterCode || voteCode || sandboxCode || stabilityCode || flowCode;   // 任一失敗即失敗
   } else log("(E2E_SKIP_PROTOCOL=1:跳過協定 e2e)");
 
   if (!SKIP_CLIENT) {

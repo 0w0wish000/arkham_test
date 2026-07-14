@@ -44,8 +44,11 @@ public final class GameSession {
 
     private Barrier barrier; // non-null while a commit barrier is open
     private SaveVote saveVote; // non-null while a save-vote is open
-    private final List<GameEvent> eventLog = new java.util.ArrayList<>(); // 累積出牌/事件(供存檔)
+    private final List<GameEvent> eventLog = new java.util.ArrayList<>(); // 累積出牌/事件(供存檔;有上限)
     private int lastCheckpointRound = 1;
+
+    /** eventLog 上限:記憶體與存檔/廣播體積都只留最近 N 條(長局不無界成長)。 */
+    private static final int MAX_EVENT_LOG = 500;
 
     public GameSession(String sessionId, ObjectMapper mapper) {
         this.sessionId = sessionId;
@@ -85,8 +88,47 @@ public final class GameSession {
         send(ws, new ServerMessage.State(engine.viewFor(investigatorId)));
     }
 
+    /** 舊 room 路徑的離線:立即視為「不投入」並清投票(無接手概念)。 */
     public synchronized void leave(String investigatorId) {
         clients.remove(investigatorId);
+        try {
+            skipCommitter(investigatorId, investigatorId + " 已離線,本次檢定視為不投入。");
+            if (saveVote != null && saveVote.outstanding.remove(investigatorId)) {
+                resolveSaveVoteIfComplete();   // 掉線者不再擋存檔投票
+            }
+        } catch (IOException ignored) { /* 離線清理 best-effort */ }
+    }
+
+    /** 是否已無任何連線(供空房回收)。 */
+    public synchronized boolean isEmpty() {
+        return clients.isEmpty();
+    }
+
+    /** campaign 掉線:只移除連線,保留屏障等待接手(docs/09 §9 重打掉線那一動)。 */
+    public synchronized void detach(String investigatorId) {
+        clients.remove(investigatorId);
+    }
+
+    /**
+     * 接手逃生口:掉線者逾時仍未歸隊 → 視為不投入,解開卡住的檢定屏障
+     * (由 CampaignSession 的計時器呼叫;若已重連則不動作)。
+     */
+    public synchronized void autoSkipIfAbsent(String investigatorId) {
+        if (clients.containsKey(investigatorId)) return;   // 已接手 → 保留「重打那一動」
+        try {
+            skipCommitter(investigatorId, "⏱ " + investigatorId + " 逾時未歸隊,本次檢定視為不投入。");
+        } catch (IOException ignored) { /* 計時器清理 best-effort */ }
+    }
+
+    /** 把某位尚未回應的投入者記為「不投入」;若屏障因此收齊 → 結算。 */
+    private void skipCommitter(String investigatorId, String message) throws IOException {
+        if (barrier == null || !barrier.outstanding.contains(investigatorId)) return;
+        barrier.responses.put(investigatorId, List.of());
+        barrier.outstanding.remove(investigatorId);
+        broadcast(new ServerMessage.Event("barrier", message));
+        if (barrier.outstanding.isEmpty()) {
+            resolveBarrier();
+        }
     }
 
     /**
@@ -204,13 +246,17 @@ public final class GameSession {
         if (saveVote == null || !saveVote.requestId.equals(requestId)) return;
         if (!saveVote.outstanding.remove(investigatorId)) return;
         if (vote) saveVote.yes++;
-        if (saveVote.outstanding.isEmpty()) {
-            if (saveVote.yes >= 1) {
-                commitSave();
-            } else {
-                broadcast(new ServerMessage.Event("save", "存檔已取消(全員未同意)"));
-                saveVote = null;
-            }
+        resolveSaveVoteIfComplete();
+    }
+
+    /** 待回覆者清空(投完或掉線)即結案:任一同意 → 存;否則取消。 */
+    private void resolveSaveVoteIfComplete() throws IOException {
+        if (saveVote == null || !saveVote.outstanding.isEmpty()) return;
+        if (saveVote.yes >= 1) {
+            commitSave();
+        } else {
+            broadcast(new ServerMessage.Event("save", "存檔已取消(全員未同意)"));
+            saveVote = null;
         }
     }
 
@@ -236,11 +282,21 @@ public final class GameSession {
     /** 目前回合數。 */
     public synchronized int round() { return engine.state().getRound(); }
 
+    /**
+     * 載檔重建用的亂數種子:原 seed 混入存檔回合。
+     * 直接沿用原 seed 會讓 RNG「從頭重播」同一序列 —— 記得前幾抽的玩家能預測混沌標記,
+     * 存檔→重載形同重骰。混入回合後:同一份存檔重載仍可重現(除錯/重播),但不重複原局序列。
+     */
+    private static long reloadSeed(long seed, int round) {
+        return seed ^ ((round + 1L) * 0x9E3779B97F4A7C15L);
+    }
+
     /** 從快照狀態重建一個對局(docs/09 P3 載入用)。 */
     public static GameSession fromSnapshot(String sessionId, ObjectMapper mapper, Object stateNode, long seed) {
         com.arkham.engine.model.GameState st =
                 SAVE_MAPPER.convertValue(stateNode, com.arkham.engine.model.GameState.class);
-        RulesEngine engine = new RulesEngine(st, new com.arkham.engine.rng.SeededRng(seed));
+        RulesEngine engine = new RulesEngine(st,
+                new com.arkham.engine.rng.SeededRng(reloadSeed(seed, st.getRound())));
         return new GameSession(sessionId, mapper, engine, seed);
     }
 
@@ -249,7 +305,8 @@ public final class GameSession {
         try {
             com.arkham.engine.model.GameState st =
                     SAVE_MAPPER.convertValue(stateNode, com.arkham.engine.model.GameState.class);
-            engine = new RulesEngine(st, new com.arkham.engine.rng.SeededRng(seed));
+            engine = new RulesEngine(st,
+                    new com.arkham.engine.rng.SeededRng(reloadSeed(seed, st.getRound())));
             eventLog.clear();
             lastCheckpointRound = st.getRound();
             broadcast(new ServerMessage.Event("resume", "已載入存檔:第 " + st.getRound() + " 輪,對局重建。"));
@@ -296,6 +353,9 @@ public final class GameSession {
 
     private void broadcastEvents(List<GameEvent> events) throws IOException {
         eventLog.addAll(events);                       // 累積出牌/事件紀錄(供存檔)
+        if (eventLog.size() > MAX_EVENT_LOG) {
+            eventLog.subList(0, eventLog.size() - MAX_EVENT_LOG).clear();   // 只留最近 N 條
+        }
         for (GameEvent ev : events) {
             broadcast(new ServerMessage.Event(ev.event(), ev.message()));
         }

@@ -42,6 +42,7 @@ export class Lobby {
   onLoadSave?: (save: CampaignSave) => void;
   onReadyLoad?: (ready: boolean) => void;
   onRefreshSaves?: () => void;
+  onDeleteSave?: (campaignId: string) => void;   // 刪除本機存檔(localStorage 有限)
   onSitOut?: (sitOut: boolean) => void;   // 中離/歸隊(docs/09 §9)
   onProposeNewChar?: (playerId: string) => void;   // 死亡換角投票(docs/09 §10)
 
@@ -173,6 +174,12 @@ export class Lobby {
     const btn = el("button", undefined, "載入");
     btn.onclick = () => this.onLoadSave?.(s);
     row.appendChild(btn);
+    const del = el("button", "s-del", "🗑");
+    del.title = "刪除這份本機存檔(不影響其他玩家的備份)";
+    del.onclick = () => {
+      if (confirm(`刪除本機存檔「${s.name}」?(其他玩家本機的備份不受影響)`)) this.onDeleteSave?.(s.campaignId);
+    };
+    row.appendChild(del);
     return row;
   }
 
