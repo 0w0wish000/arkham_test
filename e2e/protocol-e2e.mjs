@@ -134,9 +134,12 @@ async function main() {
   check(!!servant && servant.engagedWith === "joe_diamond", "Servant 與 joe 交戰");
   check(js2.view.you.actionsRemaining === 1, "移動再花 1 個行動(2→1)", `actions=${js2.view.you.actionsRemaining}`);
 
-  // ── 4. END_TURN:走完敵人/整備/神話 → 進入第 2 輪(觸發伺服器每回合自動存檔) ──
-  section("4. END_TURN / 回合推進");
+  // ── 4. END_TURN 屏障:一人結束不推進;全員完成才走敵人/整備/神話 → 第 2 輪 ──
+  section("4. END_TURN 屏障 / 回合推進");
   joe.send({ type: "INTENT", action: "END_TURN", payload: {} });
+  const jDone = await joe.waitFor((m) => isState(m) && m.view.you.turnDone === true, "joe 標記已結束");
+  check(jDone.view.round === 1, "joe 一人結束 → 仍第 1 輪(屏障擋住)", `round=${jDone.view.round}`);
+  dani.send({ type: "INTENT", action: "END_TURN", payload: {} });
   const js3 = await joe.waitFor((m) => isState(m) && m.view.round === 2, "進入第 2 輪的 STATE");
   check(js3.view.round === 2, "回合推進到第 2 輪", `round=${js3.view.round}`);
   check(js3.view.phase === "INVESTIGATION", "回到 INVESTIGATION 階段", js3.view.phase);

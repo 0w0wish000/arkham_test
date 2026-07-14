@@ -28,24 +28,35 @@ public final class ChaosBag {
      * +1×2, 0×2, -1×3, -2×2, -3, -4, skull×2, cultist, autofail, elder-sign.
      */
     public static ChaosBag standard() {
-        List<ChaosToken> t = new ArrayList<>(16);
-        t.add(ChaosToken.numeric(1));
-        t.add(ChaosToken.numeric(1));
-        t.add(ChaosToken.numeric(0));
-        t.add(ChaosToken.numeric(0));
-        t.add(ChaosToken.numeric(-1));
-        t.add(ChaosToken.numeric(-1));
-        t.add(ChaosToken.numeric(-1));
-        t.add(ChaosToken.numeric(-2));
-        t.add(ChaosToken.numeric(-2));
-        t.add(ChaosToken.numeric(-3));
-        t.add(ChaosToken.numeric(-4));
+        return forDifficulty("STANDARD");
+    }
+
+    /**
+     * 依難度組袋(docs/09 §12:基準難度影響混沌袋組成)。
+     * 數值組成為核心盒難度曲線的 lite 近似:愈難負值愈多、愈深;
+     * 袋量刻意相異(EASY 15 / STANDARD 16 / HARD 16 / EXPERT 17),便於前端與測試辨識。
+     */
+    public static ChaosBag forDifficulty(String difficulty) {
+        String d = difficulty == null ? "STANDARD" : difficulty.toUpperCase();
+        List<ChaosToken> t = new ArrayList<>(18);
+        switch (d) {
+            case "EASY" ->     addNumeric(t, 1, 1, 0, 0, 0, -1, -1, -1, -2, -2);              // 10 數值
+            case "HARD" ->     addNumeric(t, 0, 0, -1, -1, -2, -2, -3, -3, -4, -5, -6);       // 11 數值
+            case "EXPERT" ->   addNumeric(t, 0, -1, -1, -2, -2, -3, -3, -4, -4, -5, -6, -8);  // 12 數值
+            default ->         addNumeric(t, 1, 1, 0, 0, -1, -1, -1, -2, -2, -3, -4);         // STANDARD 11 數值
+        }
         t.add(ChaosToken.symbol(ChaosSymbol.SKULL));
         t.add(ChaosToken.symbol(ChaosSymbol.SKULL));
         t.add(ChaosToken.symbol(ChaosSymbol.CULTIST));
         t.add(ChaosToken.symbol(ChaosSymbol.AUTOFAIL));
         t.add(ChaosToken.symbol(ChaosSymbol.ELDER_SIGN));
         return new ChaosBag(t);
+    }
+
+    private static void addNumeric(List<ChaosToken> t, int... values) {
+        for (int v : values) {
+            t.add(ChaosToken.numeric(v));
+        }
     }
 
     /** Reveal a token using the central seeded RNG (uniform, with replacement). */

@@ -242,9 +242,14 @@ public final class CampaignSession {
             return;
         }
         List<String> ids = new ArrayList<>();
-        for (Member m : playing) ids.add(m.investigatorId);
+        Map<String, List<String>> decks = new LinkedHashMap<>();   // 各人牌組(卡名;未提交 → 引擎用預設牌組)
+        for (Member m : playing) {
+            ids.add(m.investigatorId);
+            if (!m.deck.isEmpty()) decks.put(m.investigatorId, List.copyOf(m.deck));
+        }
 
-        RulesEngine engine = ScenarioFactory.newEngine(seed, ids, campaignKey);   // "sandbox" → 測試沙盒
+        // "sandbox" → 測試沙盒;難度 → 混沌袋組成;牌組 → 洗牌 + 開局抽 5(C-lite)
+        RulesEngine engine = ScenarioFactory.newEngine(seed, ids, campaignKey, difficulty, decks);
         game = new GameSession(campaignId, mapper, engine, seed);
         stage = "IN_SCENARIO";
         broadcast(new ServerMessage.Event("scenario",

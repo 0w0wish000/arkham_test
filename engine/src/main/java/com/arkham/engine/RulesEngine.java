@@ -130,7 +130,7 @@ public final class RulesEngine {
             case FIGHT -> fight(inv, str(p, "enemyId"), events);
             case EVADE -> evade(inv, str(p, "enemyId"), events);
             case ENGAGE -> engage(inv, str(p, "enemyId"), events);
-            case END_TURN -> endTurn(events);
+            case END_TURN -> endTurn(inv, bool(p, "force"), events);
             case ADVANCE_ACT -> advanceAct(inv, events);
             case PLAY_CARD -> playCard(inv, str(p, "cardId"), events);
             case ACTIVATE ->
@@ -452,11 +452,36 @@ public final class RulesEngine {
     // End turn: enemy phase → upkeep → mythos → next investigation
     // ------------------------------------------------------------------
 
-    private void endTurn(List<GameEvent> events) {
+    /**
+     * END_TURN 屏障化(docs/09 §8 同一套心智模型):
+     * 一般 = 「我打完了」;全員完成才結算敵人/整備/神話。force = 強制全體結束(語音協調用)。
+     * 防止一人手滑就蒸發全桌剩餘行動。
+     */
+    private void endTurn(Investigator inv, boolean force, List<GameEvent> events) {
         if (state.getPhase() != Phase.INVESTIGATION) {
             throw new IllegalArgumentException("Can only end the turn during the investigation phase");
         }
+        if (force) {
+            events.add(GameEvent.of("TURN", "⏭️ " + inv.getName() + " 強制結束全體回合。"));
+            runRoundEnd(events);
+            return;
+        }
+        if (inv.isTurnDone()) {
+            return;   // 重複點擊忽略
+        }
+        inv.setTurnDone(true);
+        inv.setActionsRemaining(0);
+        long waiting = state.orderedInvestigators().stream().filter(i -> !i.isTurnDone()).count();
+        if (waiting > 0) {
+            events.add(GameEvent.of("TURN",
+                    "✋ " + inv.getName() + " 結束了本輪行動(等待其餘 " + waiting + " 位)。"));
+            return;
+        }
+        events.add(GameEvent.of("TURN", "✋ " + inv.getName() + " 結束了本輪行動 —— 全員完成,回合結算。"));
+        runRoundEnd(events);
+    }
 
+    private void runRoundEnd(List<GameEvent> events) {
         // --- Enemy phase ---
         state.setPhase(Phase.ENEMY);
         events.add(GameEvent.of("PHASE", "—— 敵人階段 ——"));
@@ -473,7 +498,8 @@ public final class RulesEngine {
             e.setExhausted(false); // ready all
         }
         for (Investigator inv : state.orderedInvestigators()) {
-            inv.gainResources(1); // gain 1 resource (drawing a card is omitted in this scaffold)
+            inv.gainResources(1);       // 整備:獲得 1 資源
+            drawOne(inv, events);       // 整備:抽 1 張(C-lite 牌堆;空堆 → 洗回棄牌堆 +1 恐懼)
         }
         // Same-location unengaged enemies engage (docs/05 §1.4c).
         for (EnemyCard e : state.getEnemies().values()) {
@@ -498,8 +524,36 @@ public final class RulesEngine {
         state.setPhase(Phase.INVESTIGATION);
         for (Investigator inv : state.orderedInvestigators()) {
             inv.setActionsRemaining(3);
+            inv.setTurnDone(false);   // 新回合重置「我打完了」屏障
         }
         events.add(GameEvent.of("PHASE", "—— 調查階段 ——"));
+    }
+
+    /** 抽 1 張(C-lite 牌堆):空堆 → 棄牌堆洗回並受 1 恐懼(正規規則);兩者皆空 → 不抽。 */
+    private void drawOne(Investigator inv, List<GameEvent> events) {
+        if (inv.getDeckPile().isEmpty()) {
+            if (inv.getDiscardPile().isEmpty()) {
+                return;   // 沒牌可抽(未配牌組的舊路徑 / 沙盒)
+            }
+            inv.getDeckPile().addAll(inv.getDiscardPile());
+            inv.getDiscardPile().clear();
+            shuffleCards(inv.getDeckPile());
+            inv.takeHorror(1);
+            events.add(GameEvent.of("DRAW", "🂠 " + inv.getName() + " 牌堆耗盡:棄牌堆洗回,受 1 恐懼。"));
+            checkDefeat(inv, events);
+            if (state.isGameOver()) {
+                return;
+            }
+        }
+        inv.getHand().add(inv.getDeckPile().remove(0));
+    }
+
+    /** Fisher–Yates(中央 RNG,可重現)。 */
+    private void shuffleCards(List<CardInstance> cards) {
+        for (int i = cards.size() - 1; i > 0; i--) {
+            int j = rng.nextInt(i + 1);
+            java.util.Collections.swap(cards, i, j);
+        }
     }
 
     private void moveHunters(List<GameEvent> events) {
@@ -804,13 +858,15 @@ public final class RulesEngine {
         SelfView you = new SelfView(
                 me.getId(), eff, me.getHealth(), me.getDamage(), me.getSanity(), me.getHorror(),
                 me.getResources(), me.getCluesHeld(), me.getActionsRemaining(), me.getLocationId(),
-                me.handView(), me.playAreaView(), List.copyOf(me.getEngagedEnemyIds()));
+                me.handView(), me.playAreaView(), me.getDeckPile().size(), me.isTurnDone(),
+                List.copyOf(me.getEngagedEnemyIds()));
 
         List<OtherInvestigatorView> others = new ArrayList<>();
         for (Investigator inv : state.orderedInvestigators()) {
             if (!inv.getId().equals(investigatorId)) {
                 others.add(new OtherInvestigatorView(
-                        inv.getId(), inv.getLocationId(), inv.getDamage(), inv.getHorror(), inv.getHand().size()));
+                        inv.getId(), inv.getLocationId(), inv.getDamage(), inv.getHorror(), inv.getHand().size(),
+                        inv.isTurnDone()));
             }
         }
 
@@ -890,5 +946,10 @@ public final class RulesEngine {
     private static String str(Map<String, Object> payload, String key) {
         Object v = payload.get(key);
         return v == null ? null : v.toString();
+    }
+
+    private static boolean bool(Map<String, Object> payload, String key) {
+        Object v = payload.get(key);
+        return v instanceof Boolean b ? b : Boolean.parseBoolean(String.valueOf(v));
     }
 }

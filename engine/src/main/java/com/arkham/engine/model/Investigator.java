@@ -28,10 +28,12 @@ public final class Investigator {
     private int weaponBonus;
 
     private final List<CardInstance> hand = new ArrayList<>();
+    private final List<CardInstance> deckPile = new ArrayList<>();   // 抽牌堆(C-lite 牌組管線)
     private final List<CardInstance> discardPile = new ArrayList<>();
     private final List<CardInstance> playArea = new ArrayList<>();   // 已打出的支援(檯面)
     private final List<String> engagedEnemyIds = new ArrayList<>();
     private int[] skillBonus = new int[4];                           // 支援卡給的技能加值(依 SkillType 序;存檔可還原)
+    private boolean turnDone;                                        // 本輪「我打完了」(END_TURN 屏障)
 
     @com.fasterxml.jackson.annotation.JsonCreator
     public Investigator(@com.fasterxml.jackson.annotation.JsonProperty("id") String id,
@@ -110,6 +112,10 @@ public final class Investigator {
     }
 
     public List<CardInstance> getPlayArea() { return playArea; }
+    public List<CardInstance> getDeckPile() { return deckPile; }
+
+    public boolean isTurnDone() { return turnDone; }
+    public void setTurnDone(boolean done) { this.turnDone = done; }
 
     /** 治療傷害(下限 0)。 */
     public void heal(int n) { this.damage = Math.max(0, this.damage - n); }

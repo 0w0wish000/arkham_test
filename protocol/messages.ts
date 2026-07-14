@@ -131,10 +131,14 @@ export interface SelfView {
   skills: Record<Lowercase<SkillType>, number>;
   health: number; damage: number; sanity: number; horror: number;
   resources: number; cluesHeld: number; actionsRemaining: number;
-  locationId: string; hand: HandCard[]; playArea: HandCard[]; engagedEnemyIds: string[];
+  locationId: string; hand: HandCard[]; playArea: HandCard[];
+  deckCount: number;      // 牌堆剩餘(C-lite 牌組管線)
+  turnDone: boolean;      // 本輪已按「我打完了」(END_TURN 屏障)
+  engagedEnemyIds: string[];
 }
 export interface OtherInvestigatorView {
   investigatorId: string; locationId: string; damage: number; horror: number; handCount: number;
+  turnDone: boolean;
 }
 export interface LocationView {
   id: string; name: string; revealed: boolean; shroud: number; clues: number;

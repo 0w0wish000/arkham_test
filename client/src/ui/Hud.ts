@@ -50,7 +50,7 @@ function iconEl(icon: SkillIcon): HTMLElement {
 function cardChip(c: HandCard): HTMLDivElement {
   const d = el("div", "card");
   const name = el("span", "c-name");
-  if (c.cardType && c.cardType !== "skill") name.appendChild(el("span", "cost", `$${c.cost}`));  // 費用
+  if (c.cardType === "asset" || c.cardType === "event") name.appendChild(el("span", "cost", `$${c.cost}`));  // 費用
   name.appendChild(document.createTextNode(c.name));
   d.appendChild(name);
   const icons = el("span", "icons");
@@ -77,7 +77,12 @@ export class Hud {
 
   constructor() {
     this.$("act-investigate").onclick = () => this.onIntent?.("INVESTIGATE");
-    this.$("act-endturn").onclick = () => this.onIntent?.("END_TURN");
+    this.$("act-endturn").onclick = () => this.onIntent?.("END_TURN");   // 「我打完了」(屏障)
+    this.$("act-endround").onclick = () => {
+      if (confirm("強制結束全體回合?未用完的行動會消失(建議先在語音確認)。")) {
+        this.onIntent?.("END_TURN", { force: true });
+      }
+    };
     this.$("act-advance").onclick = () => this.onIntent?.("ADVANCE_ACT");
     this.$("btn-save").onclick = () => this.onSave?.();
     this.$("commit-go").onclick = () => this.submitCommit([...(this.commit?.sel ?? [])]);
@@ -124,7 +129,7 @@ export class Hud {
     this.$("self-vitals").textContent =
       `❤️ ${you.health - you.damage}/${you.health}　🧠 ${you.sanity - you.horror}/${you.sanity}`;
     this.$("self-econ").textContent =
-      `💰 ${you.resources}　🔎 ${you.cluesHeld}　⚡ 行動 ${you.actionsRemaining}`;
+      `💰 ${you.resources}　🔎 ${you.cluesHeld}　⚡ 行動 ${you.actionsRemaining}　🂠 牌堆 ${you.deckCount ?? 0}`;
 
     this.renderEnemies(view, canAct);
     this.renderHand(you.hand);
@@ -159,15 +164,21 @@ export class Hud {
     now.replaceChildren();
     hint.replaceChildren();
 
+    const doneCount = (view.you.turnDone ? 1 : 0)
+      + view.otherInvestigators.filter((o) => o.turnDone).length;
+    const total = 1 + view.otherInvestigators.length;
     if (view.phase === "INVESTIGATION") {
-      if (canAct) {
+      if (view.you.turnDone) {
+        now.append(`✅ 你已結束本輪 — 完成 ${doneCount}/${total}`);
+        hint.append("等隊友按「✋我打完了」;全員完成自動結算敵人/神話。卡住時可「⏭️全體結束」強制。");
+      } else if (canAct) {
         now.append("🎯 ");
         now.append(el("b", undefined, "調查階段 · 自由行動"));
-        now.append(` — 你還有 ${view.you.actionsRemaining} 個行動`);
-        hint.append("可做:🚶移動 🔎調查 ⚔️戰鬥 💨閃避 🤝交戰 · 用完按 ⏭️結束回合(全體 → 敵人/神話 → 下一輪)。");
+        now.append(` — 你還有 ${view.you.actionsRemaining} 個行動(完成 ${doneCount}/${total})`);
+        hint.append("可做:🚶移動 🔎調查 ⚔️戰鬥 💨閃避 🤝交戰 🃏打卡 · 打完按「✋我打完了」。");
       } else {
-        now.append("🎯 調查階段 · 你的 3 個行動已用完");
-        hint.append("等隊友行動;大家都好了按「⏭️結束回合」推進。此遊戲不強制順序,誰先動都行。");
+        now.append(`🎯 行動已用完 — 完成 ${doneCount}/${total}`);
+        hint.append("按「✋我打完了」告訴隊友;全員完成才進敵人/神話階段(不強制順序)。");
       }
     } else {
       now.append(`⏳ ${PHASE_ZH[view.phase] ?? view.phase}結算中…`);
@@ -216,10 +227,12 @@ export class Hud {
     if (hand.length === 0) box.appendChild(el("span", "pip", "(無手牌)"));
     for (const c of hand) {
       const chip = cardChip(c);
-      if (c.cardType && c.cardType !== "skill") {
+      if (c.cardType === "asset" || c.cardType === "event") {
         chip.classList.add("playable");
         chip.title = `打出 ${c.name}(費用 ${c.cost})`;
         chip.onclick = () => this.onIntent?.("PLAY_CARD", { cardId: c.cardId });
+      } else if (c.cardType === "weakness") {
+        chip.title = "弱點:留在手上(完整規則於後續實作)";
       } else {
         chip.title = "技能卡:於技能檢定的投入面板使用";
       }
@@ -238,7 +251,10 @@ export class Hud {
   private updateActionButtons(view: GameStateView, canAct: boolean) {
     const here: LocationView | undefined = view.locations.find((l) => l.id === view.you.locationId);
     (this.$("act-investigate") as HTMLButtonElement).disabled = !(canAct && (here?.clues ?? 0) > 0);
-    (this.$("act-endturn") as HTMLButtonElement).disabled = view.phase !== "INVESTIGATION";
+    const endTurn = this.$("act-endturn") as HTMLButtonElement;
+    endTurn.disabled = view.phase !== "INVESTIGATION" || view.you.turnDone;
+    endTurn.textContent = view.you.turnDone ? "✅ 已結束(等隊友)" : "✋ 我打完了";
+    (this.$("act-endround") as HTMLButtonElement).disabled = view.phase !== "INVESTIGATION";
     (this.$("act-advance") as HTMLButtonElement).disabled = view.phase !== "INVESTIGATION";
   }
 

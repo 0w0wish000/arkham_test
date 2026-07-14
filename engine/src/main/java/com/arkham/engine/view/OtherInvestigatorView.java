@@ -10,4 +10,5 @@ public record OtherInvestigatorView(
         String locationId,
         int damage,
         int horror,
-        int handCount) {}
+        int handCount,
+        boolean turnDone) {}

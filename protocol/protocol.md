@@ -71,7 +71,7 @@
 | `ENGAGE` | `{ enemyId }` | 交戰 |
 | `PLAY_CARD` | `{ cardId, targets? }` | 打出支援/事件 |
 | `ACTIVATE` | `{ cardId, abilityIndex }` | 啟動能力 |
-| `END_TURN` | `{}` | 結束回合 → 敵人階段 |
+| `END_TURN` | `{ force? }` | 「我打完了」(屏障:**全員**完成才結算敵人/整備/神話);`force:true` = 強制全體結束 |
 | `ADVANCE_ACT` | `{}` | 花費線索推進幕 |
 
 ## Server → Client

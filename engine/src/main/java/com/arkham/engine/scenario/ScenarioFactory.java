@@ -53,13 +53,53 @@ public final class ScenarioFactory {
 
     /** A fresh engine for a specific scenario key(如 "sandbox" 測試沙盒;docs/11)。 */
     public static RulesEngine newEngine(long seed, List<String> investigatorIds, String scenarioKey) {
-        return new RulesEngine(createState(investigatorIds, scenarioKey), new SeededRng(seed));
+        return newEngine(seed, investigatorIds, scenarioKey, "STANDARD", null);
+    }
+
+    /**
+     * 完整版(campaign 開打用):難度組混沌袋 + C-lite 牌組管線。
+     * 非沙盒場景:每位調查員的牌組(SET_DECK 卡名;未提交 → 預設牌組)→ 洗牌 → 開局抽 5。
+     * 沙盒維持固定手牌(專測特殊卡)。
+     */
+    public static RulesEngine newEngine(long seed, List<String> investigatorIds, String scenarioKey,
+                                        String difficulty, Map<String, List<String>> decksByInvestigator) {
+        SeededRng rng = new SeededRng(seed);
+        GameState state = createState(investigatorIds, scenarioKey, difficulty);
+        if (!"sandbox".equals(scenarioKey)) {
+            for (Investigator inv : state.orderedInvestigators()) {
+                List<String> names = decksByInvestigator == null ? null : decksByInvestigator.get(inv.getId());
+                if (names == null || names.isEmpty()) {
+                    names = CardCatalog.defaultDeck(inv.getId());
+                }
+                inv.getDeckPile().clear();
+                inv.getDeckPile().addAll(CardCatalog.buildDeck(inv.getId(), names));
+                shuffle(inv.getDeckPile(), rng);
+                inv.getHand().clear();
+                for (int k = 0; k < 5 && !inv.getDeckPile().isEmpty(); k++) {
+                    inv.getHand().add(inv.getDeckPile().remove(0));   // 開局起手 5 張
+                }
+            }
+        }
+        return new RulesEngine(state, rng);
     }
 
     /** 依 scenarioKey 選場景;"sandbox" → 測試沙盒,其餘 → Spreading Flames lite。 */
     public static GameState createState(List<String> investigatorIds, String scenarioKey) {
-        if ("sandbox".equals(scenarioKey)) return createSandbox(investigatorIds);
-        return createState(investigatorIds);
+        return createState(investigatorIds, scenarioKey, "STANDARD");
+    }
+
+    /** 同上,並依難度組混沌袋(docs/09 §12)。 */
+    public static GameState createState(List<String> investigatorIds, String scenarioKey, String difficulty) {
+        if ("sandbox".equals(scenarioKey)) return createSandbox(investigatorIds, difficulty);
+        return createCoreState(investigatorIds, difficulty);
+    }
+
+    /** Fisher–Yates(用引擎中央 RNG,可重現)。 */
+    private static void shuffle(List<CardInstance> cards, SeededRng rng) {
+        for (int i = cards.size() - 1; i > 0; i--) {
+            int j = rng.nextInt(i + 1);
+            java.util.Collections.swap(cards, i, j);
+        }
     }
 
     /** Default-roster state (Joe + Daniela). */
@@ -73,11 +113,15 @@ public final class ScenarioFactory {
      * (clueValue × players), so difficulty follows the table size (docs/09 §12).
      */
     public static GameState createState(List<String> investigatorIds) {
+        return createCoreState(investigatorIds, "STANDARD");
+    }
+
+    private static GameState createCoreState(List<String> investigatorIds, String difficulty) {
         List<String> roster = (investigatorIds == null || investigatorIds.isEmpty())
                 ? DEFAULT_ROSTER : investigatorIds;
 
         GameState state = new GameState(
-                ChaosBag.standard(),
+                ChaosBag.forDifficulty(difficulty),
                 new Act("Where There's Smoke…", 2),
                 new Agenda("Past Curfew", 5),
                 enemyDefs(),
@@ -176,10 +220,14 @@ public final class ScenarioFactory {
     //   密謀幾乎不推進(無時間壓力)、神話不抽卡。
     // ------------------------------------------------------------------
     public static GameState createSandbox(List<String> investigatorIds) {
+        return createSandbox(investigatorIds, "STANDARD");
+    }
+
+    public static GameState createSandbox(List<String> investigatorIds, String difficulty) {
         List<String> roster = (investigatorIds == null || investigatorIds.isEmpty()) ? DEFAULT_ROSTER : investigatorIds;
 
         GameState state = new GameState(
-                ChaosBag.standard(),
+                ChaosBag.forDifficulty(difficulty),
                 new Act("訓練:湊齊 3 線索", 3),
                 new Agenda("計時(測試 · 極慢)", 99),   // 幾乎不推進 → 無時間壓力
                 sandboxEnemyDefs(),

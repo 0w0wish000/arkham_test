@@ -115,7 +115,7 @@ async function main() {
   check(aState0.view.round === 1 && aState0.view.you.investigatorId === "joe_diamond", "開打:第1輪 joe");
   A.send({ type: "INTENT", action: "MOVE", payload: { toLocationId: "dormitories" } });
   await A.waitFor((m) => m.type === "STATE" && m.view.you.locationId === "dormitories", "A 移動到 dormitories");
-  A.send({ type: "INTENT", action: "END_TURN", payload: {} });
+  A.send({ type: "INTENT", action: "END_TURN", payload: { force: true } });   // 強制全體結束(屏障 force 路徑)
   await A.waitFor((m) => m.type === "STATE" && m.view.round === 2, "推進到第 2 輪");
 
   // ── 情境 A:戰役中存檔 ──
