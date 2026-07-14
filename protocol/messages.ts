@@ -46,6 +46,7 @@ export interface CampaignSave {
   snapshot: unknown | null;            // 引擎狀態樹(IN_SCENARIO 才有)
   eventLog: unknown[];
   round: number;
+  currentChapter: number;
 }
 /** 「進行中桌次」清單的一列(取代 room:大家點同一桌就湊在一起)。 */
 export interface SessionSummary {
@@ -105,7 +106,7 @@ export interface PongMsg    { type: "PONG"; }
 export interface LobbyMsg         { type: "LOBBY"; activeSessions: SessionSummary[]; }
 export interface SessionRosterMsg { type: "SESSION_ROSTER"; campaignId: string; name: string; campaignKey: string;
   stage: SessionStage | "LOADING"; difficulty: Difficulty; members: RosterMember[]; canForce: boolean;
-  deadInvestigators: string[]; }
+  deadInvestigators: string[]; currentChapter: number; }
 // 加載存檔(docs/09 §7):全戰役存檔複製到本機;載入後 log 回放
 export interface CampaignSnapshotMsg { type: "CAMPAIGN_SNAPSHOT"; save: CampaignSave; }
 export interface LogHistoryMsg       { type: "LOG_HISTORY"; entries: { event: string; message: string }[]; }

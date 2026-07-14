@@ -335,6 +335,19 @@ public final class GameSession {
     /** 累積的出牌/事件紀錄(給存檔的 log 回放)。 */
     public synchronized List<GameEvent> eventLogCopy() { return List.copyOf(eventLog); }
 
+    /** 對局是否已結束(勝負已定)。 */
+    public synchronized boolean isOver() { return engine.state().isGameOver(); }
+    public synchronized boolean isWon() { return engine.state().isWon(); }
+
+    /** lite XP 結算基礎:已揭示且清空線索的勝利地點數(勝利點展示區待 §C)。 */
+    public synchronized int victoryPoints() {
+        int v = 0;
+        for (com.arkham.engine.model.LocationCard loc : engine.state().getLocations().values()) {
+            if (loc.isVictory() && loc.isRevealed() && loc.getClues() == 0) v++;
+        }
+        return v;
+    }
+
     /** 目前回合數。 */
     public synchronized int round() { return engine.state().getRound(); }
 

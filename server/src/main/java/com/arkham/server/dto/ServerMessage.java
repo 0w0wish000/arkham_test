@@ -61,7 +61,7 @@ public sealed interface ServerMessage
     /** {@code { type:"SESSION_ROSTER", … }} — 一桌的名冊 + 屏障進度(驅動大廳 UI,docs/09)。 */
     record SessionRoster(String campaignId, String name, String campaignKey, String stage,
                          String difficulty, java.util.List<RosterMember> members, boolean canForce,
-                         java.util.List<String> deadInvestigators)
+                         java.util.List<String> deadInvestigators, int currentChapter)
             implements ServerMessage {}
 
     /** {@code { type:"CAMPAIGN_SNAPSHOT", save }} — 全戰役存檔複製到各玩家本機(docs/09 §7)。 */

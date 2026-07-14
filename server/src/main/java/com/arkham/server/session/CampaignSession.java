@@ -50,6 +50,7 @@ public final class CampaignSession {
     private SaveVote saveVote;                            // 存檔投票進行中
     private final java.util.Set<String> deadInvestigators = new HashSet<>();  // 永久封鎖角色(docs/09 §10)
     private int maxXp = 50;                               // XP 上限(lite 版先給常數;正式版依戰役路線)
+    private int currentChapter = 1;                       // 跨章推進(docs/09 §9;campaigns.json 章節序)
     private CharVote charVote;                            // 換角投票進行中
 
     public CampaignSession(String campaignId, String name, String campaignKey,
@@ -99,6 +100,29 @@ public final class CampaignSession {
 
         if (isNew) broadcast(new ServerMessage.Event("roster", displayName + " 加入了調查。"));
         broadcastRoster();
+    }
+
+    /**
+     * D2/D5 跨章推進:對局結束 → 結算 XP(勝利點+勝負基礎)→ 回牌組大廳、章數+1、
+     * 名冊 ready 重置 → 自動存檔(新版本複製各本機)。由 handler 在每則對局訊息後輪詢。
+     */
+    public synchronized void settleChapterIfOver() throws IOException {
+        if (game == null || !game.isOver()) return;
+        boolean won = game.isWon();
+        int earned = (won ? 2 : 1) + game.victoryPoints();   // lite 公式:參與1/勝利2 + 勝利地點
+        game = null;
+        stage = "DECKBUILDING";
+        currentChapter++;
+        maxXp += earned;                                      // docs/09 §11:路線可得經驗累加
+        for (Member m : roster.values()) {
+            m.ready = false;
+            if ("ACTIVE".equals(m.status) && m.investigatorId != null) m.xp += earned;
+        }
+        broadcast(new ServerMessage.Event("chapter",
+                (won ? "🎉 章節完成!" : "🕯️ 章節失利…") + "每位參戰調查員獲得 " + earned
+                + " 經驗;回到牌組大廳,準備第 " + currentChapter + " 章。"));
+        broadcastRoster();
+        commitSave();   // 新存檔版本(跨章 checkpoint)複製到各本機
     }
 
     /** 接手寬限計時器:掉線者逾時未歸隊 → 檢定視為不投入(解開卡住的屏障)。daemon,不擋 JVM 結束。 */
@@ -340,6 +364,7 @@ public final class CampaignSession {
         }
         if (save.deadInvestigators() != null) cs.deadInvestigators.addAll(save.deadInvestigators());
         if (save.maxXp() > 0) cs.maxXp = save.maxXp();
+        if (save.currentChapter() > 0) cs.currentChapter = save.currentChapter();
         if ("IN_SCENARIO".equals(save.stage())) {
             cs.stage = "LOADING";                      // 屏障 A:等大家載入
             cs.pendingSnapshot = save.snapshot();
@@ -394,7 +419,7 @@ public final class CampaignSession {
         int round = inScenario ? game.round() : 0;
         String stg = inScenario ? "IN_SCENARIO" : "DECKBUILDING";
         return new CampaignSave(campaignId, name, campaignKey, difficulty, stg, sm,
-                List.copyOf(deadInvestigators), maxXp, snapshot, log, round);
+                List.copyOf(deadInvestigators), maxXp, snapshot, log, round, currentChapter);
     }
 
     private void persistSave(CampaignSave save) {
@@ -456,7 +481,7 @@ public final class CampaignSession {
         // 牌組/載入階段任何人都能強制越過屏障(熟人內網信任;docs/09 §8.3)。
         boolean canForce = "DECKBUILDING".equals(stage) || "LOADING".equals(stage);
         return new ServerMessage.SessionRoster(campaignId, name, campaignKey, stage, difficulty, members, canForce,
-                List.copyOf(deadInvestigators));
+                List.copyOf(deadInvestigators), currentChapter);
     }
 
     private void broadcastRoster() throws IOException {

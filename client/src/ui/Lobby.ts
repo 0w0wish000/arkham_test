@@ -214,9 +214,13 @@ export class Lobby {
     const loading = msg.stage === "LOADING";
     this.$("roster-name").textContent = msg.name;
     const readyCount = msg.members.filter((m) => m.ready).length;
+    const camp = CAMPAIGNS.find((c) => c.key === msg.campaignKey);
+    const chap = msg.currentChapter && camp
+      ? ` · 第 ${msg.currentChapter}/${camp.chapters.length} 章${camp.chapters[msg.currentChapter - 1] ? "「" + camp.chapters[msg.currentChapter - 1].name + "」" : ""}`
+      : msg.currentChapter ? ` · 第 ${msg.currentChapter} 章` : "";
     this.$("roster-meta").textContent =
       `${CAMPAIGN_ZH[msg.campaignKey] ?? msg.campaignKey} · 難度 ${DIFF_ZH[msg.difficulty] ?? msg.difficulty}` +
-      ` · ${STAGE_ZH[msg.stage] ?? msg.stage} · 就緒 ${readyCount}/${msg.members.length}`;
+      chap + ` · ${STAGE_ZH[msg.stage] ?? msg.stage} · 就緒 ${readyCount}/${msg.members.length}`;
 
     const list = this.$("roster-list");
     list.replaceChildren();

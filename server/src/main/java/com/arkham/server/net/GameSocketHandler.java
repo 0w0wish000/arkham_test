@@ -72,6 +72,7 @@ public class GameSocketHandler extends TextWebSocketHandler {
                     return;
                 }
                 session.handleIntent(investigatorId, intent.action(), intent.payload());
+                maybeSettleChapter(ws);
             }
             case ClientMessage.ChoiceResponse response -> {
                 GameSession session = activeGame(ws);
@@ -85,6 +86,7 @@ public class GameSocketHandler extends TextWebSocketHandler {
                 } else {
                     session.submitCommit(response.requestId(), committedCardIds(response));
                 }
+                maybeSettleChapter(ws);
             }
             case ClientMessage.SaveRequest ignored3 -> {
                 CampaignSession cs = currentCampaign(ws);
@@ -253,6 +255,12 @@ public class GameSocketHandler extends TextWebSocketHandler {
     private GameSession currentSession(WebSocketSession ws) {
         String sessionId = (String) ws.getAttributes().get(ATTR_SESSION);
         return sessionId == null ? null : sessions.get(sessionId);
+    }
+
+    /** D2/D5:對局訊息處理完 → 若勝負已定,觸發跨章結算(回牌組大廳 + XP + 新存檔)。 */
+    private void maybeSettleChapter(WebSocketSession ws) throws IOException {
+        CampaignSession cs = currentCampaign(ws);
+        if (cs != null) cs.settleChapterIfOver();
     }
 
     private String playerId(WebSocketSession ws) {

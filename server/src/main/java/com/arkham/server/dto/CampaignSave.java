@@ -27,7 +27,8 @@ public record CampaignSave(
         int maxXp,                  // 此戰役路線至今可取得的最大經驗(XP 上限)
         Object snapshot,            // 引擎狀態樹(IN_SCENARIO 才有,否則 null)
         List<GameEvent> eventLog,
-        int round) {
+        int round,
+        int currentChapter) {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record SavedMember(
