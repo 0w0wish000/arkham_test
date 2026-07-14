@@ -122,7 +122,11 @@ public final class GameSession {
             if (engine.hasPendingOption()
                     && engine.pendingOptionInfo().investigatorId().equals(investigatorId)) {
                 optionRequestId = null;
-                broadcastEvents(engine.resolveOption(false));
+                List<GameEvent> ev2 = engine.resolveOption(false);
+                if (!engine.hasPendingOption() && engine.hasPendingReveal()) {
+                    ev2.addAll(engine.resolveReveal());
+                }
+                broadcastEvents(ev2);
                 broadcastState();
                 maybeOpenOption();
             }
@@ -273,6 +277,9 @@ public final class GameSession {
         }
         optionRequestId = null;
         List<GameEvent> events = engine.resolveOption("use".equals(optionId));
+        if (!engine.hasPendingOption() && engine.hasPendingReveal()) {
+            events.addAll(engine.resolveReveal());   // B7:窗口反應答完 → 續抽混沌標記結算
+        }
         broadcastEvents(events);
         broadcastState();
         maybeOpenOption();   // 佇列中還有下一個反應就接著問

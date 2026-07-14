@@ -99,4 +99,26 @@ class AbilityEngineTest {
         assertEquals(1, brute.getDamageOn(), "強制能力自動對攻擊者反傷 1(不需詢問)");
         assertFalse(eng.hasPendingOption(), "強制能力不產生詢問");
     }
+
+    @Test
+    void b7WindowPausesBeforeRevealThenResumes() {
+        GameState state = baseState("daniela");   // daniela 無 BEFORE_REVEAL 內建能力
+        RulesEngine eng = new RulesEngine(state, new SeededRng(1));
+        eng.registerAbility(new com.arkham.engine.ability.Ability(
+                "test_window", "daniela", "測試窗口卡",
+                com.arkham.engine.ability.Timing.SKILL_TEST_BEFORE_REVEAL,
+                com.arkham.engine.ability.Ability.Type.REACTION, false,
+                "抽標記前:+0(測試)?", (e2, ctx, ev) -> { }));
+
+        eng.applyIntent("daniela", IntentAction.INVESTIGATE, Map.of());
+        eng.resolveCommit(Map.of("daniela", List.of()));
+        assertTrue(eng.hasPendingOption(), "投入後、抽標記前應暫停於能力窗口");
+        assertFalse(eng.hasPendingReveal(), "窗口未答完不可續抽");
+        int clues = state.investigator("daniela").getCluesHeld();
+
+        eng.resolveOption(false);                  // 跳過窗口反應
+        assertTrue(eng.hasPendingReveal());
+        eng.resolveReveal();                       // 續抽標記(袋只有 +1 → 必成功)
+        assertEquals(clues + 1, state.investigator("daniela").getCluesHeld(), "檢定於窗口後正常完成");
+    }
 }

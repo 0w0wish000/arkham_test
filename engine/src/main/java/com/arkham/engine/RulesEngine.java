@@ -55,6 +55,7 @@ public final class RulesEngine {
     private final List<com.arkham.engine.ability.Ability> abilities = new ArrayList<>();
     private final java.util.ArrayDeque<PendingOption> reactionQueue = new java.util.ArrayDeque<>();
     private PendingOption pendingOption;   // 等玩家回答的反應能力(一次一個)
+    private Integer pendingRevealIcons;    // B7:投入已收、待抽標記(窗口期間暫停)
 
     public RulesEngine(GameState state, SeededRng rng) {
         this.state = state;
@@ -163,6 +164,9 @@ public final class RulesEngine {
             pendingOption = reactionQueue.poll();
         }
     }
+
+    /** 登記一條能力(卡池/測試用;調查員內建能力由建構子登記)。 */
+    public void registerAbility(com.arkham.engine.ability.Ability a) { abilities.add(a); }
 
     public boolean hasPendingOption() { return pendingOption != null; }
     public PendingOption pendingOptionInfo() { return pendingOption; }
@@ -510,13 +514,31 @@ public final class RulesEngine {
             }
         }
 
+        if (!committedNames.isEmpty()) {
+            events.add(GameEvent.of("SKILL_TEST", "投入:" + String.join("、", committedNames)));
+        }
+        // B7:投入完成 → 開「抽標記前」能力窗口;有反應待答就暫停,答完由 resolveReveal 續跑
+        pendingRevealIcons = committedIcons;
+        emitTiming(com.arkham.engine.ability.Timing.SKILL_TEST_BEFORE_REVEAL,
+                com.arkham.engine.ability.Ability.Ctx.of(pc.performerId()), events);
+        if (pendingOption == null) {
+            events.addAll(resolveReveal());
+        }
+        return events;
+    }
+
+    /** B7 檢定後半:抽混沌標記 → 結算(窗口反應全數回答後呼叫)。 */
+    public boolean hasPendingReveal() { return pendingRevealIcons != null && pendingOption == null; }
+
+    public List<GameEvent> resolveReveal() {
+        PendingCommit pc = requirePending();
+        Investigator performer = requireInvestigator(pc.performerId());
+        int committedIcons = pendingRevealIcons == null ? 0 : pendingRevealIcons;
+        pendingRevealIcons = null;
+        List<GameEvent> events = new ArrayList<>();
         SkillTest.Result r = SkillTest.run(
                 pc.skill(), pc.base(), pc.difficulty(), committedIcons, state.getChaosBag(), rng);
 
-        if (!committedNames.isEmpty()) {
-            events.add(GameEvent.of("SKILL_TEST",
-                    "投入:" + String.join("、", committedNames) + " → 技能 " + r.effectiveSkill()));
-        }
         events.add(GameEvent.of("SKILL_TEST", describeResult(r)));
 
         applySkillResult(pc, r, events);
