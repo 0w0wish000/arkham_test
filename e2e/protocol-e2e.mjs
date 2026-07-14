@@ -121,6 +121,12 @@ async function main() {
   dani.send({ type: "CHOICE_RESPONSE", requestId: dReq.requestId, choice: { committedCardIds: [] } });
   const js1 = await joe.waitFor(isState, "檢定結算後 STATE");
   check(js1.view.you.actionsRemaining === 2, "檢定花掉 1 個行動(3→2,不論成敗)", `actions=${js1.view.you.actionsRemaining}`);
+  // 若調查成功會觸發 Joe 的反應能力(能力引擎)→ 這裡略過,免得擋住後續意圖
+  try {
+    const opt = await joe.waitFor((m) => m.type === "CHOICE_REQUEST" && m.kind === "CHOOSE_OPTION", "反應詢問", 700);
+    joe.send({ type: "CHOICE_RESPONSE", requestId: opt.requestId, choice: { optionId: "skip" } });
+    await joe.waitFor(isState, "略過反應後 STATE");
+  } catch { /* 檢定失敗 → 沒有詢問,不需處理 */ }
 
   // ── 3. MOVE:走到 dormitories → 揭示 + 生怪(Servant)並交戰 ──
   section("3. MOVE / 揭示與生怪");

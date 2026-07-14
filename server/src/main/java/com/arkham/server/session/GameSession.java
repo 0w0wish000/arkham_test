@@ -44,6 +44,7 @@ public final class GameSession {
 
     private Barrier barrier; // non-null while a commit barrier is open
     private SaveVote saveVote; // non-null while a save-vote is open
+    private String optionRequestId; // 反應能力 CHOOSE_OPTION 的請求 id(等擁有者回答)
     private final List<GameEvent> eventLog = new java.util.ArrayList<>(); // 累積出牌/事件(供存檔;有上限)
     private int lastCheckpointRound = 1;
 
@@ -117,6 +118,14 @@ public final class GameSession {
         if (clients.containsKey(investigatorId)) return;   // 已接手 → 保留「重打那一動」
         try {
             skipCommitter(investigatorId, "⏱ " + investigatorId + " 逾時未歸隊,本次檢定視為不投入。");
+            // 卡在他的反應能力詢問 → 視為略過,解開對局
+            if (engine.hasPendingOption()
+                    && engine.pendingOptionInfo().investigatorId().equals(investigatorId)) {
+                optionRequestId = null;
+                broadcastEvents(engine.resolveOption(false));
+                broadcastState();
+                maybeOpenOption();
+            }
         } catch (IOException ignored) { /* 計時器清理 best-effort */ }
     }
 
@@ -146,6 +155,14 @@ public final class GameSession {
                         engine.commitOptionsFor(investigatorId)));
             }
         }
+        // 卡在自己反應能力的詢問 → 補發同一個決策(重打掉線那一動)
+        if (engine.hasPendingOption() && investigatorId.equals(engine.pendingOptionInfo().investigatorId())) {
+            if (optionRequestId == null) {
+                optionRequestId = UUID.randomUUID().toString();
+            }
+            send(ws, new ServerMessage.ChoiceRequest(optionRequestId, ChoiceKind.CHOOSE_OPTION,
+                    engine.optionOptionsFor()));
+        }
     }
 
     // ------------------------------------------------------------------
@@ -166,6 +183,7 @@ public final class GameSession {
             openBarrier();
         } else {
             broadcastState();
+            maybeOpenOption();   // 反應能力(如 Joe 成功調查後抽牌)→ 問擁有者
         }
         // 每回合結算:回合數增加時,伺服器端自動存檔(docs/08 §6.5)
         int r = engine.state().getRound();
@@ -227,6 +245,37 @@ public final class GameSession {
         }
         broadcastEvents(events);
         broadcastState();
+        maybeOpenOption();   // 檢定結算可能觸發反應能力(能力視窗)
+    }
+
+    // ------------------------------------------------------------------
+    // 反應能力詢問(docs/11 §B3 原型):引擎暫停 → 對擁有者發 CHOOSE_OPTION
+    // ------------------------------------------------------------------
+
+    private void maybeOpenOption() throws IOException {
+        if (!engine.hasPendingOption() || optionRequestId != null) {
+            return;
+        }
+        RulesEngine.PendingOption po = engine.pendingOptionInfo();
+        WebSocketSession ws = clients.get(po.investigatorId());
+        if (ws == null) {
+            return;   // 擁有者離線:接手時補發(reattach),或逾時視為略過(autoSkipIfAbsent)
+        }
+        optionRequestId = UUID.randomUUID().toString();
+        send(ws, new ServerMessage.ChoiceRequest(optionRequestId, ChoiceKind.CHOOSE_OPTION,
+                engine.optionOptionsFor()));
+    }
+
+    /** 擁有者回答反應能力(optionId = "use" / "skip")。 */
+    public synchronized void submitOption(String requestId, String optionId) throws IOException {
+        if (optionRequestId == null || !optionRequestId.equals(requestId)) {
+            return;   // 過期/非預期
+        }
+        optionRequestId = null;
+        List<GameEvent> events = engine.resolveOption("use".equals(optionId));
+        broadcastEvents(events);
+        broadcastState();
+        maybeOpenOption();   // 佇列中還有下一個反應就接著問
     }
 
     // ------------------------------------------------------------------

@@ -2,7 +2,7 @@ import { Connection } from "./net/Connection";
 import { Lobby } from "./ui/Lobby";
 import { loadProfile, createProfile, renameProfile } from "./profile";
 import { storeSave, listSaves, deleteSave } from "./saves";
-import type { CommitCardsOptions } from "./protocol";
+import type { CommitCardsOptions, ChooseOptionOptions } from "./protocol";
 // 戰役板(進戰役才載入;docs/09 P2 由 START_SCENARIO/STATE 觸發)
 import { GameView } from "./render/GameView";
 import { Hud } from "./ui/Hud";
@@ -54,6 +54,11 @@ async function main() {
     onChoiceRequest: (req) => {
       if (req.kind === "COMMIT_CARDS" && board) {
         board.hud.showCommit(req.requestId, req.options as CommitCardsOptions);
+      } else if (req.kind === "CHOOSE_OPTION") {
+        // 反應能力(如 Joe 成功調查後抽牌):彈窗問「使用/跳過」
+        const opts = req.options as ChooseOptionOptions;
+        const yes = confirm(opts.prompt);
+        conn.respond(req.requestId, { optionId: yes ? "use" : "skip" });
       }
     },
     onSavePrompt: (msg) => {

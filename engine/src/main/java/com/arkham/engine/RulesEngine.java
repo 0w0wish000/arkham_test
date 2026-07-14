@@ -14,6 +14,7 @@ import com.arkham.engine.model.Keyword;
 import com.arkham.engine.model.LocationCard;
 import com.arkham.engine.model.Phase;
 import com.arkham.engine.model.SkillType;
+import com.arkham.engine.protocol.ChooseOptionOptions;
 import com.arkham.engine.protocol.CommitCardsOptions;
 import com.arkham.engine.rng.SeededRng;
 import com.arkham.engine.view.ActView;
@@ -50,9 +51,15 @@ public final class RulesEngine {
     private final SeededRng rng;
     private PendingCommit pendingCommit;
 
+    // ---- 能力/時機引擎(docs/11 §B 原型)----
+    private final List<com.arkham.engine.ability.Ability> abilities = new ArrayList<>();
+    private final java.util.ArrayDeque<PendingOption> reactionQueue = new java.util.ArrayDeque<>();
+    private PendingOption pendingOption;   // 等玩家回答的反應能力(一次一個)
+
     public RulesEngine(GameState state, SeededRng rng) {
         this.state = state;
         this.rng = rng;
+        registerInvestigatorAbilities();
     }
 
     public GameState state() {
@@ -102,6 +109,121 @@ public final class RulesEngine {
     }
 
     // ------------------------------------------------------------------
+    // 能力/時機引擎(docs/11 §B 原型):FORCED 立即結算、REACTION 排隊詢問擁有者
+    // ------------------------------------------------------------------
+
+    /** 等玩家回答的反應能力(一次一個;伺服器對擁有者發 CHOOSE_OPTION)。 */
+    public record PendingOption(String abilityId, String investigatorId, String prompt,
+                                com.arkham.engine.ability.Ability.Ctx ctx) {}
+
+    /** 依在場調查員登記其官方能力(垂直切片:Joe 反應抽牌、Daniela 強制反傷)。 */
+    private void registerInvestigatorAbilities() {
+        for (Investigator inv : state.orderedInvestigators()) {
+            switch (inv.getId()) {
+                case "joe_diamond" -> abilities.add(new com.arkham.engine.ability.Ability(
+                        "joe_draw", inv.getId(), "Joe Diamond",
+                        com.arkham.engine.ability.Timing.AFTER_INVESTIGATE_SUCCESS,
+                        com.arkham.engine.ability.Ability.Type.REACTION, true,
+                        "↺ Joe Diamond:你成功調查了 —— 抽 1 張牌?(每回合限一次)",
+                        (eng, ctx, ev) -> eng.drawCardFor(ctx.investigatorId(), ev)));
+                case "daniela" -> abilities.add(new com.arkham.engine.ability.Ability(
+                        "daniela_counter", inv.getId(), "Daniela Reyes",
+                        com.arkham.engine.ability.Timing.AFTER_ENEMY_ATTACKS_YOU,
+                        com.arkham.engine.ability.Ability.Type.FORCED, true, null,
+                        (eng, ctx, ev) -> eng.dealAbilityDamage(ctx.enemyId(), 1, "Daniela Reyes(反擊本能)", ev)));
+                default -> { /* 其餘調查員能力待卡池擴充 */ }
+            }
+        }
+    }
+
+    /** 對一個時機點發布觸發:強制先結算(p41),反應排隊等擁有者決定。 */
+    private void emitTiming(com.arkham.engine.ability.Timing timing,
+                            com.arkham.engine.ability.Ability.Ctx ctx, List<GameEvent> events) {
+        for (com.arkham.engine.ability.Ability a : abilities) {
+            if (a.timing() != timing || !a.ownerId().equals(ctx.investigatorId())) {
+                continue;
+            }
+            Investigator owner = state.investigator(a.ownerId());
+            if (owner == null || (a.oncePerRound() && owner.hasUsedAbility(a.id()))) {
+                continue;
+            }
+            if (a.type() == com.arkham.engine.ability.Ability.Type.FORCED) {
+                if (a.oncePerRound()) owner.markAbilityUsed(a.id());
+                events.add(GameEvent.of("ABILITY", "⚡ 強制能力:" + a.sourceName() + " 觸發。"));
+                a.effect().resolve(this, ctx, events);
+            } else {
+                reactionQueue.add(new PendingOption(a.id(), a.ownerId(), a.prompt(), ctx));
+            }
+        }
+        surfaceNextOption();
+    }
+
+    private void surfaceNextOption() {
+        if (pendingOption == null && !reactionQueue.isEmpty()) {
+            pendingOption = reactionQueue.poll();
+        }
+    }
+
+    public boolean hasPendingOption() { return pendingOption != null; }
+    public PendingOption pendingOptionInfo() { return pendingOption; }
+
+    /** 給伺服器組 CHOOSE_OPTION 請求。 */
+    public ChooseOptionOptions optionOptionsFor() {
+        return new ChooseOptionOptions(pendingOption.prompt(), List.of(
+                new ChooseOptionOptions.Option("use", "使用"),
+                new ChooseOptionOptions.Option("skip", "跳過")));
+    }
+
+    /** 擁有者回答反應能力(use=使用);結算後浮出下一個排隊中的反應。 */
+    public List<GameEvent> resolveOption(boolean use) {
+        PendingOption po = pendingOption;
+        pendingOption = null;
+        List<GameEvent> events = new ArrayList<>();
+        if (po == null) {
+            return events;
+        }
+        com.arkham.engine.ability.Ability a = abilities.stream()
+                .filter(x -> x.id().equals(po.abilityId())).findFirst().orElse(null);
+        Investigator owner = a == null ? null : state.investigator(a.ownerId());
+        if (use && a != null && owner != null && !(a.oncePerRound() && owner.hasUsedAbility(a.id()))) {
+            if (a.oncePerRound()) owner.markAbilityUsed(a.id());
+            events.add(GameEvent.of("ABILITY", "↺ " + a.sourceName() + ":使用能力。"));
+            a.effect().resolve(this, po.ctx(), events);
+        } else if (a != null) {
+            events.add(GameEvent.of("ABILITY", "(" + a.sourceName() + " 略過反應能力。)"));
+        }
+        surfaceNextOption();
+        return events;
+    }
+
+    /** 能力效果 helper:抽 1 張(空堆規則同整備)。 */
+    public void drawCardFor(String investigatorId, List<GameEvent> events) {
+        Investigator inv = state.investigator(investigatorId);
+        if (inv == null) {
+            return;
+        }
+        int before = inv.getHand().size();
+        drawOne(inv, events);
+        if (inv.getHand().size() > before) {
+            events.add(GameEvent.of("DRAW", inv.getName() + " 抽了 1 張牌。"));
+        }
+    }
+
+    /** 能力效果 helper:對敵人造成傷害(含擊敗結算)。 */
+    public void dealAbilityDamage(String enemyId, int dmg, String source, List<GameEvent> events) {
+        EnemyCard e = enemyId == null ? null : state.enemy(enemyId);
+        if (e == null || dmg <= 0) {
+            return;
+        }
+        e.applyDamage(dmg);
+        events.add(GameEvent.of("ABILITY", source + ":對 " + e.getName() + " 造成 " + dmg
+                + " 傷害(" + e.getDamageOn() + "/" + e.getHealth() + ")。"));
+        if (e.isDefeated()) {
+            defeatEnemy(e, events);
+        }
+    }
+
+    // ------------------------------------------------------------------
     // Intent dispatch
     // ------------------------------------------------------------------
 
@@ -119,6 +241,9 @@ public final class RulesEngine {
         }
         if (pendingCommit != null) {
             throw new IllegalStateException("A skill-test commit is pending; resolve it first");
+        }
+        if (pendingOption != null) {
+            throw new IllegalStateException("A reaction ability is pending; answer it first");
         }
         Investigator inv = requireInvestigator(investigatorId);
         List<GameEvent> events = new ArrayList<>();
@@ -400,6 +525,9 @@ public final class RulesEngine {
                         performer.gainResources(1); // Joe Diamond elder-sign ability (prototype)
                         events.add(GameEvent.of("ELDER_SIGN", "⭐ 古老印記:獲得 1 資源。"));
                     }
+                    // 能力視窗:你成功調查之後(Joe Diamond 反應)
+                    emitTiming(com.arkham.engine.ability.Timing.AFTER_INVESTIGATE_SUCCESS,
+                            com.arkham.engine.ability.Ability.Ctx.of(performer.getId()), events);
                 } else {
                     events.add(GameEvent.of("INVESTIGATE", "調查失敗,未取得線索。"));
                 }
@@ -524,7 +652,8 @@ public final class RulesEngine {
         state.setPhase(Phase.INVESTIGATION);
         for (Investigator inv : state.orderedInvestigators()) {
             inv.setActionsRemaining(3);
-            inv.setTurnDone(false);   // 新回合重置「我打完了」屏障
+            inv.setTurnDone(false);          // 新回合重置「我打完了」屏障
+            inv.getUsedAbilities().clear();  // 「每回合限一次」能力重置
         }
         events.add(GameEvent.of("PHASE", "—— 調查階段 ——"));
     }
@@ -720,6 +849,11 @@ public final class RulesEngine {
         events.add(GameEvent.of("ENEMY_ATTACK",
                 "💥 " + e.getName() + " 攻擊:" + e.getDamage() + " 傷害、" + e.getHorror() + " 恐懼。"));
         checkDefeat(inv, events);
+        if (!state.isGameOver()) {
+            // 能力視窗:敵人攻擊命中你之後(Daniela Reyes 強制反傷)
+            emitTiming(com.arkham.engine.ability.Timing.AFTER_ENEMY_ATTACKS_YOU,
+                    new com.arkham.engine.ability.Ability.Ctx(inv.getId(), e.getId()), events);
+        }
     }
 
     private void checkDefeat(Investigator inv, List<GameEvent> events) {

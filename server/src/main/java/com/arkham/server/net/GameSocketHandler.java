@@ -79,7 +79,12 @@ public class GameSocketHandler extends TextWebSocketHandler {
                     send(ws, new ServerMessage.Error("尚未進入對局"));
                     return;
                 }
-                session.submitCommit(response.requestId(), committedCardIds(response));
+                ClientMessage.ChoiceResponseBody body = response.choice();
+                if (body != null && body.optionId() != null) {
+                    session.submitOption(response.requestId(), body.optionId());   // 反應能力回答
+                } else {
+                    session.submitCommit(response.requestId(), committedCardIds(response));
+                }
             }
             case ClientMessage.SaveRequest ignored3 -> {
                 CampaignSession cs = currentCampaign(ws);

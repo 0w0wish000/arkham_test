@@ -34,6 +34,7 @@ public final class Investigator {
     private final List<String> engagedEnemyIds = new ArrayList<>();
     private int[] skillBonus = new int[4];                           // 支援卡給的技能加值(依 SkillType 序;存檔可還原)
     private boolean turnDone;                                        // 本輪「我打完了」(END_TURN 屏障)
+    private final List<String> usedAbilities = new ArrayList<>();    // 本輪已用的「每回合限一次」能力 id
 
     @com.fasterxml.jackson.annotation.JsonCreator
     public Investigator(@com.fasterxml.jackson.annotation.JsonProperty("id") String id,
@@ -116,6 +117,11 @@ public final class Investigator {
 
     public boolean isTurnDone() { return turnDone; }
     public void setTurnDone(boolean done) { this.turnDone = done; }
+
+    /** 「每回合限一次」能力記帳(新回合由引擎清空)。 */
+    public List<String> getUsedAbilities() { return usedAbilities; }
+    public boolean hasUsedAbility(String abilityId) { return usedAbilities.contains(abilityId); }
+    public void markAbilityUsed(String abilityId) { if (!usedAbilities.contains(abilityId)) usedAbilities.add(abilityId); }
 
     /** 治療傷害(下限 0)。 */
     public void heal(int n) { this.damage = Math.max(0, this.damage - n); }
