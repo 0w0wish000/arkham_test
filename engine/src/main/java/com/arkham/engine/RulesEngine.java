@@ -664,6 +664,13 @@ public final class RulesEngine {
         for (Investigator inv : state.orderedInvestigators()) {
             inv.gainResources(1);       // 整備:獲得 1 資源
             drawOne(inv, events);       // 整備:抽 1 張(C-lite 牌堆;空堆 → 洗回棄牌堆 +1 恐懼)
+            int over = inv.getHand().size() - 8;   // 整備:手牌上限 8(官方 p17;lite 自動棄最舊,正式版改玩家選)
+            if (over > 0) {
+                for (int k = 0; k < over; k++) {
+                    inv.discard(inv.getHand().get(0));
+                }
+                events.add(GameEvent.of("UPKEEP", inv.getName() + " 手牌超過 8 張,棄置 " + over + " 張。"));
+            }
         }
         // Same-location unengaged enemies engage (docs/05 §1.4c).
         for (EnemyCard e : state.getEnemies().values()) {

@@ -6,3 +6,4 @@ images/
 # repo 只保留腳本、索引(reference/)、範本(cards/core/examples.json)。
 cards/generated/
 tools/.cache/
+locales/_templates/
