@@ -108,6 +108,23 @@ public final class CardCatalog {
         weakness("Paranoia");
     }
 
+    // ---- B5 常駐修正層(lite):檯面支援卡提供的持續加值,由引擎「推導」而非改欄位 ----
+    private static final Map<String, SkillIcon> CONSTANT_SKILL = Map.of(
+            "Magnifying Glass", SkillIcon.INTELLECT);   // +1 智力(持續)
+    private static final Map<String, Integer> WEAPON_BONUS = Map.of(
+            "Machete", 1);                              // 戰鬥傷害 +1(持續)
+
+    /** 這張檯面卡對某技能的常駐加值(目前每卡 +1;完整修正層見 docs/11 B5)。 */
+    public static int constantSkillBonus(String cardName, com.arkham.engine.model.SkillType type) {
+        SkillIcon ic = CONSTANT_SKILL.get(cardName);
+        return ic != null && ic.matches(type) ? 1 : 0;
+    }
+
+    /** 這張檯面卡提供的武器傷害加值。 */
+    public static int weaponBonus(String cardName) {
+        return WEAPON_BONUS.getOrDefault(cardName, 0);
+    }
+
     /** 外部登記層(G1):伺服器啟動時由 content/cards/generated/ 灌入真卡資料;查找優先於內建。 */
     private static final Map<String, Spec> EXTERNAL = new java.util.concurrent.ConcurrentHashMap<>();
 

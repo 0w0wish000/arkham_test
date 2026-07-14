@@ -223,6 +223,24 @@ public final class RulesEngine {
         }
     }
 
+
+    /** B5 常駐修正層(lite):有效技能 = 基礎 + 檯面支援常駐加值(由 playArea 推導,存檔自然一致)。 */
+    public int effSkill(Investigator inv, SkillType type) {
+        int v = inv.baseSkill(type);
+        for (CardInstance c : inv.getPlayArea()) {
+            v += com.arkham.engine.scenario.CardCatalog.constantSkillBonus(c.name(), type);
+        }
+        return v;
+    }
+
+    private int effWeaponBonus(Investigator inv) {
+        int v = inv.getWeaponBonus();   // 舊存檔相容(欄位已不再寫入)
+        for (CardInstance c : inv.getPlayArea()) {
+            v += com.arkham.engine.scenario.CardCatalog.weaponBonus(c.name());
+        }
+        return v;
+    }
+
     // ------------------------------------------------------------------
     // Intent dispatch
     // ------------------------------------------------------------------
@@ -399,14 +417,10 @@ public final class RulesEngine {
                 inv.heal(1);
                 events.add(GameEvent.of("PLAY", inv.getName() + " 打出 急救:治療 1 點傷害。"));
             }
-            case "Magnifying Glass" -> {
-                inv.addSkillBonus(SkillType.INTELLECT, 1);
-                events.add(GameEvent.of("PLAY", inv.getName() + " 裝備 放大鏡:智力 +1(持續)。"));
-            }
-            case "Machete" -> {
-                inv.setWeaponBonus(inv.getWeaponBonus() + 1);
-                events.add(GameEvent.of("PLAY", inv.getName() + " 裝備 大砍刀:戰鬥造成傷害 +1(持續)。"));
-            }
+            case "Magnifying Glass" ->
+                events.add(GameEvent.of("PLAY", inv.getName() + " 裝備 放大鏡:智力 +1(持續,常駐修正)。"));
+            case "Machete" ->
+                events.add(GameEvent.of("PLAY", inv.getName() + " 裝備 大砍刀:戰鬥造成傷害 +1(持續,常駐修正)。"));
             default -> events.add(GameEvent.of("PLAY", inv.getName() + " 打出 " + card.name() + "(此測試卡尚無特效)。"));
         }
     }
@@ -441,7 +455,7 @@ public final class RulesEngine {
 
     private void openSkillTest(Investigator performer, SkillType skill, int difficulty,
                                IntentAction actionKind, String targetId, List<GameEvent> events) {
-        int base = performer.baseSkill(skill);
+        int base = effSkill(performer, skill);
         List<String> eligible = new ArrayList<>();
         eligible.add(performer.getId());
         for (Investigator other : state.orderedInvestigators()) {
@@ -538,7 +552,7 @@ public final class RulesEngine {
                     return;
                 }
                 if (r.success()) {
-                    int dmg = 1 + performer.getWeaponBonus(); // combat deals 1 by default (docs/05 §4)
+                    int dmg = 1 + effWeaponBonus(performer); // combat deals 1 by default (docs/05 §4)
                     e.applyDamage(dmg);
                     events.add(GameEvent.of("FIGHT",
                             "戰鬥成功,對 " + e.getName() + " 造成 " + dmg + " 傷害("
@@ -987,8 +1001,8 @@ public final class RulesEngine {
 
         // 有效技能值 = 基礎 + 支援卡加值(讓放大鏡之類的 +1 顯示在視圖與檢定)
         com.arkham.engine.model.Skills eff = new com.arkham.engine.model.Skills(
-                me.baseSkill(SkillType.WILLPOWER), me.baseSkill(SkillType.INTELLECT),
-                me.baseSkill(SkillType.COMBAT), me.baseSkill(SkillType.AGILITY));
+                effSkill(me, SkillType.WILLPOWER), effSkill(me, SkillType.INTELLECT),
+                effSkill(me, SkillType.COMBAT), effSkill(me, SkillType.AGILITY));
         SelfView you = new SelfView(
                 me.getId(), eff, me.getHealth(), me.getDamage(), me.getSanity(), me.getHorror(),
                 me.getResources(), me.getCluesHeld(), me.getActionsRemaining(), me.getLocationId(),
