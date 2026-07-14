@@ -8,13 +8,14 @@ import java.util.List;
 /**
  * Options for a COMMIT_CARDS choice (docs/05 §2.1). Mirrors {@code CommitCardsOptions}
  * in protocol/messages.ts. Sent once to every eligible committer during the commit
- * barrier: {@code maxCommit} is large for the performer and 1 for same-location allies.
+ * barrier — the performer and every investigator at their location, each of whom may
+ * commit any number of matching cards.
  *
  * @param skill         the skill being tested
  * @param base          the performer's base skill value (for the client's live readout)
  * @param difficulty    the difficulty to beat
  * @param eligibleCards this committer's hand cards with a matching/wild icon
- * @param maxCommit     max cards this committer may commit (performer: large; ally: 1)
+ * @param maxCommit     how many of them may be committed (i.e. all of them)
  */
 public record CommitCardsOptions(
         SkillType skill,

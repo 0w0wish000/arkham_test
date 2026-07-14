@@ -38,6 +38,13 @@ public final class GameState {
     private boolean won;
     private String outcomeMessage;
 
+    /**
+     * The player count fixed at setup. Resigning does <b>not</b> reduce it (rules:
+     * "撤退後在玩家人數判定時不會扣除"), so anything scaled by player count — clue
+     * placement above all — must read this, never {@code investigators.size()}.
+     */
+    private int playerCount;
+
     public GameState(ChaosBag chaosBag, Act act, Agenda agenda,
                      Map<String, EnemyDef> enemyDefs, List<EncounterCard> encounterDeck) {
         this.chaosBag = chaosBag;
@@ -46,6 +53,8 @@ public final class GameState {
         this.enemyDefs = Map.copyOf(enemyDefs);
         this.encounterDeck = new ArrayList<>(encounterDeck);
     }
+
+    public int getPlayerCount() { return playerCount; }
 
     public int getRound() { return round; }
     public void setRound(int round) { this.round = round; }
@@ -70,6 +79,7 @@ public final class GameState {
 
     public void addInvestigator(Investigator inv) {
         investigators.put(inv.getId(), inv);
+        playerCount = investigators.size();
         if (activeInvestigatorId == null) activeInvestigatorId = inv.getId();
     }
 
@@ -82,6 +92,62 @@ public final class GameState {
     /** Player order: insertion order of the investigators map (docs/05 §1). */
     public List<Investigator> orderedInvestigators() {
         return new ArrayList<>(investigators.values());
+    }
+
+    /** Player order, restricted to the investigators still in the game. */
+    public List<Investigator> investigatorsInPlay() {
+        return investigators.values().stream().filter(Investigator::isInPlay).toList();
+    }
+
+    /** Everyone has been defeated or resigned — the scenario ends with no resolution. */
+    public boolean allEliminated() {
+        return investigatorsInPlay().isEmpty();
+    }
+
+    /**
+     * The next investigator in seat order (after {@code fromId}, wrapping) who is still in
+     * play and has not yet taken their turn; {@code null} if there is none. This is only
+     * the <em>default</em> offer — turn order is the team's to choose (docs/05 §4.1), so
+     * any other investigator who has not acted may take the turn instead.
+     */
+    public Investigator nextToAct(String fromId) {
+        List<Investigator> order = orderedInvestigators();
+        int start = 0;
+        for (int i = 0; i < order.size(); i++) {
+            if (order.get(i).getId().equals(fromId)) {
+                start = i;
+                break;
+            }
+        }
+        for (int step = 1; step <= order.size(); step++) {
+            Investigator candidate = order.get((start + step) % order.size());
+            if (candidate.isInPlay() && !candidate.isTurnTaken()) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * All doom currently in play: on the agenda, on locations and on enemies. The agenda
+     * advances when this total reaches its threshold (rules: "場上所有毀滅標記").
+     */
+    public int totalDoomInPlay() {
+        int total = agenda.getDoom();
+        for (LocationCard loc : locations.values()) {
+            total += loc.getDoom();
+        }
+        for (EnemyCard e : enemies.values()) {
+            total += e.getDoom();
+        }
+        return total;
+    }
+
+    /** Advancing the agenda discards every doom token in play. */
+    public void clearAllDoomInPlay() {
+        agenda.clearDoom();
+        locations.values().forEach(LocationCard::clearDoom);
+        enemies.values().forEach(EnemyCard::clearDoom);
     }
 
     public List<EnemyCard> enemiesAt(String locationId) {

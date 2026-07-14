@@ -23,12 +23,12 @@ public final class ChaosBag {
     }
 
     /**
-     * The standard 16-token bag (prototype {@code freshBag()}):
-     * +1×2, 0×2, -1×3, -2×2, -3, -4, skull×2, cultist, autofail, elder-sign.
+     * The standard 16-token bag:
+     * -4, -3, -2×2, -1×3, 0×2, +1, cultist, skull×2, tablet, autofail, elder-sign.
+     * Difficulty variants swap tokens, so a scenario may build its own bag instead.
      */
     public static ChaosBag standard() {
         List<ChaosToken> t = new ArrayList<>(16);
-        t.add(ChaosToken.numeric(1));
         t.add(ChaosToken.numeric(1));
         t.add(ChaosToken.numeric(0));
         t.add(ChaosToken.numeric(0));
@@ -39,9 +39,10 @@ public final class ChaosBag {
         t.add(ChaosToken.numeric(-2));
         t.add(ChaosToken.numeric(-3));
         t.add(ChaosToken.numeric(-4));
-        t.add(ChaosToken.symbol(ChaosSymbol.SKULL));
-        t.add(ChaosToken.symbol(ChaosSymbol.SKULL));
         t.add(ChaosToken.symbol(ChaosSymbol.CULTIST));
+        t.add(ChaosToken.symbol(ChaosSymbol.SKULL));
+        t.add(ChaosToken.symbol(ChaosSymbol.SKULL));
+        t.add(ChaosToken.symbol(ChaosSymbol.TABLET));
         t.add(ChaosToken.symbol(ChaosSymbol.AUTOFAIL));
         t.add(ChaosToken.symbol(ChaosSymbol.ELDER_SIGN));
         return new ChaosBag(t);

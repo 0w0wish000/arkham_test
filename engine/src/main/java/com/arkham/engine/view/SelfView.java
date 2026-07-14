@@ -8,7 +8,9 @@ import java.util.List;
 /**
  * The viewing player's own investigator — the only view that includes hand contents.
  * Mirrors {@code SelfView} in protocol/messages.ts. {@code health}/{@code sanity} are
- * maxima; {@code damage}/{@code horror} are marked amounts.
+ * maxima; {@code damage}/{@code horror} are marked amounts. {@code deckCount} and
+ * {@code discardCount} are counts only — the deck's <em>order</em> is never sent.
+ * {@code elimination} is null while the investigator is still in play.
  */
 public record SelfView(
         String investigatorId,
@@ -22,4 +24,9 @@ public record SelfView(
         int actionsRemaining,
         String locationId,
         List<HandCard> hand,
-        List<String> engagedEnemyIds) {}
+        List<HandCard> inPlay,
+        int deckCount,
+        int discardCount,
+        List<String> engagedEnemyIds,
+        boolean turnTaken,
+        String elimination) {}

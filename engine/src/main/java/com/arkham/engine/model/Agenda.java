@@ -20,5 +20,11 @@ public final class Agenda {
     public int getDoom() { return doom; }
 
     public void addDoom(int n) { this.doom += n; }
-    public boolean atThreshold() { return doom >= threshold; }
+    public void clearDoom() { this.doom = 0; }
+
+    /**
+     * Whether the agenda advances. The threshold is measured against <em>all</em> doom in
+     * play, not just the doom on this card — see {@link GameState#totalDoomInPlay()}.
+     */
+    public boolean reachedBy(int totalDoomInPlay) { return totalDoomInPlay >= threshold; }
 }

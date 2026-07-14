@@ -16,25 +16,27 @@ class ChaosBagTest {
         assertEquals(16, ChaosBag.standard().size());
     }
 
+    /** The rulebook's standard bag: -4/-3/-2×2/-1×3/0×2/+1 + cultist/skull×2/tablet/⊗/⭐. */
     @Test
-    void standardBagCompositionMatchesPrototypeFreshBag() {
+    void standardBagMatchesTheRulebookComposition() {
         List<ChaosToken> tokens = ChaosBag.standard().tokens();
 
-        assertEquals(2, countNumeric(tokens, 1));
+        assertEquals(1, countNumeric(tokens, 1));
         assertEquals(2, countNumeric(tokens, 0));
         assertEquals(3, countNumeric(tokens, -1));
         assertEquals(2, countNumeric(tokens, -2));
         assertEquals(1, countNumeric(tokens, -3));
         assertEquals(1, countNumeric(tokens, -4));
 
-        assertEquals(2, countSymbol(tokens, ChaosSymbol.SKULL));
         assertEquals(1, countSymbol(tokens, ChaosSymbol.CULTIST));
+        assertEquals(2, countSymbol(tokens, ChaosSymbol.SKULL));
+        assertEquals(1, countSymbol(tokens, ChaosSymbol.TABLET));
         assertEquals(1, countSymbol(tokens, ChaosSymbol.AUTOFAIL));
         assertEquals(1, countSymbol(tokens, ChaosSymbol.ELDER_SIGN));
 
-        // 11 numeric + 5 symbol = 16
-        assertEquals(11, tokens.stream().filter(t -> t instanceof ChaosToken.Numeric).count());
-        assertEquals(5, tokens.stream().filter(t -> t instanceof ChaosToken.Symbol).count());
+        // 10 numeric + 6 symbol = 16
+        assertEquals(10, tokens.stream().filter(t -> t instanceof ChaosToken.Numeric).count());
+        assertEquals(6, tokens.stream().filter(t -> t instanceof ChaosToken.Symbol).count());
     }
 
     @Test

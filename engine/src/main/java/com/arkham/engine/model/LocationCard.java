@@ -20,6 +20,8 @@ public final class LocationCard {
 
     private boolean revealed;
     private int clues;
+    /** Doom on this location — counts toward the agenda's threshold (rules: "all doom in play"). */
+    private int doom;
 
     public LocationCard(String id, String name, int shroud, int clueValue,
                         boolean revealed, List<String> connections,
@@ -44,10 +46,14 @@ public final class LocationCard {
 
     public boolean isRevealed() { return revealed; }
     public int getClues() { return clues; }
+    public int getDoom() { return doom; }
 
     public void setRevealed(boolean revealed) { this.revealed = revealed; }
     public void setClues(int clues) { this.clues = clues; }
     public void removeClue() { if (clues > 0) clues--; }
+
+    public void addDoom(int n) { this.doom += Math.max(0, n); }
+    public void clearDoom() { this.doom = 0; }
 
     public boolean connectsTo(String otherLocationId) {
         return connections.contains(otherLocationId);

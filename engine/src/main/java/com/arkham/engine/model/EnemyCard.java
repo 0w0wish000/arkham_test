@@ -23,6 +23,8 @@ public final class EnemyCard {
     private int damageOn;
     private boolean exhausted;
     private String locationId;
+    /** Doom on this enemy — counts toward the agenda's threshold (rules: "all doom in play"). */
+    private int doom;
     /** Investigator id this enemy is engaged with, or {@code null} if unengaged. */
     private String engagedWith;
 
@@ -54,6 +56,10 @@ public final class EnemyCard {
     public boolean isExhausted() { return exhausted; }
     public String getLocationId() { return locationId; }
     public String getEngagedWith() { return engagedWith; }
+    public int getDoom() { return doom; }
+
+    public void addDoom(int n) { this.doom += Math.max(0, n); }
+    public void clearDoom() { this.doom = 0; }
 
     public void setExhausted(boolean exhausted) { this.exhausted = exhausted; }
     public void setLocationId(String locationId) { this.locationId = locationId; }
