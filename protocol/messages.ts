@@ -124,14 +124,14 @@ export interface ChooseOptionOptions { prompt: string; options: { id: string; la
 export type ChoiceOptions = CommitCardsOptions | ChooseTargetOptions | ChooseOptionOptions;
 
 // ---------- GameStateView(過濾後) ----------
-export interface HandCard { cardId: string; name: string; skillIcons: SkillIcon[]; }
+export interface HandCard { cardId: string; name: string; cardType: string; cost: number; skillIcons: SkillIcon[]; }
 
 export interface SelfView {
   investigatorId: string;
   skills: Record<Lowercase<SkillType>, number>;
   health: number; damage: number; sanity: number; horror: number;
   resources: number; cluesHeld: number; actionsRemaining: number;
-  locationId: string; hand: HandCard[]; engagedEnemyIds: string[];
+  locationId: string; hand: HandCard[]; playArea: HandCard[]; engagedEnemyIds: string[];
 }
 export interface OtherInvestigatorView {
   investigatorId: string; locationId: string; damage: number; horror: number; handCount: number;

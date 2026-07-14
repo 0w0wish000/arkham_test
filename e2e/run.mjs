@@ -161,8 +161,9 @@ async function main() {
     const saveCode = await run(node, [path.join("e2e", "save-reload-e2e.mjs"), "ws://localhost:8080"], { shell: false });
     const rosterCode = await run(node, [path.join("e2e", "dynamic-roster-e2e.mjs"), "ws://localhost:8080"], { shell: false });
     const voteCode = await run(node, [path.join("e2e", "char-vote-e2e.mjs"), "ws://localhost:8080"], { shell: false });
+    const sandboxCode = await run(node, [path.join("e2e", "sandbox-e2e.mjs"), "ws://localhost:8080"], { shell: false });
     const flowCode = await run(node, [path.join("e2e", "protocol-e2e.mjs"), "ws://localhost:8080"], { shell: false });
-    protocolCode = lobbyCode || deckCode || saveCode || rosterCode || voteCode || flowCode;   // 任一失敗即失敗
+    protocolCode = lobbyCode || deckCode || saveCode || rosterCode || voteCode || sandboxCode || flowCode;   // 任一失敗即失敗
   } else log("(E2E_SKIP_PROTOCOL=1:跳過協定 e2e)");
 
   if (!SKIP_CLIENT) {

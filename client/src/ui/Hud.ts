@@ -49,7 +49,10 @@ function iconEl(icon: SkillIcon): HTMLElement {
 
 function cardChip(c: HandCard): HTMLDivElement {
   const d = el("div", "card");
-  d.appendChild(el("span", "c-name", c.name));
+  const name = el("span", "c-name");
+  if (c.cardType && c.cardType !== "skill") name.appendChild(el("span", "cost", `$${c.cost}`));  // 費用
+  name.appendChild(document.createTextNode(c.name));
+  d.appendChild(name);
   const icons = el("span", "icons");
   for (const i of c.skillIcons) icons.appendChild(iconEl(i));
   d.appendChild(icons);
@@ -125,6 +128,7 @@ export class Hud {
 
     this.renderEnemies(view, canAct);
     this.renderHand(you.hand);
+    this.renderPlayArea(you.playArea ?? []);
     this.updateActionButtons(view, canAct);
     this.renderTurnGuide(view, canAct);
   }
@@ -210,7 +214,25 @@ export class Hud {
     const box = this.$("hand-cards");
     box.replaceChildren();
     if (hand.length === 0) box.appendChild(el("span", "pip", "(無手牌)"));
-    for (const c of hand) box.appendChild(cardChip(c));
+    for (const c of hand) {
+      const chip = cardChip(c);
+      if (c.cardType && c.cardType !== "skill") {
+        chip.classList.add("playable");
+        chip.title = `打出 ${c.name}(費用 ${c.cost})`;
+        chip.onclick = () => this.onIntent?.("PLAY_CARD", { cardId: c.cardId });
+      } else {
+        chip.title = "技能卡:於技能檢定的投入面板使用";
+      }
+      box.appendChild(chip);
+    }
+  }
+
+  /** 檯面已打出的支援(沙盒:放大鏡 / 大砍刀 等)。 */
+  private renderPlayArea(playArea: HandCard[]) {
+    const box = this.$("play-area");
+    box.replaceChildren();
+    (this.$("play-title") as HTMLElement).hidden = playArea.length === 0;
+    for (const c of playArea) box.appendChild(cardChip(c));
   }
 
   private updateActionButtons(view: GameStateView, canAct: boolean) {

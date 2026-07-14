@@ -132,8 +132,9 @@ public final class RulesEngine {
             case ENGAGE -> engage(inv, str(p, "enemyId"), events);
             case END_TURN -> endTurn(events);
             case ADVANCE_ACT -> advanceAct(inv, events);
-            case PLAY_CARD, ACTIVATE ->
-                    throw new IllegalArgumentException(action + " is not implemented in this scaffold");
+            case PLAY_CARD -> playCard(inv, str(p, "cardId"), events);
+            case ACTIVATE ->
+                    throw new IllegalArgumentException("ACTIVATE is not implemented in this scaffold");
         }
         return events;
     }
@@ -227,6 +228,62 @@ public final class RulesEngine {
         inv.engage(e.getId());
         events.add(GameEvent.of("ENGAGE", inv.getName() + " 與 " + e.getName() + " 交戰。"));
         inv.spendAction();
+    }
+
+    /** 打出手牌(測試沙盒:一組手寫效果的特殊卡;docs/11 是「B 能力引擎 + C 效果 DSL」的垂直切片)。 */
+    private void playCard(Investigator inv, String cardId, List<GameEvent> events) {
+        requireInvestigationTurn(inv);
+        CardInstance card = inv.findHandCard(cardId);
+        if (card == null) {
+            throw new IllegalArgumentException("手牌中沒有這張卡");
+        }
+        if ("skill".equals(card.cardType())) {
+            throw new IllegalArgumentException("技能卡用於檢定投入,不能直接打出");
+        }
+        if (inv.getResources() < card.cost()) {
+            throw new IllegalArgumentException("資源不足:需 " + card.cost() + ",只有 " + inv.getResources());
+        }
+        inv.gainResources(-card.cost());
+        applyCardEffect(inv, card, events);
+        if ("asset".equals(card.cardType())) {
+            inv.playToArea(card);   // 支援 → 檯面(持續)
+        } else {
+            inv.discard(card);      // 事件 → 棄牌堆
+        }
+        inv.spendAction();
+    }
+
+    /** 測試特殊卡的手寫效果(真正版本會走 docs/11 §B 能力引擎 + §C 效果 DSL)。 */
+    private void applyCardEffect(Investigator inv, CardInstance card, List<GameEvent> events) {
+        switch (card.name()) {
+            case "Emergency Cache" -> {
+                inv.gainResources(3);
+                events.add(GameEvent.of("PLAY", inv.getName() + " 打出 緊急補給:+3 資源。"));
+            }
+            case "Working a Hunch" -> {
+                LocationCard loc = state.location(inv.getLocationId());
+                if (loc != null && loc.getClues() > 0) {
+                    loc.setClues(loc.getClues() - 1);
+                    inv.gainClue();
+                    events.add(GameEvent.of("PLAY", inv.getName() + " 打出 靈光一閃:直接取得 1 線索(免檢定)。"));
+                } else {
+                    events.add(GameEvent.of("PLAY", inv.getName() + " 打出 靈光一閃,但此處已無線索。"));
+                }
+            }
+            case "First Aid" -> {
+                inv.heal(1);
+                events.add(GameEvent.of("PLAY", inv.getName() + " 打出 急救:治療 1 點傷害。"));
+            }
+            case "Magnifying Glass" -> {
+                inv.addSkillBonus(SkillType.INTELLECT, 1);
+                events.add(GameEvent.of("PLAY", inv.getName() + " 裝備 放大鏡:智力 +1(持續)。"));
+            }
+            case "Machete" -> {
+                inv.setWeaponBonus(inv.getWeaponBonus() + 1);
+                events.add(GameEvent.of("PLAY", inv.getName() + " 裝備 大砍刀:戰鬥造成傷害 +1(持續)。"));
+            }
+            default -> events.add(GameEvent.of("PLAY", inv.getName() + " 打出 " + card.name() + "(此測試卡尚無特效)。"));
+        }
     }
 
     private void advanceAct(Investigator inv, List<GameEvent> events) {
@@ -740,10 +797,14 @@ public final class RulesEngine {
     public GameStateView viewFor(String investigatorId) {
         Investigator me = requireInvestigator(investigatorId);
 
+        // 有效技能值 = 基礎 + 支援卡加值(讓放大鏡之類的 +1 顯示在視圖與檢定)
+        com.arkham.engine.model.Skills eff = new com.arkham.engine.model.Skills(
+                me.baseSkill(SkillType.WILLPOWER), me.baseSkill(SkillType.INTELLECT),
+                me.baseSkill(SkillType.COMBAT), me.baseSkill(SkillType.AGILITY));
         SelfView you = new SelfView(
-                me.getId(), me.getSkills(), me.getHealth(), me.getDamage(), me.getSanity(), me.getHorror(),
+                me.getId(), eff, me.getHealth(), me.getDamage(), me.getSanity(), me.getHorror(),
                 me.getResources(), me.getCluesHeld(), me.getActionsRemaining(), me.getLocationId(),
-                me.handView(), List.copyOf(me.getEngagedEnemyIds()));
+                me.handView(), me.playAreaView(), List.copyOf(me.getEngagedEnemyIds()));
 
         List<OtherInvestigatorView> others = new ArrayList<>();
         for (Investigator inv : state.orderedInvestigators()) {

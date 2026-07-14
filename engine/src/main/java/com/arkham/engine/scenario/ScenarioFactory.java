@@ -51,6 +51,17 @@ public final class ScenarioFactory {
         return new RulesEngine(createState(investigatorIds), new SeededRng(seed));
     }
 
+    /** A fresh engine for a specific scenario key(如 "sandbox" 測試沙盒;docs/11)。 */
+    public static RulesEngine newEngine(long seed, List<String> investigatorIds, String scenarioKey) {
+        return new RulesEngine(createState(investigatorIds, scenarioKey), new SeededRng(seed));
+    }
+
+    /** 依 scenarioKey 選場景;"sandbox" → 測試沙盒,其餘 → Spreading Flames lite。 */
+    public static GameState createState(List<String> investigatorIds, String scenarioKey) {
+        if ("sandbox".equals(scenarioKey)) return createSandbox(investigatorIds);
+        return createState(investigatorIds);
+    }
+
     /** Default-roster state (Joe + Daniela). */
     public static GameState createState() {
         return createState(DEFAULT_ROSTER);
@@ -157,6 +168,63 @@ public final class ScenarioFactory {
         for (CardSpec s : specs) {
             inv.getHand().add(CardInstance.skill(prefix + "-c" + (n++), s.name(), s.icons()));
         }
+    }
+
+    // ------------------------------------------------------------------
+    // 測試沙盒(docs/11):專供試牌組 / 試特殊卡
+    //   線索充足、弱敵(訓練假人,0 傷害)、高資源、手牌塞滿可打的特殊卡、
+    //   密謀幾乎不推進(無時間壓力)、神話不抽卡。
+    // ------------------------------------------------------------------
+    public static GameState createSandbox(List<String> investigatorIds) {
+        List<String> roster = (investigatorIds == null || investigatorIds.isEmpty()) ? DEFAULT_ROSTER : investigatorIds;
+
+        GameState state = new GameState(
+                ChaosBag.standard(),
+                new Act("訓練:湊齊 3 線索", 3),
+                new Agenda("計時(測試 · 極慢)", 99),   // 幾乎不推進 → 無時間壓力
+                sandboxEnemyDefs(),
+                List.of());                             // 空遭遇牌堆(神話不抽卡)
+
+        state.addLocation(new LocationCard("test_hub", "測試大廳", 1, 5,
+                true, List.of("test_yard"), false, null));        // 遮蔽低、線索多(clueValue5×人數)
+        state.addLocation(new LocationCard("test_yard", "訓練場", 2, 2,
+                true, List.of("test_hub"), false, "dummy"));      // 已揭示;進入生「訓練假人」
+
+        for (String id : roster) {
+            Investigator inv = buildInvestigator(id);
+            inv.setLocationId("test_hub");   // buildInvestigator 預設 friends_room,沙盒沒有 → 改測試大廳
+            inv.setActionsRemaining(3);
+            inv.gainResources(10);           // 5 → 15,夠打所有測試卡
+            sandboxHand(inv, id);            // 手牌換成可打的特殊卡
+            state.addInvestigator(inv);
+        }
+        state.setActiveInvestigatorId(roster.get(0));
+
+        int players = state.getInvestigators().size();
+        LocationCard hub = state.location("test_hub");
+        hub.setClues(hub.getClueValue() * players);
+        return state;
+    }
+
+    /** 沙盒手牌:一組可直接打出/投入的特殊測試卡(對應 RulesEngine.applyCardEffect)。 */
+    private static void sandboxHand(Investigator inv, String prefix) {
+        inv.getHand().clear();
+        int n = 1;
+        inv.getHand().add(CardInstance.event(prefix + "-x" + (n++), "Emergency Cache", 0));
+        inv.getHand().add(CardInstance.event(prefix + "-x" + (n++), "Working a Hunch", 2, SkillIcon.INTELLECT));
+        inv.getHand().add(CardInstance.event(prefix + "-x" + (n++), "First Aid", 1));
+        inv.getHand().add(CardInstance.asset(prefix + "-x" + (n++), "Magnifying Glass", 1, SkillIcon.INTELLECT));
+        inv.getHand().add(CardInstance.asset(prefix + "-x" + (n++), "Machete", 3, SkillIcon.COMBAT));
+        inv.getHand().add(CardInstance.skill(prefix + "-x" + (n++), "Deduction", SkillIcon.INTELLECT));
+        inv.getHand().add(CardInstance.skill(prefix + "-x" + (n++), "Vicious Blow", SkillIcon.COMBAT));
+        inv.getHand().add(CardInstance.skill(prefix + "-x" + (n++), "Unexpected Courage", SkillIcon.WILD, SkillIcon.WILD));
+    }
+
+    /** 訓練假人:戰2 / 生命3 / 閃2,不造成傷害/恐懼,無關鍵字 —— 安全反覆練戰鬥/閃避。 */
+    private static Map<String, EnemyDef> sandboxEnemyDefs() {
+        Map<String, EnemyDef> defs = new LinkedHashMap<>();
+        defs.put("dummy", new EnemyDef("dummy", "訓練假人", 2, 3, 2, 0, 0, List.of()));
+        return defs;
     }
 
     /** Enemy definitions (prototype ENEMY_DEF). */

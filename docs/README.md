@@ -35,7 +35,8 @@
 | [06-card-data-and-images.md](06-card-data-and-images.md) | **卡片資料庫與卡圖規範** — 交付給資料庫開發者:目錄結構、`code` 命名規則、卡圖格式/尺寸/命名、`CardDefinition` schema、多語系、版權界線、交付物與驗收。 |
 | [07-lan-setup.md](07-lan-setup.md) | **區域網路(LAN)連線** — 怎麼啟動 server 端與 client 端;任一玩家皆可當主機;瀏覽器加入、房間/調查員參數、防火牆疑難。 |
 | [08-save-and-provenance.md](08-save-and-provenance.md) | **存檔與溯源** — 戰役/對局/牌組版本三種存檔;不可變版本 + 釘選,讓每筆遊戲紀錄可回推當時牌組與演變;seed + 事件流重播。 |
-| [09-lobby-save-handshake.md](09-lobby-save-handshake.md) | **大廳、存檔與交握** — 用「身分 + 存檔」取代 room;主選單、牌組/載入兩種屏障、動態名冊(中離/亂入/接手)、死亡換角投票、經驗上限。含分期實作進度。 |
+| [09-lobby-save-handshake.md](09-lobby-save-handshake.md) | **大廳、存檔與交握** — 用「身分 + 存檔」取代 room;主選單、牌組/載入兩種屏障、動態名冊(中離/亂入/接手)、死亡換角投票、經驗上限。含分期實作進度(P1–P5 已完成)。 |
+| [11-engine-backlog.md](11-engine-backlog.md) | **完整引擎開發清單(多劇本)** — 把 lite 引擎升級成「完整規則引擎 + 全內容 + 戰役」的功能盤點:場景資料化、能力/時機引擎、全卡腳本化、戰役系統、回合 fidelity、牌組驗證、內容管線;含相依鏈、規模、建置順序與里程碑。 |
 
 ## 建議閱讀順序
 

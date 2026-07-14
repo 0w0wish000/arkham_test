@@ -6,7 +6,7 @@ import type { SessionSummary, RosterMember, SessionRosterMsg, Difficulty, Campai
  */
 
 const CAMPAIGN_ZH: Record<string, string> = {
-  core: "核心設定", dunwich: "敦威治的遺產", carcosa: "卡爾克薩之路",
+  sandbox: "測試沙盒", core: "核心設定", dunwich: "敦威治的遺產", carcosa: "卡爾克薩之路",
 };
 const DIFF_ZH: Record<string, string> = {
   EASY: "簡單", STANDARD: "標準", HARD: "困難", EXPERT: "專家",

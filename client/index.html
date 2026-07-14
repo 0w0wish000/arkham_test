@@ -124,6 +124,12 @@
     .card .c-name{display:block;margin-bottom:3px}
     .icons{display:inline-flex;gap:2px}
     .ic{font-size:12px;font-weight:700}
+    .card .cost{display:inline-block;background:#2d4a63;border:1px solid #5a7791;border-radius:4px;
+      padding:0 5px;font-size:10px;margin-right:4px;color:#cfe0f0}
+    .card.playable{cursor:pointer}
+    .card.playable:hover{border-color:var(--gold);background:#1c2836}
+    #play-area{display:flex;gap:6px;flex-wrap:wrap}
+    #play-area .card{border-color:#5aa06b;background:#16241b}
     #log{position:fixed;left:320px;bottom:12px;max-height:26%;overflow:auto;font-size:12px;
       background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px;width:min(34%,360px)}
     #log div{padding:2px 0;color:var(--dim)}
@@ -171,6 +177,7 @@
         <div class="field"><label>桌名</label><input id="new-name" type="text" placeholder="週五團" maxlength="20" /></div>
         <div class="field"><label>戰役</label>
           <select id="new-campaign">
+            <option value="sandbox">🧪 測試沙盒(試牌組 / 特殊卡)</option>
             <option value="core">核心設定</option>
             <option value="dunwich">敦威治的遺產</option>
             <option value="carcosa">卡爾克薩之路</option>
@@ -266,8 +273,10 @@
       <div id="here-empty">(此處無敵人)</div>
     </div>
     <div id="panel-hand" class="panel">
-      <div class="panel-title">手牌(投入判定用)</div>
+      <div class="panel-title">手牌 · 點「非技能卡」打出(技能卡於檢定投入面板使用)</div>
       <div id="hand-cards"></div>
+      <div class="panel-title" id="play-title" hidden style="margin-top:8px">檯面 · 已打出支援</div>
+      <div id="play-area"></div>
     </div>
     <div id="panel-actions">
       <button id="act-investigate" title="智力 vs 遮蔽 → 取線索">🔍 調查</button>

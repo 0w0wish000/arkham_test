@@ -25,6 +25,16 @@ public record CardInstance(String cardId, String name, String cardType, int cost
         return new CardInstance(cardId, name, "skill", 0, List.of(icons));
     }
 
+    /** Convenience for event cards(一次性,打出後進棄牌堆)。 */
+    public static CardInstance event(String cardId, String name, int cost, SkillIcon... icons) {
+        return new CardInstance(cardId, name, "event", cost, List.of(icons));
+    }
+
+    /** Convenience for asset cards(打到檯面長期存在)。 */
+    public static CardInstance asset(String cardId, String name, int cost, SkillIcon... icons) {
+        return new CardInstance(cardId, name, "asset", cost, List.of(icons));
+    }
+
     /** Number of icons on this card that count toward a test of {@code skill}. */
     public int matchingIcons(SkillType skill) {
         return (int) skillIcons.stream().filter(ic -> ic.matches(skill)).count();
@@ -36,6 +46,6 @@ public record CardInstance(String cardId, String name, String cardType, int cost
 
     /** Project to the wire-level card shape. */
     public HandCard toHandCard() {
-        return new HandCard(cardId, name, skillIcons);
+        return new HandCard(cardId, name, cardType, cost, skillIcons);
     }
 }

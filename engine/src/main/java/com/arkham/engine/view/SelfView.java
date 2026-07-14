@@ -22,4 +22,5 @@ public record SelfView(
         int actionsRemaining,
         String locationId,
         List<HandCard> hand,
+        List<HandCard> playArea,
         List<String> engagedEnemyIds) {}

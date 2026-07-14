@@ -211,7 +211,7 @@ public final class CampaignSession {
         List<String> ids = new ArrayList<>();
         for (Member m : playing) ids.add(m.investigatorId);
 
-        RulesEngine engine = ScenarioFactory.newEngine(seed, ids);
+        RulesEngine engine = ScenarioFactory.newEngine(seed, ids, campaignKey);   // "sandbox" → 測試沙盒
         game = new GameSession(campaignId, mapper, engine, seed);
         stage = "IN_SCENARIO";
         broadcast(new ServerMessage.Event("scenario",

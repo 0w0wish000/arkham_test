@@ -29,7 +29,9 @@ public final class Investigator {
 
     private final List<CardInstance> hand = new ArrayList<>();
     private final List<CardInstance> discardPile = new ArrayList<>();
+    private final List<CardInstance> playArea = new ArrayList<>();   // 已打出的支援(檯面)
     private final List<String> engagedEnemyIds = new ArrayList<>();
+    private int[] skillBonus = new int[4];                           // 支援卡給的技能加值(依 SkillType 序;存檔可還原)
 
     @com.fasterxml.jackson.annotation.JsonCreator
     public Investigator(@com.fasterxml.jackson.annotation.JsonProperty("id") String id,
@@ -51,7 +53,10 @@ public final class Investigator {
     public String getId() { return id; }
     public String getName() { return name; }
     public Skills getSkills() { return skills; }
-    public int baseSkill(SkillType type) { return skills.of(type); }
+    public int baseSkill(SkillType type) { return skills.of(type) + skillBonus[type.ordinal()]; }
+
+    /** 支援卡給的持久技能加值(例:放大鏡 +1 智力)。 */
+    public void addSkillBonus(SkillType type, int n) { skillBonus[type.ordinal()] += n; }
 
     public int getHealth() { return health; }
     public int getSanity() { return sanity; }
@@ -99,8 +104,23 @@ public final class Investigator {
         if (hand.remove(card)) discardPile.add(card);
     }
 
+    /** 打出支援:從手牌移到檯面。 */
+    public void playToArea(CardInstance card) {
+        if (hand.remove(card)) playArea.add(card);
+    }
+
+    public List<CardInstance> getPlayArea() { return playArea; }
+
+    /** 治療傷害(下限 0)。 */
+    public void heal(int n) { this.damage = Math.max(0, this.damage - n); }
+
     /** Wire projection including private hand contents. */
     public List<HandCard> handView() {
         return hand.stream().map(CardInstance::toHandCard).toList();
+    }
+
+    /** 檯面支援的 wire 投影。 */
+    public List<HandCard> playAreaView() {
+        return playArea.stream().map(CardInstance::toHandCard).toList();
     }
 }
