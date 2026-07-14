@@ -5,17 +5,292 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Arkham — 客戶端</title>
   <style>
-    html,body{margin:0;height:100%;background:#0d1117;color:#e8e2d0;
+    :root{
+      --bg:#0d1117; --ink:#e8e2d0; --dim:#93a4b3; --line:#3a4b5c; --panel:rgba(8,12,17,.86);
+      --gold:#c9a24b; --btn:#2d4a63; --btn2:#365a78; --danger:#8a3b2f;
+    }
+    html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
       font-family:system-ui,"PingFang TC","Microsoft JhengHei",sans-serif;overflow:hidden}
-    #app{width:100vw;height:100vh}
-    #log{position:fixed;left:12px;bottom:12px;max-height:30%;overflow:auto;font-size:12px;
-      background:rgba(8,12,17,.82);border:1px solid #3a4b5c;border-radius:8px;padding:8px 12px;width:min(40%,380px)}
-    #log div{padding:2px 0;color:#93a4b3}
+    button{font-family:inherit;color:var(--ink);background:var(--btn);border:1px solid #5a7791;
+      border-radius:8px;padding:8px 12px;font-size:13px;cursor:pointer;white-space:nowrap}
+    button:hover:not(:disabled){background:var(--btn2)}
+    button:disabled{opacity:.4;cursor:not-allowed}
+    input,select{font-family:inherit;color:var(--ink);background:#161d26;border:1px solid var(--line);
+      border-radius:8px;padding:8px 10px;font-size:14px}
+    input:focus,select:focus{outline:none;border-color:var(--gold)}
+    [hidden]{display:none !important}
+
+    /* ═══════════ 加載遮罩(全畫面轉場)═══════════ */
+    #loading-mask{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;
+      background:rgba(8,12,17,.74)}
+    .lm-box{display:flex;flex-direction:column;align-items:center;gap:14px}
+    .lm-spin{width:40px;height:40px;border:3px solid var(--line);border-top-color:var(--gold);
+      border-radius:50%;animation:lm-rot .8s linear infinite}
+    @keyframes lm-rot{to{transform:rotate(360deg)}}
+    #lm-text{color:var(--ink);font-size:14px;letter-spacing:.04em}
+
+    /* ═══════════ 大廳畫面(P1)═══════════ */
+    .screen{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;
+      background:radial-gradient(1200px 700px at 50% -10%, #1a2431 0%, #0d1117 60%)}
+    .dialog{background:#111823;border:1px solid var(--line);border-radius:16px;padding:26px 28px;
+      width:min(480px,92vw);box-shadow:0 20px 60px rgba(0,0,0,.5)}
+    .dialog.wide{width:min(620px,94vw)}
+    .dialog h1{margin:0 0 6px;font-size:22px;color:var(--gold);letter-spacing:.04em}
+    .dialog p{margin:2px 0 16px;color:var(--dim);font-size:13px}
+    .dialog input[type=text],.dialog input:not([type]){width:100%;box-sizing:border-box;margin-bottom:14px}
+    .who{color:var(--dim);font-size:13px;margin-bottom:16px}
+    .who b{color:var(--ink)}
+    .who a{color:var(--gold);cursor:pointer;text-decoration:underline;margin-left:6px}
+    .menu-actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+    .menu-actions button{font-size:15px;padding:12px 18px}
+    #menu-new{background:#2d5a3a;border-color:#5aa06b}
+    #menu-new:hover:not(:disabled){background:#356a45}
+    .section-title{font-size:11px;color:var(--dim);letter-spacing:.08em;margin:18px 0 8px;
+      border-top:1px solid var(--line);padding-top:14px}
+    .field{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+    .field label{width:56px;color:var(--dim);font-size:13px}
+    .field input,.field select{flex:1}
+    #new-form{background:#0d141d;border:1px solid var(--line);border-radius:10px;padding:14px;margin:6px 0 4px}
+    #new-create{margin-top:6px;background:#2d5a3a;border-color:#5aa06b}
+    .sess{display:flex;align-items:center;justify-content:space-between;gap:10px;
+      background:#0d141d;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+    .sess .s-main{font-size:14px}
+    .sess .s-sub{font-size:12px;color:var(--dim);margin-top:2px}
+    .sess .s-tag{display:inline-block;font-size:10px;color:var(--gold);border:1px solid var(--gold);
+      border-radius:4px;padding:0 5px;margin-left:6px}
+    .empty{color:var(--dim);font-size:13px;padding:6px 2px}
+    /* 名冊 */
+    #roster-list .m{display:flex;align-items:center;gap:10px;background:#0d141d;border:1px solid var(--line);
+      border-radius:10px;padding:10px 12px;margin-bottom:8px}
+    #roster-list .m .dot{width:9px;height:9px;border-radius:50%;background:#5fbf6f}
+    #roster-list .m .m-name{font-size:14px}
+    #roster-list .m .m-role{font-size:12px;color:var(--dim);margin-left:auto}
+    #roster-list .m .m-ready{font-size:12px;color:#5fbf6f;margin-left:10px}
+    #roster-list .m .m-dead{padding:2px 8px;font-size:11px;margin-left:10px;background:#3a1f1a;border-color:#8a3b2f}
+    #roster-list .m .m-dead:hover:not(:disabled){background:#4a2820}
+    .deck-actions{display:flex;justify-content:space-between;gap:10px;margin-top:8px}
+    #deck-ready{background:#2d5a3a;border-color:#5aa06b}
+    #deck-ready:hover:not(:disabled){background:#356a45}
+    #deck-ready.on{background:#8a3b2f;border-color:#c0674b}
+    .roster-meta{color:var(--dim);font-size:13px;margin-bottom:6px}
+    .roster-hint{color:var(--dim);font-size:12px;margin:12px 0}
+    #lobby-log{margin-top:12px;max-height:120px;overflow:auto;font-size:12px;
+      background:#0d141d;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+    #lobby-log div{color:var(--dim);padding:1px 0}
+    .row-end{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
+
+    /* ═══════════ 遊戲板(P2+ 進戰役才顯示)═══════════ */
+    #screen-game{position:fixed;inset:0}
+    #app{position:fixed;inset:0}
+    .panel{position:fixed;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+    .panel-title{font-size:11px;color:var(--dim);margin-bottom:6px;letter-spacing:.05em}
+    #hud-top{top:10px;left:50%;transform:translateX(-50%);text-align:center;font-size:13px;min-width:340px}
+    #hud-top .big{font-size:15px;color:var(--gold);font-weight:600}
+    #hud-top .meter{color:var(--dim);font-size:12px;margin-top:2px}
+    /* 回合進度小卡 */
+    #turn-guide{top:10px;right:10px;width:248px;font-size:12px}
+    .tg-head{display:flex;align-items:center;gap:6px;color:var(--gold);font-weight:600;font-size:13px;margin-bottom:8px}
+    .tg-head #tg-round{color:var(--dim);font-weight:400;font-size:12px}
+    #tg-toggle{margin-left:auto;padding:1px 9px;font-size:14px;line-height:1.3;background:transparent;border-color:var(--line)}
+    #tg-steps{display:flex;gap:4px;margin-bottom:10px}
+    .tg-step{flex:1;text-align:center;font-size:11px;color:var(--dim);background:#0d141d;
+      border:1px solid var(--line);border-radius:6px;padding:4px 2px}
+    .tg-step.on{color:#0d1117;background:var(--gold);border-color:var(--gold);font-weight:700}
+    .tg-step.done{color:#5fbf6f;border-color:#2d5a3a}
+    #tg-now{font-size:13px;color:var(--ink);margin-bottom:6px}
+    #tg-now b{color:var(--gold)}
+    #tg-hint{font-size:12px;color:var(--dim);line-height:1.65}
+    #panel-self{top:10px;left:10px;min-width:210px;font-size:13px}
+    #panel-self .name{font-size:14px;color:var(--gold);font-weight:600;margin-bottom:4px}
+    #panel-self .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:3px}
+    .skill{display:inline-flex;align-items:center;gap:2px}
+    .skill b{font-weight:700}
+    .pip{color:var(--dim)}
+    #panel-here{bottom:120px;left:10px;width:300px;max-height:40vh;overflow:auto}
+    .enemy{border:1px solid var(--danger);border-radius:8px;padding:6px 8px;margin-bottom:6px;background:rgba(40,16,12,.5)}
+    .enemy .en-name{font-size:13px;color:#f0b8a8;font-weight:600}
+    .enemy .en-stat{font-size:11px;color:var(--dim);margin:2px 0 5px}
+    .enemy .en-btns{display:flex;gap:6px}
+    .enemy .en-btns button{padding:5px 9px;font-size:12px}
+    .kw{display:inline-block;font-size:10px;color:var(--gold);border:1px solid var(--gold);
+      border-radius:4px;padding:0 4px;margin-left:4px}
+    #here-empty{color:var(--dim);font-size:12px}
+    #panel-actions{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:8px;align-items:center;z-index:20}
+    #btn-save{background:#3a2d63;border-color:#7a6bb0}
+    #btn-save:hover:not(:disabled){background:#4a3a78}
+    #panel-hand{bottom:12px;right:10px;width:min(46vw,520px)}
+    #hand-cards{display:flex;gap:6px;flex-wrap:wrap}
+    .card{border:1px solid var(--line);border-radius:8px;padding:5px 8px;background:#161d26;font-size:12px;min-width:64px}
+    .card .c-name{display:block;margin-bottom:3px}
+    .icons{display:inline-flex;gap:2px}
+    .ic{font-size:12px;font-weight:700}
+    #log{position:fixed;left:320px;bottom:12px;max-height:26%;overflow:auto;font-size:12px;
+      background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px;width:min(34%,360px)}
+    #log div{padding:2px 0;color:var(--dim)}
+    #commit-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:50}
+    #commit{background:#111823;border:1px solid var(--gold);border-radius:14px;padding:18px 20px;width:min(560px,92vw)}
+    #commit-title{font-size:15px;color:var(--gold);font-weight:600;margin-bottom:4px}
+    #commit-sub{font-size:12px;color:var(--dim);margin-bottom:12px}
+    #commit-cards{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;min-height:24px}
+    #commit-cards .card{cursor:pointer;user-select:none}
+    #commit-cards .card.sel{border-color:var(--gold);background:#243244;box-shadow:0 0 0 1px var(--gold) inset}
+    #commit-none-hint{color:var(--dim);font-size:12px;margin-bottom:10px}
+    #commit-preview{font-size:14px;margin-bottom:14px}
+    #commit-preview b{color:var(--gold)}
+    .commit-actions{display:flex;gap:10px;justify-content:flex-end}
+    #commit-go{background:#2d5a3a;border-color:#5aa06b}
+    #commit-go:hover:not(:disabled){background:#356a45}
   </style>
 </head>
 <body>
-  <div id="app"></div>
-  <div id="log"></div>
+  <!-- 加載遮罩(轉場時蓋住全畫面)-->
+  <div id="loading-mask" hidden>
+    <div class="lm-box"><div class="lm-spin"></div><div id="lm-text">載入中…</div></div>
+  </div>
+
+  <!-- ═══════════ 大廳畫面(P1)═══════════ -->
+  <div id="screen-identity" class="screen">
+    <div class="dialog">
+      <h1>阿卡姆驚魂記</h1>
+      <p>第一次來?輸入你的稱呼(會記在這台電腦,之後自動帶入)。</p>
+      <input id="id-name" type="text" placeholder="你的稱呼" maxlength="16" autocomplete="off" />
+      <div class="row-end"><button id="id-ok">進入</button></div>
+    </div>
+  </div>
+
+  <div id="screen-menu" class="screen" hidden>
+    <div class="dialog wide">
+      <h1>阿卡姆驚魂記</h1>
+      <div class="who">你好,<b id="menu-who">—</b><a id="menu-rename">改名</a></div>
+      <div class="menu-actions">
+        <button id="menu-new">＋ 開新檔案</button>
+        <button id="menu-load">📂 加載存檔</button>
+      </div>
+
+      <div id="new-form" hidden>
+        <div class="field"><label>桌名</label><input id="new-name" type="text" placeholder="週五團" maxlength="20" /></div>
+        <div class="field"><label>戰役</label>
+          <select id="new-campaign">
+            <option value="core">核心設定</option>
+            <option value="dunwich">敦威治的遺產</option>
+            <option value="carcosa">卡爾克薩之路</option>
+          </select>
+        </div>
+        <div class="field"><label>難度</label>
+          <select id="new-diff">
+            <option value="EASY">簡單</option>
+            <option value="STANDARD" selected>標準</option>
+            <option value="HARD">困難</option>
+            <option value="EXPERT">專家</option>
+          </select>
+        </div>
+        <button id="new-create">建立桌次</button>
+      </div>
+
+      <div class="section-title">進行中的桌次(點「加入」與朋友同桌)</div>
+      <div id="session-list"><div class="empty">目前沒有進行中的桌次</div></div>
+
+      <div class="section-title">我的本機存檔(加載續玩)</div>
+      <div id="local-saves"><div class="empty">本機還沒有存檔</div></div>
+    </div>
+  </div>
+
+  <div id="screen-roster" class="screen" hidden>
+    <div class="dialog wide">
+      <h1 id="roster-name">—</h1>
+      <div class="roster-meta" id="roster-meta"></div>
+
+      <div class="section-title">你的角色</div>
+      <div class="field"><label>調查員</label>
+        <select id="deck-inv">
+          <option value="">— 請選擇 —</option>
+          <option value="joe_diamond">Joe Diamond · 探求者(意2智4戰3敏3)</option>
+          <option value="daniela">Daniela Reyes · 守護者(意3智2戰4敏2)</option>
+          <option value="dexter_drake">Dexter Drake · 秘術師(意4智2戰2敏3)</option>
+        </select>
+      </div>
+      <div class="deck-actions">
+        <button id="deck-force" title="不等其他人,直接開打">▶ 強制開始</button>
+        <button id="deck-sitout" title="本章不打(之後仍可歸隊);難度會隨參戰人數縮放">💤 暫時脫離</button>
+        <button id="deck-open" title="用完整選卡器(角色能力 / 選牌規則 / XP 升級池)構築牌組">🃏 完整選卡器</button>
+        <button id="deck-ready">✓ 準備完成</button>
+      </div>
+
+      <div class="section-title">隊伍</div>
+      <div id="roster-list"></div>
+      <div class="roster-hint">全員選好角色並按「準備完成」即自動開打(下一階段換成完整選卡器)。</div>
+      <div id="lobby-log"></div>
+      <div class="row-end"><button id="roster-leave">離開桌次</button></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ 完整選卡器(嵌入 prototype 選卡器,docs/09 P2-2)═══════════ -->
+  <div id="screen-deckbuilder" class="screen" style="align-items:stretch;justify-content:stretch;padding:0" hidden>
+    <div style="display:flex;flex-direction:column;width:100%;height:100%">
+      <div style="display:flex;align-items:center;gap:12px;padding:8px 14px;background:#0d141d;border-bottom:1px solid var(--line)">
+        <b style="color:var(--gold)">完整選卡器</b>
+        <span style="color:var(--dim);font-size:12px">建好牌組後按右上角「✅ 完成牌組」送回大廳</span>
+        <button id="db-cancel" style="margin-left:auto">取消</button>
+      </div>
+      <iframe id="db-frame" title="deckbuilder" style="flex:1;border:0;width:100%;background:#0d1117"></iframe>
+    </div>
+  </div>
+
+  <!-- ═══════════ 遊戲板(P2+ 進戰役才顯示)═══════════ -->
+  <div id="screen-game" hidden>
+    <div id="app"></div>
+    <div id="hud-top" class="panel">
+      <div class="big" id="top-round">連線中…</div>
+      <div class="meter" id="top-meter"></div>
+    </div>
+
+    <!-- 回合進度小卡(像實體桌遊的輔助卡:現在第幾輪/哪階段/你能做什麼)-->
+    <div id="turn-guide" class="panel">
+      <div class="tg-head">📋 回合進度 <span id="tg-round"></span>
+        <button id="tg-toggle" title="收合 / 展開">–</button></div>
+      <div id="tg-body">
+        <div id="tg-steps"></div>
+        <div id="tg-now"></div>
+        <div id="tg-hint"></div>
+      </div>
+    </div>
+    <div id="panel-self" class="panel">
+      <div class="name" id="self-name">—</div>
+      <div class="row" id="self-skills"></div>
+      <div class="row" id="self-vitals"></div>
+      <div class="row" id="self-econ"></div>
+    </div>
+    <div id="panel-here" class="panel">
+      <div class="panel-title">你所在地點 · 敵人</div>
+      <div id="here-enemies"></div>
+      <div id="here-empty">(此處無敵人)</div>
+    </div>
+    <div id="panel-hand" class="panel">
+      <div class="panel-title">手牌(投入判定用)</div>
+      <div id="hand-cards"></div>
+    </div>
+    <div id="panel-actions">
+      <button id="act-investigate" title="智力 vs 遮蔽 → 取線索">🔍 調查</button>
+      <button id="act-endturn" title="結束調查階段(全體 → 敵人/神話 → 下一輪)">⏭️ 結束回合</button>
+      <button id="act-advance" title="花費線索推進幕">📖 推進幕</button>
+      <button id="btn-save" title="向全員發起存檔投票,存檔會複製到每位玩家本機">💾 保存並離開</button>
+    </div>
+    <div id="log"></div>
+    <div id="commit-backdrop" hidden>
+      <div id="commit">
+        <div id="commit-title">技能檢定</div>
+        <div id="commit-sub"></div>
+        <div id="commit-cards"></div>
+        <div id="commit-none-hint"></div>
+        <div id="commit-preview"></div>
+        <div class="commit-actions">
+          <button id="commit-none">不投入</button>
+          <button id="commit-go">投入並檢定</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

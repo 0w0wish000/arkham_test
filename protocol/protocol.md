@@ -11,6 +11,44 @@
 - **訊息信封:** 每則訊息都是 `{ "type": "...", ... }`。`type` 為下列列舉之一。
 - **玩家順序彈性(合作遊戲):** 調查階段誰先行動由團隊**自選**,伺服器**不強制固定輪替**(`activeInvestigatorId` 可由團隊指定 / 自願接手);投入協助 **先丟先算(first-come-first-served)**。僅「必做且同時發生」的步驟(神話抽卡、多敵攻擊)才套座位順序。詳見 [docs/05 §4.1](../docs/05-rules-engine-spec.md)。
 
+## 大廳 / 存檔驅動(docs/09)
+
+> **取代 room**:連上主機後先 `HELLO` 自報身分(`playerId`),再從 `LOBBY` 的「進行中桌次」建桌 / 加入桌。桌 = 一個 campaign session;`SESSION_ROSTER` 持續廣播名冊與屏障進度。細節見 [docs/09](../docs/09-lobby-save-handshake.md)。P1 僅到牌組大廳(DECKBUILDING);進戰役(START_SCENARIO / ENTER_SCENARIO)為後續階段。
+
+| Client → Server | 欄位 | 說明 |
+|---|---|---|
+| `HELLO` | `playerId`, `displayName` | 連上後自報身分;主機回 `LOBBY` |
+| `CREATE_CAMPAIGN` | `name`, `campaignKey`, `difficulty` | 開新檔案 → 建一桌(stage=DECKBUILDING) |
+| `JOIN_SESSION` | `campaignId` | 加入一張進行中桌次 |
+| `LEAVE_SESSION` | — | 離桌回主選單 |
+| `PICK_INVESTIGATOR` | `investigatorId` | 牌組大廳選角(§8.2;不得選已被隊友選走者) |
+| `SET_DECK` | `deck`, `xp` | 提交/更新牌組(deck=卡名清單) |
+| `READY_DECK` | `ready` | 牌組完成/反悔(屏障 B);全員 ACTIVE 就緒→開打 |
+| `FORCE_START` | — | 主機強制越過屏障開打 |
+| `OFFER_SAVE` | `save` | 用本機存檔開/續桌(§7);依 stage 還原 |
+| `READY_LOAD` | `ready` | 我已載入戰役快照(屏障 A) |
+| `SIT_OUT` | `sitOut` | 本章中離/歸隊(§9);中離者不參戰、不擋屏障、難度隨人數 |
+| `PROPOSE_NEW_CHARACTER` | `playerId` | 對死亡者發起換角投票(§10) |
+| `VOTE` | `requestId`,`yes` | 換角投票 |
+
+新增 Server → Client:
+
+| type | 欄位 | 說明 |
+|---|---|---|
+| `CAMPAIGN_SNAPSHOT` | `save` | 全戰役存檔(名冊+牌組+快照+eventLog+deadInvestigators+maxXp)複製到各本機 |
+| `LOG_HISTORY` | `entries` | 載入後回放的出牌/事件紀錄 |
+| `VOTE_PROMPT` | `requestId`,`subject`,`reason` | 換角投票彈窗 |
+
+> 開打(START_SCENARIO)後,伺服器用名冊所選調查員建場景,對每位玩家推送初始 `STATE`(客戶端據此從大廳切到戰役板);之後即走上面的 `INTENT`/`CHOICE_RESPONSE`/`SAVE_*` 流程。
+> 載入:`OFFER_SAVE`(戰役中)→ `LOADING` → 各人 `READY_LOAD` 屏障 A → 重建對局 + `LOG_HISTORY` + `STATE`。接手:戰役中掉線由**原玩家**重連 `JOIN_SESSION` → 伺服器 `reattach` 送 `STATE` + 補發卡住的 `CHOICE_REQUEST`(重打掉線那一動)。
+
+| Server → Client | 欄位 | 說明 |
+|---|---|---|
+| `LOBBY` | `activeSessions[]` | 進行中桌次清單(前端再併「本機存檔」清單) |
+| `SESSION_ROSTER` | `campaignId`,`name`,`campaignKey`,`stage`,`difficulty`,`members[]`,`canForce` | 名冊 + 屏障進度(驅動大廳/waiting UI) |
+
+> 身分是否需要輸入(profile 有無)是**純前端**判斷(讀本機 `localStorage`),不走協定。
+
 ## Client → Server
 
 | type | 欄位 | 說明 |
@@ -18,6 +56,9 @@
 | `JOIN` | `sessionId`, `investigatorId` | 加入一場對局(LAN:輸入主機給的房號) |
 | `INTENT` | `action`, `payload?` | 玩家想執行的行動(見下表);伺服器驗證後結算 |
 | `CHOICE_RESPONSE` | `requestId`, `choice` | 回應伺服器的 `CHOICE_REQUEST`(如投入哪些卡) |
+| `SAVE_REQUEST` | — | 玩家發起「保存並離開」;伺服器隨即向全員發 `SAVE_PROMPT`(見 docs/08 §6.5) |
+| `SAVE_VOTE` | `requestId`, `vote` | 回應存檔提示(是/否) |
+| `RESUME` | `state` | host 送回存檔的 `state` → 伺服器反序列化成 `GameState` 重建對局(重開載入) |
 | `PING` | — | 保活 |
 
 ### `INTENT.action`(對應 [docs/05 §4](../docs/05-rules-engine-spec.md))
@@ -41,6 +82,8 @@
 | `EVENT` | `event`, `message` | 動作播報 / 動畫事件(供 log 與特效) |
 | `CHOICE_REQUEST` | `requestId`, `kind`, `options` | 需要該玩家做決定(見下) |
 | `ERROR` | `message` | 非法意圖或錯誤 |
+| `SAVE_PROMPT` | `requestId`, `requestedBy` | 有玩家要保存 → 各客戶端彈窗「是否存檔?」 |
+| `SAVE_SNAPSHOT` | `scenario`, `round`, `state`, `eventLog` | 存檔確認後,把狀態文本 + 出牌紀錄複製給每位玩家寫入本機(離線備份) |
 | `PONG` | — | 保活回應 |
 
 ### `CHOICE_REQUEST.kind`

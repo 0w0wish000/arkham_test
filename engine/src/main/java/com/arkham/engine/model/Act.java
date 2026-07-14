@@ -10,7 +10,9 @@ public final class Act {
     private final int threshold;
     private int cluesSpent;
 
-    public Act(String name, int threshold) {
+    @com.fasterxml.jackson.annotation.JsonCreator
+    public Act(@com.fasterxml.jackson.annotation.JsonProperty("name") String name,
+               @com.fasterxml.jackson.annotation.JsonProperty("threshold") int threshold) {
         this.name = name;
         this.threshold = threshold;
     }

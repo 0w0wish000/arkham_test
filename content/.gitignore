@@ -1,3 +1,8 @@
 # 卡圖為 FFG / Asmodee 版權素材,不進版控(見 ../docs/06-card-data-and-images.md §9)。
 # 開發期放私有資產庫 / 物件儲存;repo 只保留 JSON 結構。
 images/
+
+# converter(build_cards.py)產出的完整卡料(FFG 文字版權)+ 抓取快取,不進版控。
+# repo 只保留腳本、索引(reference/)、範本(cards/core/examples.json)。
+cards/generated/
+tools/.cache/

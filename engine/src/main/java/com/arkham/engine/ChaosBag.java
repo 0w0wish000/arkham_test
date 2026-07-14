@@ -18,7 +18,8 @@ public final class ChaosBag {
 
     private final List<ChaosToken> tokens;
 
-    public ChaosBag(List<ChaosToken> tokens) {
+    @com.fasterxml.jackson.annotation.JsonCreator
+    public ChaosBag(@com.fasterxml.jackson.annotation.JsonProperty("tokens") List<ChaosToken> tokens) {
         this.tokens = new ArrayList<>(tokens);
     }
 
@@ -57,6 +58,7 @@ public final class ChaosBag {
     }
 
     /** Immutable snapshot of the bag's contents (order is irrelevant). */
+    @com.fasterxml.jackson.annotation.JsonProperty("tokens")
     public List<ChaosToken> tokens() {
         return List.copyOf(tokens);
     }

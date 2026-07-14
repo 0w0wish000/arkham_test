@@ -38,13 +38,33 @@ public final class ScenarioFactory {
 
     private ScenarioFactory() {}
 
-    /** Convenience: a fresh engine seeded for deterministic play/replay. */
+    /** Default roster (backward-compatible with the old room path): Joe + Daniela. */
+    public static final List<String> DEFAULT_ROSTER = List.of(JOE, DANIELA);
+
+    /** Convenience: a fresh engine with the default roster, seeded for replay. */
     public static RulesEngine newEngine(long seed) {
-        return new RulesEngine(createState(), new SeededRng(seed));
+        return newEngine(seed, DEFAULT_ROSTER);
     }
 
-    /** Build the initial authoritative state for the lite scenario. */
+    /** A fresh engine placing the roster's investigators (docs/09 START_SCENARIO). */
+    public static RulesEngine newEngine(long seed, List<String> investigatorIds) {
+        return new RulesEngine(createState(investigatorIds), new SeededRng(seed));
+    }
+
+    /** Default-roster state (Joe + Daniela). */
     public static GameState createState() {
+        return createState(DEFAULT_ROSTER);
+    }
+
+    /**
+     * Build the initial authoritative state for the lite scenario, placing the given
+     * investigators (from the campaign roster). Clue counts scale by head-count
+     * (clueValue × players), so difficulty follows the table size (docs/09 §12).
+     */
+    public static GameState createState(List<String> investigatorIds) {
+        List<String> roster = (investigatorIds == null || investigatorIds.isEmpty())
+                ? DEFAULT_ROSTER : investigatorIds;
+
         GameState state = new GameState(
                 ChaosBag.standard(),
                 new Act("Where There's Smoke…", 2),
@@ -64,26 +84,13 @@ public final class ScenarioFactory {
         state.addLocation(new LocationCard("library", "Orne Library", 4, 2,
                 false, List.of("quad"), true, null)); // victory location
 
-        // --- Investigators ---
-        Investigator joe = new Investigator(JOE, "Joe Diamond",
-                new Skills(2, 4, 3, 3), 7, 7, 5, "friends_room");
-        joe.getHand().add(CardInstance.skill("c1", "Vicious Blow", SkillIcon.COMBAT));
-        joe.getHand().add(CardInstance.skill("c2", "Overpower", SkillIcon.COMBAT, SkillIcon.COMBAT));
-        joe.getHand().add(CardInstance.skill("c3", "Unexpected Courage", SkillIcon.WILD, SkillIcon.WILD));
-        joe.getHand().add(CardInstance.skill("c4", "Deduction", SkillIcon.INTELLECT));
-        state.addInvestigator(joe);
-
-        Investigator daniela = new Investigator(DANIELA, "Daniela Reyes",
-                new Skills(3, 2, 4, 2), 8, 6, 5, "friends_room");
-        daniela.getHand().add(CardInstance.skill("c5", "Vicious Blow", SkillIcon.COMBAT));
-        daniela.getHand().add(CardInstance.skill("c6", "Guts", SkillIcon.WILLPOWER, SkillIcon.WILLPOWER));
-        state.addInvestigator(daniela);
-
-        state.setActiveInvestigatorId(JOE);
-
-        // Joe's turn (round 1 skips Mythos, docs/05 §1); each investigator gets 3 actions.
-        joe.setActionsRemaining(3);
-        daniela.setActionsRemaining(3);
+        // --- Investigators (from roster) ---
+        for (String id : roster) {
+            Investigator inv = buildInvestigator(id);
+            inv.setActionsRemaining(3);   // round 1 skips Mythos (docs/05 §1); 3 actions each
+            state.addInvestigator(inv);
+        }
+        state.setActiveInvestigatorId(roster.get(0));
 
         // Starting location is revealed at setup: place clueValue × players.
         int players = state.getInvestigators().size();
@@ -91,6 +98,65 @@ public final class ScenarioFactory {
         start.setClues(start.getClueValue() * players);
 
         return state;
+    }
+
+    /**
+     * Investigator registry — skills / health / sanity / a representative opening hand,
+     * ported from the deckbuilder's INVESTIGATORS table (prototype/deckbuilder.html).
+     * The lite engine only uses hand cards for skill-test commits, so each investigator
+     * gets a fixed opening hand of skill cards (full deck-draw comes in a later phase).
+     */
+    public static Investigator buildInvestigator(String id) {
+        return switch (id) {
+            case "joe_diamond" -> {
+                Investigator inv = new Investigator("joe_diamond", "Joe Diamond",
+                        new Skills(2, 4, 3, 3), 7, 7, 5, "friends_room");
+                addHand(inv, "joe_diamond",
+                        card("Vicious Blow", SkillIcon.COMBAT),
+                        card("Overpower", SkillIcon.COMBAT, SkillIcon.COMBAT),
+                        card("Unexpected Courage", SkillIcon.WILD, SkillIcon.WILD),
+                        card("Deduction", SkillIcon.INTELLECT),
+                        card("Perception", SkillIcon.INTELLECT, SkillIcon.INTELLECT));
+                yield inv;
+            }
+            case "daniela" -> {
+                Investigator inv = new Investigator("daniela", "Daniela Reyes",
+                        new Skills(3, 2, 4, 2), 8, 6, 5, "friends_room");
+                addHand(inv, "daniela",
+                        card("Vicious Blow", SkillIcon.COMBAT),
+                        card("Vicious Blow", SkillIcon.COMBAT),
+                        card("Overpower", SkillIcon.COMBAT, SkillIcon.COMBAT),
+                        card("Guts", SkillIcon.WILLPOWER, SkillIcon.WILLPOWER),
+                        card("Unexpected Courage", SkillIcon.WILD, SkillIcon.WILD));
+                yield inv;
+            }
+            case "dexter_drake" -> {
+                Investigator inv = new Investigator("dexter_drake", "Dexter Drake",
+                        new Skills(4, 2, 2, 3), 6, 8, 5, "friends_room");
+                addHand(inv, "dexter_drake",
+                        card("Soul Link", SkillIcon.WILLPOWER, SkillIcon.WILLPOWER),
+                        card("Overpower", SkillIcon.COMBAT, SkillIcon.COMBAT),
+                        card("Guts", SkillIcon.WILLPOWER, SkillIcon.WILLPOWER),
+                        card("Unexpected Courage", SkillIcon.WILD, SkillIcon.WILD),
+                        card("Deduction", SkillIcon.INTELLECT));
+                yield inv;
+            }
+            default -> throw new IllegalArgumentException("Unknown investigator: " + id);
+        };
+    }
+
+    /** Whether {@code id} is a pickable investigator this scenario can place. */
+    public static boolean isKnownInvestigator(String id) {
+        return "joe_diamond".equals(id) || "daniela".equals(id) || "dexter_drake".equals(id);
+    }
+
+    private record CardSpec(String name, SkillIcon[] icons) {}
+    private static CardSpec card(String name, SkillIcon... icons) { return new CardSpec(name, icons); }
+    private static void addHand(Investigator inv, String prefix, CardSpec... specs) {
+        int n = 1;
+        for (CardSpec s : specs) {
+            inv.getHand().add(CardInstance.skill(prefix + "-c" + (n++), s.name(), s.icons()));
+        }
     }
 
     /** Enemy definitions (prototype ENEMY_DEF). */

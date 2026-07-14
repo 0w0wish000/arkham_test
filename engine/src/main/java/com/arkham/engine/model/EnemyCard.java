@@ -26,8 +26,17 @@ public final class EnemyCard {
     /** Investigator id this enemy is engaged with, or {@code null} if unengaged. */
     private String engagedWith;
 
-    public EnemyCard(String id, String defKey, String name, int fight, int health, int evade,
-                     int damage, int horror, List<Keyword> keywords, String locationId) {
+    @com.fasterxml.jackson.annotation.JsonCreator
+    public EnemyCard(@com.fasterxml.jackson.annotation.JsonProperty("id") String id,
+                     @com.fasterxml.jackson.annotation.JsonProperty("defKey") String defKey,
+                     @com.fasterxml.jackson.annotation.JsonProperty("name") String name,
+                     @com.fasterxml.jackson.annotation.JsonProperty("fight") int fight,
+                     @com.fasterxml.jackson.annotation.JsonProperty("health") int health,
+                     @com.fasterxml.jackson.annotation.JsonProperty("evade") int evade,
+                     @com.fasterxml.jackson.annotation.JsonProperty("damage") int damage,
+                     @com.fasterxml.jackson.annotation.JsonProperty("horror") int horror,
+                     @com.fasterxml.jackson.annotation.JsonProperty("keywords") List<Keyword> keywords,
+                     @com.fasterxml.jackson.annotation.JsonProperty("locationId") String locationId) {
         this.id = id;
         this.defKey = defKey;
         this.name = name;

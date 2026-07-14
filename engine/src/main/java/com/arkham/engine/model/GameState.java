@@ -38,8 +38,12 @@ public final class GameState {
     private boolean won;
     private String outcomeMessage;
 
-    public GameState(ChaosBag chaosBag, Act act, Agenda agenda,
-                     Map<String, EnemyDef> enemyDefs, List<EncounterCard> encounterDeck) {
+    @com.fasterxml.jackson.annotation.JsonCreator
+    public GameState(@com.fasterxml.jackson.annotation.JsonProperty("chaosBag") ChaosBag chaosBag,
+                     @com.fasterxml.jackson.annotation.JsonProperty("act") Act act,
+                     @com.fasterxml.jackson.annotation.JsonProperty("agenda") Agenda agenda,
+                     @com.fasterxml.jackson.annotation.JsonProperty("enemyDefs") Map<String, EnemyDef> enemyDefs,
+                     @com.fasterxml.jackson.annotation.JsonProperty("encounterDeck") List<EncounterCard> encounterDeck) {
         this.chaosBag = chaosBag;
         this.act = act;
         this.agenda = agenda;

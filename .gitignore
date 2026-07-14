@@ -13,6 +13,21 @@ out/
 # Gradle wrapper jar 必須入庫(否則 ./gradlew 無法運作;使用者全域 ~/.gitignore_global 排除了 *.jar)
 !gradle/wrapper/gradle-wrapper.jar
 
+# Rust / Tauri
+target/
+src-tauri/gen/
+
+# 玩家自帶卡圖(FFG 版權,不入版控;docs/06 §12)
+prototype/cardimg/*
+!prototype/cardimg/.gitkeep
+client/public/cardimg/
+
+# Claude Code 本機工作區(worktree / launch.json,不入版控)
+.claude/
+
+# 場內存檔快照(server 落地含遊戲狀態,不入版控)
+saves/
+
 # IDE
 .idea/
 .vscode/

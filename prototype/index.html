@@ -174,6 +174,7 @@
       <div class="vital hp"><span class="dot"></span><span id="h-hp">7/7</span></div>
       <div class="vital san"><span class="dot"></span><span id="h-san">7/7</span></div>
       <div class="vital res"><span class="dot"></span><span id="h-res">5</span></div>
+      <button id="btn-save" style="margin-left:14px;font-family:inherit;font-size:12px;padding:6px 10px;border-radius:7px;border:1px solid var(--gold);background:#0e151d;color:var(--gold);cursor:pointer">💾 保存並離開</button>
     </div>
   </header>
 
@@ -590,6 +591,7 @@ function endTurn(){
     S.phase='investigation'; S.actions=S.maxActions;
     log(`—— <span class="t">調查階段</span> ——`);
     render();
+    saveGame('回合結算 · 第'+S.round+'輪', true);   // 每回合結算自動更新存檔
   }, 700);
 }
 function nextStepToward(from, to){ // BFS 最短路徑第一步
@@ -738,10 +740,44 @@ $('#fb-map').onclick=e=>e.target.classList.toggle('on');
 $('#fb-combat').onclick=e=>e.target.classList.toggle('on');
 window.addEventListener('resize', renderMap);
 
+/* ---------- 場內存檔(每回合結算自動;手動保存;重開載入含出牌紀錄)---------- */
+const SAVE_KEY='arkham_save_spreading_flames';        // 每場戰役一個 key
+function captureLog(){ return [...document.querySelectorAll('#log .l')].map(e=>({h:e.innerHTML, big:e.classList.contains('big')})); }
+function saveGame(reason, silent){
+  try{
+    const rec={ v:1, reason, savedAt:new Date().toISOString(), scenario:'Spreading Flames',
+      round:S.round, state:JSON.parse(JSON.stringify(S)), events:captureLog() };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(rec));
+    if(!silent) toast('💾 已存檔 · '+reason);
+  }catch(e){ toast('存檔失敗:'+e.message); }
+}
+function loadGame(){
+  const raw=localStorage.getItem(SAVE_KEY); if(!raw) return false;
+  const rec=JSON.parse(raw);
+  Object.keys(S).forEach(k=>delete S[k]); Object.assign(S, rec.state);   // 還原遊戲狀態
+  const L=$('#log'); L.innerHTML='';                                      // 還原出牌/事件紀錄
+  (rec.events||[]).forEach(ev=>{ const d=document.createElement('div'); d.className='l'+(ev.big?' big':''); d.innerHTML=ev.h; L.appendChild(d); });
+  log(`📂 <span class="g">已載入本場存檔</span>:${rec.scenario} · 第 ${rec.round} 輪(${rec.reason})—— 含出牌紀錄`, true);
+  render(); L.scrollTop=L.scrollHeight; return true;
+}
+/* 手動保存:多人版會廣播「有玩家要保存,是否存檔?」給全員,確認後把 server 狀態複製到各本機
+   (見 docs/08 / protocol)。此單機示範用 confirm 模擬那個全員確認流程。 */
+$('#btn-save').onclick=()=>{
+  if(confirm('有玩家要求保存本場戰役,是否存檔?\n\n是 → 伺服器目前狀態(含出牌紀錄)複製到每位玩家本機。')){
+    saveGame('手動保存(準備離開)');
+    setTimeout(()=>alert('✔ 已存檔到本機。可安全離開;重開時會載入本場紀錄。'),50);
+  }
+};
+
 /* ---------- 開場 ---------- */
 log('🎬 <span class="g">遊戲開始</span> · 第 1 輪跳過神話階段,直接進入調查階段。', true);
 log('流程:①<span class="g">移動</span>進未揭示地點=圖版分佈(揭示+放線索);②<span class="g">調查</span>取線索,湊 2 個推進幕(勝);③宿舍<span class="r">遇敵</span>=戰鬥/閃避+投入判定;④<span class="t">結束回合</span>看敵人階段(獵人追人),第 2 輪起有神話階段(抽遭遇卡、密謀累積毀滅→落敗)。');
 render();
+/* 重開:偵測本場存檔 → 詢問是否載入(含出牌紀錄)*/
+if(localStorage.getItem(SAVE_KEY)){
+  const rec=JSON.parse(localStorage.getItem(SAVE_KEY));
+  setTimeout(()=>{ if(confirm(`偵測到本場戰役存檔(第 ${rec.round} 輪 · ${rec.reason})。\n載入這場的紀錄(含出牌等資料)?`)) loadGame(); }, 250);
+}
 </script>
 </body>
 </html>

@@ -1,0 +1,15 @@
+[package]
+name = "arkham-desktop"
+version = "0.1.0"
+edition = "2021"
+description = "Arkham 桌面殼(Tauri)—— 讀玩家本機卡圖資料夾"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rfd = "0.15"        # 原生資料夾/檔案對話框
+base64 = "0.22"     # 把本機圖檔轉成 data URL 給 <img>

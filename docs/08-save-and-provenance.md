@@ -120,6 +120,33 @@ flowchart LR
 
 ---
 
+## 6.5 場內存檔:多人流程(runtime save)
+
+**每回合自動檢查點:** 每個整備(回合結算),伺服器把權威狀態更新進存檔(`GameState` 快照 + 累積 `eventLog`)。server 本就持有狀態,成本極低。
+
+**手動保存(有人要中途離開):**
+```mermaid
+sequenceDiagram
+  participant A as 玩家A
+  participant S as Server(權威)
+  participant B as 玩家B
+  A->>S: SAVE_REQUEST
+  S-->>A: SAVE_PROMPT(有人要保存,是否存檔?)
+  S-->>B: SAVE_PROMPT
+  A-->>S: SAVE_VOTE(yes)
+  B-->>S: SAVE_VOTE(yes)
+  S->>S: 完成存檔(快照 + eventLog)
+  S-->>A: SAVE_SNAPSHOT(狀態文本 + 出牌紀錄)
+  S-->>B: SAVE_SNAPSHOT
+  Note over A,B: 各自寫入本機紀錄(每人一份備份)
+```
+- 全員彈窗;**確認政策(合作信任)**:預設「發起者確認即存」;可改為全員同意 / lead 拍板(設定)。
+- 存檔完成 → 伺服器把「狀態文本 + `eventLog`(含出牌)」**複製給每位玩家本機**(每人一份備份 → 任一人日後可續開)。
+
+**重開載入:** 客戶端偵測本機紀錄 → 載入該場 `GameState` + `eventLog`(出牌等)→ 由一位玩家 host 重建對局、其餘 rejoin(§3 的 `GameSession` + `finalStateSnapshot`)。
+
+**與資料放置(呼應 docs/03 §4):** 遊玩中 server 持權威狀態(共享一致);**存檔那刻**才把文本複製到各本機(離線備份)。原型 `prototype/index.html` 已示範單機版:每回合自動存 + 手動「保存並離開」+ 重開載入(含出牌紀錄)。
+
 ## 7. 與其他部分的接點
 
 - **牌組編輯器**([`prototype/deckbuilder.html`](../prototype/deckbuilder.html)):每次「儲存」= 產生一個新的 `DeckVersion`;開始劇本時把它釘到 `GameSession`。

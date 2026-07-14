@@ -1,0 +1,4 @@
+{
+  "_description": "要收錄的調查員 code 白名單。來源見 investigators.json。空 codes = 收錄 scope(核心+主線 8 戰役)內全部調查員;之後把你選的角色 code 填入 codes,再重跑 build_cards.py 即只做那些。",
+  "codes": []
+}

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Arkham 選牌器(角色驅動 + XP 升級池)</title>
+<title>Arkham 選牌器(角色驅動 + 選牌規則 + XP 升級池)</title>
 <style>
   :root{
     --bg:#0a0e17; --panel:#141b28cc; --panel2:#1b2536; --ink:#e8e2d0; --muted:#8fa0b4;
@@ -21,13 +21,11 @@
       radial-gradient(900px 600px at 10% 110%, #241a30 0%, transparent 55%),
       #070b12;
   }
-  /* 星點背景 */
   body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.5;
     background-image:radial-gradient(1px 1px at 20% 30%,#fff,transparent),radial-gradient(1px 1px at 70% 60%,#cde,transparent),
     radial-gradient(1px 1px at 40% 80%,#fff,transparent),radial-gradient(1px 1px at 90% 20%,#ace,transparent),
     radial-gradient(1px 1px at 55% 15%,#fff,transparent),radial-gradient(1px 1px at 15% 65%,#fff,transparent);}
   .app{display:grid;grid-template-columns:250px 1fr 300px;grid-template-rows:auto 1fr;height:100vh;gap:10px;padding:10px;}
-  /* ---------- 上方工具列 ---------- */
   header{grid-column:1/4;display:flex;gap:10px;align-items:center;flex-wrap:wrap;
     background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px;backdrop-filter:blur(6px);box-shadow:var(--shadow);}
   .grp{display:flex;align-items:center;gap:6px;font-size:13px;}
@@ -38,38 +36,41 @@
   button:hover{border-color:var(--gold);}
   button.primary{background:linear-gradient(180deg,#2e5b52,#1d3d37);border-color:var(--teal);}
   .sep{width:1px;height:24px;background:var(--line);}
-  /* ---------- 左:角色 + 預覽 ---------- */
   aside{grid-column:1;grid-row:2;display:flex;flex-direction:column;gap:10px;min-height:0;}
   .card-box{background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);backdrop-filter:blur(6px);}
   .sec-h{padding:8px 11px;font-size:12px;letter-spacing:1.5px;color:var(--gold);border-bottom:1px solid var(--line);text-transform:uppercase;display:flex;justify-content:space-between;align-items:center;}
   .sec-h .mini{font-size:11px;color:var(--muted);letter-spacing:0;}
   .inv{padding:11px;}
-  .inv-art{height:120px;border-radius:8px;position:relative;overflow:hidden;border:1px solid var(--line);
+  .inv-art{height:112px;border-radius:8px;position:relative;overflow:hidden;border:1px solid var(--line);
     background:linear-gradient(135deg,#2a3550,#141b28);display:grid;place-items:center;}
-  .inv-art .cls-emblem{font-size:44px;opacity:.85;}
+  .inv-art .cls-emblem{font-size:42px;opacity:.9;}
   .inv-art .tag{position:absolute;top:8px;left:8px;font-size:10px;padding:2px 8px;border-radius:10px;background:#000a;border:1px solid var(--seeker);color:var(--seeker);}
   .inv-name{font-weight:700;font-size:15px;margin:9px 0 2px;}
   .inv-sub{font-size:11px;color:var(--muted);margin-bottom:8px;}
   .inv-stats{display:flex;gap:6px;margin-bottom:8px;}
   .inv-stats .s{flex:1;text-align:center;background:#0e1521;border:1px solid var(--line);border-radius:6px;padding:4px 0;}
   .inv-stats .s b{display:block;font-size:14px} .inv-stats .s span{font-size:9px;color:var(--muted)}
+  .ability{font-size:11px;color:#c3cedb;line-height:1.5;margin:8px 0;padding:8px;background:#0e1521;border:1px solid var(--line);border-radius:7px;}
+  .ability .h{color:var(--gold);font-size:9px;letter-spacing:1.5px;display:block;margin-bottom:3px;}
+  .ability .eldersign{color:#a9c7ff;margin-top:5px;}
   .req{font-size:11px;color:var(--muted);line-height:1.55;}
-  .req li{margin:1px 0;}
-  .req ul{margin:4px 0 0;padding-left:16px;}
-  /* 卡片預覽 */
+  .req li{margin:1px 0;} .req ul{margin:4px 0 0;padding-left:16px;}
+  .legal-box{margin:0 11px 11px;border-radius:8px;padding:8px 10px;font-size:11px;border:1px solid;}
+  .legal-box.ok{border-color:var(--teal);color:var(--teal);background:#0f231f;}
+  .legal-box.bad{border-color:#7d241b;color:#e8998c;background:#241514;}
+  .legal-box .h{font-weight:700;letter-spacing:1px;display:block;margin-bottom:3px;}
+  .legal-box ul{margin:3px 0 0;padding-left:16px;} .legal-box li{margin:1px 0;}
   .preview{flex:1;min-height:0;display:flex;flex-direction:column;}
   .preview .pv{flex:1;padding:11px;overflow:auto;font-size:12px;color:var(--muted);}
   .pv .pv-name{font-size:15px;color:var(--ink);font-weight:700;margin-bottom:2px;}
   .pv .pv-meta{font-size:11px;margin-bottom:8px;}
   .pv .pv-text{line-height:1.6;color:#c3cedb;}
   .pv .pv-empty{opacity:.5;text-align:center;margin-top:30px;}
-  /* ---------- 中:牌組 + 被選區 ---------- */
   main{grid-column:2;grid-row:2;display:flex;flex-direction:column;gap:10px;min-height:0;}
   .deck-wrap{flex:1.6;display:flex;flex-direction:column;min-height:0;}
   .pool-wrap{flex:1;display:flex;flex-direction:column;min-height:0;}
   .grid-scroll{flex:1;overflow:auto;padding:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:7px;align-content:start;}
   .pool-scroll{grid-template-columns:repeat(auto-fill,minmax(76px,1fr));}
-  /* 卡片磚 */
   .tile{position:relative;aspect-ratio:.72;border-radius:7px;cursor:pointer;overflow:hidden;
     border:1px solid var(--line);box-shadow:var(--shadow);display:flex;flex-direction:column;transition:.12s;}
   .tile:hover{transform:translateY(-3px);border-color:var(--gold);z-index:2;}
@@ -77,7 +78,7 @@
   .tile .art{flex:1;display:grid;place-items:center;font-size:20px;background:linear-gradient(160deg,#1c2636,#0e1521);}
   .tile .nm{font-size:9px;line-height:1.15;padding:3px 4px;background:#0b111b;color:#d7dee8;
     display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:24px;}
-  .tile .lvl{position:absolute;top:8px;left:5px;display:flex;gap:2px;}
+  .tile .lvl{position:absolute;bottom:29px;left:5px;display:flex;gap:2px;}
   .tile .pip{width:6px;height:6px;border-radius:50%;background:#e8e2d0;box-shadow:0 0 2px #000;}
   .tile .xp{position:absolute;top:5px;right:5px;min-width:18px;height:18px;border-radius:50%;
     background:radial-gradient(circle at 35% 30%,#ffe7a8,#c9a24b);color:#3a2c07;font-size:11px;font-weight:800;
@@ -85,40 +86,48 @@
   .tile .typ{position:absolute;bottom:27px;right:4px;font-size:8px;padding:1px 4px;border-radius:6px;background:#000a;color:#aeb9c6;}
   .tile.dragging{opacity:.4;}
   .tile.wk{outline:1px dashed #c0392b;}
-  /* 拖曳中的牌組放置提示 */
+  .tile.dis{filter:grayscale(.75) brightness(.55);}
+  .tile .ban{position:absolute;inset:0;display:grid;place-items:center;font-size:16px;color:#e8998c;background:#0009;}
+  .tile .cardart{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+  .tile .cost{position:absolute;top:5px;left:5px;min-width:18px;height:18px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#6b98d8,#274a80);color:#fff;font-size:11px;font-weight:800;
+    display:grid;place-items:center;border:1px solid #1c3a5e;box-shadow:var(--shadow);}
+  .tile .icons{position:absolute;bottom:29px;right:4px;display:flex;gap:2px;}
+  .tile .icons .icon{width:14px;height:14px;border-radius:3px;display:grid;place-items:center;font-size:9px;font-weight:800;color:#0d1117;}
+  .pv-icons{display:flex;gap:5px;margin:6px 0;} .pv-icons .icon{width:22px;height:22px;border-radius:4px;display:grid;place-items:center;font-size:12px;font-weight:800;color:#0d1117;}
   .deck-wrap.drop-ok .grid-scroll{outline:2px dashed var(--teal);outline-offset:-6px;border-radius:10px;}
   .tile.swap-target{border-color:var(--teal)!important;box-shadow:0 0 0 2px var(--teal),var(--shadow);}
   .hint-drag{font-size:11px;color:var(--teal);}
-  /* ---------- 右:搜尋結果 ---------- */
   .results{grid-column:3;grid-row:2;display:flex;flex-direction:column;min-height:0;}
   .res-list{flex:1;overflow:auto;}
   .res{display:flex;gap:9px;align-items:center;padding:8px 10px;border-bottom:1px solid #22303f;cursor:pointer;}
   .res:hover{background:#1a2536;}
+  .res.dis{opacity:.5;cursor:not-allowed;}
   .res .thumb{width:34px;height:47px;border-radius:5px;flex:0 0 auto;display:grid;place-items:center;font-size:15px;border:1px solid var(--line);}
   .res .info{min-width:0;flex:1;}
   .res .r-nm{font-size:13px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .res .r-meta{font-size:11px;color:var(--muted);display:flex;gap:6px;align-items:center;margin-top:2px;}
+  .res .r-meta{font-size:11px;color:var(--muted);display:flex;gap:6px;align-items:center;margin-top:2px;flex-wrap:wrap;}
   .res .r-xp{margin-left:auto;min-width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffe7a8,#c9a24b);
     color:#3a2c07;font-size:11px;font-weight:800;display:grid;place-items:center;border:1px solid #6b531e;}
   .res .in-deck{font-size:9px;color:var(--teal);border:1px solid var(--teal);border-radius:6px;padding:0 4px;}
+  .res .r-ban{font-size:9px;color:#e8998c;border:1px solid #7d241b;border-radius:6px;padding:0 4px;}
   .clsdot{width:9px;height:9px;border-radius:50%;display:inline-block;}
   .count-badge{background:#0e1521;border:1px solid var(--line);border-radius:7px;padding:2px 9px;color:var(--gold);font-size:13px;}
   .toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#0b111bf0;border:1px solid var(--gold);
-    color:var(--ink);padding:9px 16px;border-radius:22px;font-size:13px;z-index:60;opacity:0;transition:.3s;pointer-events:none;box-shadow:var(--shadow);}
+    color:var(--ink);padding:9px 16px;border-radius:22px;font-size:13px;z-index:60;opacity:0;transition:.3s;pointer-events:none;box-shadow:var(--shadow);max-width:70vw;text-align:center;}
   .toast.show{opacity:1;}
   ::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:#33445a;border-radius:5px}
 </style>
 </head>
 <body>
 <div class="app">
-  <!-- ============ 上方工具列 ============ -->
   <header>
-    <div class="grp"><label>牌組</label>
-      <select id="decklist"><option>Joe · 探求(戰役第2場)</option><option>Joe · 開場 L0</option></select>
+    <div class="grp"><label>故事線</label>
+      <select id="storyline" title="這副牌組屬於哪條故事線的哪個點(存檔用;線下玩完更新牌組時選這裡)"></select>
       <button>儲存</button><button>另存</button></div>
     <div class="sep"></div>
     <div class="grp"><label>職業</label>
-      <select id="f-class"><option value="">全部(依角色可用)</option>
+      <select id="f-class"><option value="">全部</option>
         <option value="seeker">探求者</option><option value="guardian">守護者</option>
         <option value="neutral">中立</option><option value="rogue">流氓</option>
         <option value="mystic">秘術師</option><option value="survivor">生存者</option></select></div>
@@ -128,46 +137,39 @@
     <div class="grp"><label>類型</label>
       <select id="f-type"><option value="">全部</option><option value="asset">支援</option>
         <option value="event">事件</option><option value="skill">技能</option></select></div>
-    <div class="grp"><label>XP</label>
-      <select id="f-xp"><option value="">全部</option><option value="0">免費(0)</option><option value="1">需 XP(≥1)</option></select></div>
-    <div class="grp"><input id="f-text" placeholder="名稱 / 特徵…" size="14" /></div>
+    <div class="grp"><label><input type="checkbox" id="f-onlyok" style="vertical-align:middle" /> 只顯示可用</label></div>
+    <div class="grp"><input id="f-text" placeholder="名稱 / 特徵…" size="12" /></div>
     <button class="primary" id="btn-search">搜尋</button>
-    <div style="margin-left:auto" class="grp"><span class="count-badge" id="xp-avail">XP 可用 12</span></div>
+    <button id="btn-cardimg" title="讀本機卡圖資料夾(Tauri 桌面直接讀檔;瀏覽器退回讀同層 cardimg/)">🖼 載入卡圖</button>
+    <div style="margin-left:auto" class="grp"><span class="count-badge">XP 可用 <input id="xp-input" type="number" min="0" title="可手動修改(經驗會受戰役結果影響);故事線下拉會給預設值" style="width:46px;background:#0e1521;border:1px solid var(--line);color:var(--gold);border-radius:5px;padding:2px 4px;font-size:13px;font-family:inherit" value="12"></span></div>
   </header>
 
-  <!-- ============ 左:角色 + 預覽 ============ -->
   <aside>
     <div class="card-box">
-      <div class="sec-h">角色 · 調查員 <button style="padding:3px 8px;font-size:11px" id="btn-change">換角色</button></div>
+      <div class="sec-h">角色 · 調查員 <select id="inv-select" style="padding:3px 6px;font-size:11px;max-width:140px"></select></div>
       <div class="inv">
         <div class="inv-art">
-          <span class="tag">探求者 SEEKER</span>
-          <span class="cls-emblem">👁️</span>
+          <span class="tag" id="i-tag"></span>
+          <span class="cls-emblem" id="i-emblem"></span>
         </div>
-        <div class="inv-name">Joe Diamond</div>
-        <div class="inv-sub">The Private Investigator</div>
-        <div class="inv-stats">
-          <div class="s"><b>2</b><span>意</span></div><div class="s"><b>4</b><span>智</span></div>
-          <div class="s"><b>3</b><span>戰</span></div><div class="s"><b>3</b><span>敏</span></div>
-        </div>
-        <div class="req"><b style="color:#c3cedb">構築需求</b>
-          <ul>
-            <li>探求者 0–5 級</li><li>中立 0–5 級</li><li>守護者 0–2 級</li>
-            <li>牌組 30 張(不含弱點)</li><li>招牌 + 招牌弱點強制納入</li>
-          </ul>
-        </div>
+        <div class="inv-name" id="i-name"></div>
+        <div class="inv-sub" id="i-sub"></div>
+        <div class="inv-stats" id="i-stats"></div>
+        <div class="ability"><span class="h">能力 ABILITY</span><span id="i-ability"></span>
+          <div class="eldersign" id="i-elder"></div></div>
+        <div class="req"><b style="color:#c3cedb">構築需求(選牌規則)</b><ul id="i-req"></ul></div>
       </div>
+      <div class="legal-box" id="legal"></div>
     </div>
     <div class="card-box preview">
-      <div class="sec-h">卡片預覽 <span class="mini" id="pv-hint">滑過卡片查看</span></div>
+      <div class="sec-h">卡片預覽 <span class="mini">滑過卡片查看</span></div>
       <div class="pv" id="pv"><div class="pv-empty">滑過任一張卡以顯示詳情</div></div>
     </div>
   </aside>
 
-  <!-- ============ 中:牌組 + 被選區 ============ -->
   <main>
     <div class="card-box deck-wrap" id="deck-wrap">
-      <div class="sec-h">牌組 <span class="mini"><span id="deck-count">0</span>/30 · 招牌與弱點另計</span></div>
+      <div class="sec-h">牌組 <span class="mini"><span id="deck-count">0</span>/<span id="deck-size">30</span> · 招牌與弱點另計</span></div>
       <div class="grid-scroll" id="deck-grid"></div>
     </div>
     <div class="card-box pool-wrap">
@@ -176,7 +178,6 @@
     </div>
   </main>
 
-  <!-- ============ 右:搜尋結果 ============ -->
   <div class="card-box results">
     <div class="sec-h">搜尋結果 <span class="mini"><span id="res-count">0</span> 張 · 點擊加入被選區</span></div>
     <div class="res-list" id="res-list"></div>
@@ -186,112 +187,332 @@
 
 <script>
 /* =======================================================================
-   Arkham 選牌器原型 —— 角色驅動 + XP 升級池(可拖曳換卡)
-   對應設計書:牌組構築 = 規則驗證 + 擁有內容檢查(docs/01 §8、docs/02 §1.B)
+   Arkham 選牌器原型 —— 角色驅動 + 選牌規則(構築驗證)+ XP 升級池
+   選牌規則 = 每位調查員的「可用職業/等級 + 牌組張數 + 同名≤2 + 招牌強制」
+   對應設計書 docs/01 §8、docs/05 §8(牌組構築)。
    ======================================================================= */
 const CLS = { guardian:['守護者','var(--guardian)'], seeker:['探求者','var(--seeker)'],
   rogue:['流氓','var(--rogue)'], mystic:['秘術師','var(--mystic)'],
   survivor:['生存者','var(--survivor)'], neutral:['中立','var(--neutral)'], weakness:['弱點','#c0392b'] };
 const TYPE = { asset:['支援','◆'], event:['事件','⚡'], skill:['技能','▲'], weakness:['弱點','✖'] };
-
-/* 卡庫:name, type, cls, level, xp, traits, text */
 const c = (name,type,cls,level,xp,traits,text)=>({name,type,cls,level,xp:xp||0,traits,text});
-const INV = { name:'Joe Diamond', cls:'seeker', deckSize:30, xp:12 };
+const clone = o=>({...o});
 
-/* 牌組(開場 L0,約 30 張) */
-let DECK = [
-  c("Dorothy Simmons","asset","seeker",0,0,"盟友","調查時 +1 智力…"),
-  c("Fingerprint Kit","asset","seeker",0,0,"道具·工具","花 3 使用,調查取額外線索。"),
-  c("Laboratory Assistant","asset","seeker",0,0,"盟友·科學","進場抽 2 張;可吸收 1 傷害。"),
-  c("Local Map","asset","seeker",0,0,"道具","移動時省下行動。"),
-  c("Magnifying Glass","asset","seeker",0,0,"道具·工具","+1 智力(手部)。"),
-  c("Sharp Rhetoric","asset","seeker",0,0,"道具","以智力交涉。"),
-  c("Bodyguard","asset","guardian",0,0,"盟友","可替你承受傷害/恐懼。"),
-  c("Endurance","asset","neutral",0,0,"狀態","+2 生命上限。"),
-  c("Logan Hastings","asset","neutral",0,0,"盟友·賞金獵人","+1 戰鬥;擊敗敵人獲資源。"),
-  c("M1911","asset","guardian",0,0,"道具·武器·槍械","彈藥 4:+1 戰鬥 +1 傷害。"),
-  c("Machete","asset","guardian",0,0,"道具·武器·近戰","+1 戰鬥;單挑再 +1 傷害。"),
-  c("Fedora","asset","seeker",0,0,"道具·衣著","閃避後抽卡。"),
-  c("Fedora","asset","seeker",0,0,"道具·衣著","閃避後抽卡。"),
-  c("Hand-Crank Flashlight","asset","neutral",0,0,"道具·工具","降低地點遮蔽。"),
-  c("Hand-Crank Flashlight","asset","neutral",0,0,"道具·工具","降低地點遮蔽。"),
-  c("Detective's Intuition","event","seeker",0,0,"招牌·洞察","調查再取一線索。"),
-  c("Gather Intel","event","seeker",0,0,"洞察","從遠處地點取線索。"),
-  c("Through the Cracks","event","seeker",0,0,"技法","瞬移到相連地點。"),
-  c("Working a Hunch","event","seeker",0,0,"洞察","直接取 1 線索(免檢定)。"),
-  c("Lesson Learned","event","seeker",0,0,"洞察","以線索抽卡。"),
-  c("Right Tool for the Job","event","seeker",0,0,"技法","從牌組找工具/武器。"),
-  c("Scene of the Crime","event","seeker",0,0,"洞察","可調查較高遮蔽地點。"),
-  c("Emergency Cache","event","neutral",0,0,"補給","獲得 3 資源。"),
-  c("Emergency Cache","event","neutral",0,0,"補給","獲得 3 資源。"),
-  c("Deduction","skill","seeker",0,0,"洞察","成功調查多取 1 線索。"),
-  c("Vicious Blow","skill","guardian",0,0,"實戰","成功戰鬥多造成 1 傷害。"),
-  c("Perception","skill","seeker",0,0,"實戰","投入後抽 1 張。"),
-  c("Perception","skill","seeker",0,0,"實戰","投入後抽 1 張。"),
-  c("Overpower","skill","guardian",0,0,"實戰","戰鬥 +2 圖示。"),
-  c("Overpower","skill","guardian",0,0,"實戰","戰鬥 +2 圖示。"),
+/* ---------- 調查員登記表:能力、古老印記、構築規則、起始牌組 ----------
+   allowed:可用職業與其最高等級;{cls:'*',max}=其餘任意職業至該等級。 */
+const INVESTIGATORS = [
+  { id:'joe', name:'Joe Diamond', sub:'The Private Investigator', cls:'seeker', emblem:'👁️',
+    stats:{意:2,智:4,戰:3,敏:3}, health:7, sanity:7,
+    ability:'在你成功調查後:抽 1 張牌。(每回合限一次。)',
+    elderSign:'⭐ +1。若成功,抽 1 張並獲得 1 資源。',
+    deckSize:30, startXp:12,
+    allowed:[{cls:'seeker',max:5},{cls:'neutral',max:5},{cls:'guardian',max:2}],
+    signatures:[ c("Dead Ends","weakness","weakness",0,0,"招牌弱點","需花 5 資源才能移除。") ],
+    starter:[
+      c("Dorothy Simmons","asset","seeker",0,0,"盟友","調查時 +1 智力。"),
+      c("Fingerprint Kit","asset","seeker",0,0,"道具·工具","花 3 使用,調查取額外線索。"),
+      c("Laboratory Assistant","asset","seeker",0,0,"盟友·科學","進場抽 2 張;可吸收 1 傷害。"),
+      c("Local Map","asset","seeker",0,0,"道具","移動時省下行動。"),
+      c("Magnifying Glass","asset","seeker",0,0,"道具·工具","+1 智力(手部)。"),
+      c("Sharp Rhetoric","asset","seeker",0,0,"道具","以智力交涉。"),
+      c("Bodyguard","asset","guardian",0,0,"盟友","可替你承受傷害/恐懼。"),
+      c("Endurance","asset","neutral",0,0,"狀態","+2 生命上限。"),
+      c("Logan Hastings","asset","neutral",0,0,"盟友·賞金獵人","+1 戰鬥;擊敗敵人獲資源。"),
+      c("M1911","asset","guardian",0,0,"道具·武器·槍械","彈藥 4:+1 戰鬥 +1 傷害。"),
+      c("Machete","asset","guardian",0,0,"道具·武器·近戰","+1 戰鬥;單挑再 +1 傷害。"),
+      c("Fedora","asset","seeker",0,0,"道具·衣著","閃避後抽卡。"),
+      c("Fedora","asset","seeker",0,0,"道具·衣著","閃避後抽卡。"),
+      c("Hand-Crank Flashlight","asset","neutral",0,0,"道具·工具","降低地點遮蔽。"),
+      c("Hand-Crank Flashlight","asset","neutral",0,0,"道具·工具","降低地點遮蔽。"),
+      c("Detective's Intuition","event","seeker",0,0,"洞察","調查再取一線索。"),
+      c("Gather Intel","event","seeker",0,0,"洞察","從遠處地點取線索。"),
+      c("Through the Cracks","event","seeker",0,0,"技法","瞬移到相連地點。"),
+      c("Working a Hunch","event","seeker",0,0,"洞察","直接取 1 線索(免檢定)。"),
+      c("Lesson Learned","event","seeker",0,0,"洞察","以線索抽卡。"),
+      c("Right Tool for the Job","event","seeker",0,0,"技法","從牌組找工具/武器。"),
+      c("Scene of the Crime","event","seeker",0,0,"洞察","可調查較高遮蔽地點。"),
+      c("Emergency Cache","event","neutral",0,0,"補給","獲得 3 資源。"),
+      c("Emergency Cache","event","neutral",0,0,"補給","獲得 3 資源。"),
+      c("Deduction","skill","seeker",0,0,"洞察","成功調查多取 1 線索。"),
+      c("Vicious Blow","skill","guardian",0,0,"實戰","成功戰鬥多造成 1 傷害。"),
+      c("Perception","skill","seeker",0,0,"實戰","投入後抽 1 張。"),
+      c("Perception","skill","seeker",0,0,"實戰","投入後抽 1 張。"),
+      c("Overpower","skill","guardian",0,0,"實戰","戰鬥 +2 圖示。"),
+      c("Overpower","skill","guardian",0,0,"實戰","戰鬥 +2 圖示。"),
+    ],
+    pool:[
+      c("Deduction","skill","seeker",2,2,"洞察","升級版:成功調查多取 2 線索。"),
+      c("Magnifying Glass","asset","seeker",3,3,"道具·工具","升級版:+2 智力,調查取額外線索。"),
+      c("Bodyguard","asset","guardian",2,2,"盟友","升級版:承受傷害後造成傷害。"),
+      c("Through the Cracks","event","seeker",2,2,"技法","升級版:瞬移並取線索。"),
+      c("Studious","asset","seeker",3,3,"天賦·永久","開局起手多 1 張。"),
+      c("Fingerprint Kit","asset","seeker",4,4,"道具·工具","升級版:更多次數。"),
+      c("Cryptic Research","event","seeker",4,4,"洞察","任一調查員抽 3 張。"),
+      c("Unbridled Knowledge","asset","seeker",5,5,"道具·法器","將線索轉為強力效果。"),
+    ],
+  },
+  { id:'daniela', name:'Daniela Reyes', sub:'The Mechanic', cls:'guardian', emblem:'🔧',
+    stats:{意:3,智:2,戰:4,敏:2}, health:8, sanity:6,
+    ability:'敵人攻擊命中你之後:對它造成 1 傷害。(每回合限一次。)',
+    elderSign:'⭐ +1。你可以立即進行一次戰鬥行動。',
+    deckSize:30, startXp:10,
+    allowed:[{cls:'guardian',max:5},{cls:'neutral',max:5},{cls:'survivor',max:1}],
+    signatures:[ c("Wounded","weakness","weakness",0,0,"招牌弱點","受傷更痛。") ],
+    starter:[
+      c("Daniela's Wrench","asset","guardian",0,0,"道具·武器·近戰","+1 戰鬥;可對付隱蔽敵人。"),
+      c("Bodyguard","asset","guardian",0,0,"盟友","替你承受傷害/恐懼。"),
+      c("Aleksey Saburov","asset","guardian",0,0,"盟友","可承受傷害。"),
+      c("Endurance","asset","neutral",0,0,"狀態","+2 生命上限。"),
+      c("Resilience","asset","guardian",0,0,"狀態","+3 生命上限。"),
+      c("M1911","asset","guardian",0,0,"道具·武器·槍械","彈藥 4:+1 戰鬥 +1 傷害。"),
+      c("Machete","asset","guardian",0,0,"道具·武器·近戰","+1 戰鬥;單挑再 +1 傷害。"),
+      c("Bandages","asset","guardian",0,0,"道具","治療傷害。"),
+      c("Hand-Crank Flashlight","asset","neutral",0,0,"道具·工具","降低地點遮蔽。"),
+      c("Emergency Cache","event","neutral",0,0,"補給","獲得 3 資源。"),
+      c("Emergency Cache","event","neutral",0,0,"補給","獲得 3 資源。"),
+      c("Get behind me!","event","guardian",0,0,"技法","把敵人拉到自己身上。"),
+      c("Vicious Blow","skill","guardian",0,0,"實戰","多造成 1 傷害。"),
+      c("Vicious Blow","skill","guardian",0,0,"實戰","多造成 1 傷害。"),
+      c("Overpower","skill","guardian",0,0,"實戰","戰鬥 +2 圖示。"),
+      c("Guts","skill","survivor",0,0,"實戰","意志 +2,失敗抽卡。"),
+    ],
+    pool:[
+      c("Bodyguard","asset","guardian",2,2,"盟友","升級版:承受傷害後造成傷害。"),
+      c("Charisma","asset","neutral",3,3,"天賦·永久","盟友欄 +1。"),
+      c("Counterattack","event","guardian",1,1,"技法","被攻擊時反擊。"),
+      c("Sledgehammer","asset","guardian",3,3,"道具·武器·近戰","高傷害近戰。"),
+      c("Winchester Model 12","asset","guardian",5,5,"道具·武器·槍械","強力槍械。"),
+    ],
+  },
+  { id:'dexter', name:'Dexter Drake', sub:'The Magician', cls:'mystic', emblem:'🔮',
+    stats:{意:4,智:2,戰:2,敏:3}, health:6, sanity:8,
+    ability:'打出支援卡後:可將手中一張支援置於牌庫底,退回其費用的資源。',
+    elderSign:'⭐ +1。可將一張你的支援退回手牌。',
+    deckSize:30, startXp:10,
+    allowed:[{cls:'mystic',max:5},{cls:'neutral',max:5},{cls:'*',max:1}],
+    signatures:[ c("Paranoia","weakness","weakness",0,0,"招牌弱點","失去所有資源。") ],
+    starter:[
+      c("Cloak of Resonance","asset","mystic",0,0,"道具·法器","閃避加成。"),
+      c("Cosmic Flame","asset","mystic",0,0,"法術","以意志戰鬥/調查。"),
+      c("Second Sight","asset","mystic",0,0,"法術","以意志調查。"),
+      c("Jim Culver","asset","mystic",0,0,"盟友","恐懼標記有加成。"),
+      c("Lucky Charm","asset","mystic",0,0,"道具·法器","治療恐懼。"),
+      c("Spiritual Intuition","event","mystic",0,0,"洞察","以意志取線索。"),
+      c("Ward of Protection","event","mystic",0,0,"法術·靈體","取消詭計。"),
+      c("Premonition","event","mystic",0,0,"預測","預知混沌標記。"),
+      c("Will of the Cosmos","event","mystic",0,0,"法術","取得線索。"),
+      c("Sticky Fingers","asset","rogue",0,0,"道具","偷資源。"),
+      c("Emergency Cache","event","neutral",0,0,"補給","獲得 3 資源。"),
+      c("Emergency Cache","event","neutral",0,0,"補給","獲得 3 資源。"),
+      c("Soul Link","skill","mystic",0,0,"實戰","意志 +2 圖示。"),
+      c("Overpower","skill","guardian",0,0,"實戰","戰鬥 +2 圖示。"),
+      c("Guts","skill","survivor",0,0,"實戰","意志 +2 圖示。"),
+      c("Unexpected Courage","skill","neutral",0,0,"實戰","任意 +2 圖示。"),
+    ],
+    pool:[
+      c("Cosmic Flame","asset","mystic",5,5,"法術","升級版:更強。"),
+      c("Ward of Protection","event","mystic",2,2,"法術·靈體","升級版。"),
+      c("Mysterious Grimoire","asset","mystic",2,2,"道具·法器·書籍","翻找卡。"),
+      c("Arcane Studies","asset","mystic",3,3,"天賦·永久","加成意志/智力。"),
+      c("Decisive Strike","event","mystic",2,2,"技法","加成戰鬥。"),
+    ],
+  },
 ];
-const SIGNATURE = [ c("Dead Ends","weakness","weakness",0,0,"招牌弱點","需花 5 資源才能移除。") ];
 
-/* 被選區 · 升級池(需 XP;可拖上去換) */
-let POOL = [
-  c("Deduction","skill","seeker",2,2,"洞察","升級版:成功調查多取 2 線索。"),
-  c("Magnifying Glass","asset","seeker",3,3,"道具·工具","升級版:+2 智力,調查取額外線索。"),
-  c("Bodyguard","asset","guardian",2,2,"盟友","升級版:承受傷害後造成傷害。"),
-  c("Through the Cracks","event","seeker",2,2,"技法","升級版:瞬移並取線索。"),
-  c("Studious","asset","seeker",3,3,"天賦·永久","開局起手多 1 張。"),
-  c("Fingerprint Kit","asset","seeker",4,4,"道具·工具","升級版:更多次數。"),
-  c("Higher Education","asset","seeker",3,3,"天賦·永久","以資源加成智力/意志檢定。"),
-  c("Cryptic Research","event","seeker",4,4,"洞察","任一調查員抽 3 張。"),
-  c("Unbridled Knowledge","asset","seeker",5,5,"道具·法器","將線索轉為強力效果。"),
-  c("Preposterous Sketches","event","seeker",2,2,"洞察","以線索抽 2 張。"),
-];
-
-/* 搜尋結果 = 升級池 + 更多可購入卡(browsable) */
-const SEARCH_DB = POOL.concat([
-  c("Shortcut","event","seeker",0,0,"技法","讓調查員免費移動。"),
-  c("Mind over Matter","event","rogue",1,1,"技法","以智力代替戰鬥/敏捷。"),
-  c("Guts","skill","survivor",0,0,"實戰","意志 +2 圖示,失敗抽卡。"),
-  c("Unexpected Courage","skill","neutral",0,0,"實戰","任意 +2 圖示。"),
-  c("Charisma","asset","neutral",3,3,"天賦·永久","盟友欄 +1。"),
+/* 搜尋卡庫:跨職業/等級的可瀏覽卡池(讓「選牌規則」的過濾在不同角色下明顯不同) */
+const SEARCH_DB = [
+  c("Deduction","skill","seeker",2,2,"洞察","升級版:多取 2 線索。"),
+  c("Magnifying Glass","asset","seeker",3,3,"道具·工具","升級版:+2 智力。"),
+  c("Studious","asset","seeker",3,3,"天賦·永久","起手多 1 張。"),
+  c("Higher Education","asset","seeker",3,3,"天賦·永久","以資源加成智力/意志。"),
+  c("Cryptic Research","event","seeker",4,4,"洞察","抽 3 張。"),
   c("Old Book of Lore","asset","seeker",0,0,"道具·書籍","為同地點者找卡。"),
-]);
+  c("Bodyguard","asset","guardian",2,2,"盟友","升級版。"),
+  c("Counterattack","event","guardian",1,1,"技法","反擊。"),
+  c("Sledgehammer","asset","guardian",3,3,"道具·武器·近戰","高傷害(L3)。"),
+  c("Winchester Model 12","asset","guardian",5,5,"道具·武器·槍械","強力槍械(L5)。"),
+  c("Ward of Protection","event","mystic",2,2,"法術·靈體","升級版。"),
+  c("Mysterious Grimoire","asset","mystic",2,2,"道具·法器·書籍","翻找卡。"),
+  c("Arcane Studies","asset","mystic",3,3,"天賦·永久","加成意志/智力。"),
+  c("Shrivelling","asset","mystic",3,3,"法術","高傷害法術(L3)。"),
+  c("Mind over Matter","event","rogue",1,1,"技法","以智力代替戰鬥/敏捷。"),
+  c("Lucky Cigarette Case","asset","rogue",3,3,"道具","抽卡。"),
+  c("Guts","skill","survivor",0,0,"實戰","意志 +2 圖示。"),
+  c("Fire Axe","asset","survivor",0,0,"道具·武器·近戰","以資源加傷害。"),
+  c("Scrape By","skill","survivor",1,1,"實戰","失敗補償。"),
+  c("Emergency Cache","event","neutral",0,0,"補給","獲得 3 資源。"),
+  c("Charisma","asset","neutral",3,3,"天賦·永久","盟友欄 +1。"),
+  c("Relic Hunter","asset","neutral",3,3,"天賦·永久","配件欄 +1。"),
+  c("Unexpected Courage","skill","neutral",0,0,"實戰","任意 +2 圖示。"),
+];
+
+/* ---------- 費用 + 技能圖示(= 你問的「戰鬥/支援點數」)----------
+   原型手寫卡料省略了圖示/費用,用一張 name→{c:費用, i:圖示} 表補上(數值示意)。
+   真實資料(content/cards/generated,由 converter 產出)已含精確 skillIcons/cost/stats。 */
+const ICON={W:['意','#a9c7ff'],I:['智','#c6a8e6'],C:['戰','#f0a99c'],A:['敏','#a6e6b6'],X:['⚡','#e8d9a0']};
+const META={
+  // 技能卡:圖示 = 投入檢定時提供的點數
+  "Deduction":{i:'I'},"Vicious Blow":{i:'C'},"Perception":{i:'II'},"Overpower":{i:'CC'},
+  "Guts":{i:'WW'},"Unexpected Courage":{i:'XX'},"Soul Link":{i:'WW'},"Scrape By":{i:'X'},
+  // 支援(cost + 圖示)
+  "Magnifying Glass":{c:1,i:'I'},"Fingerprint Kit":{c:3,i:'I'},"Dorothy Simmons":{c:3,i:'W'},
+  "Laboratory Assistant":{c:2,i:'I'},"Local Map":{c:1},"Sharp Rhetoric":{c:3,i:'I'},
+  "Bodyguard":{c:2,i:'C'},"Endurance":{c:2},"Logan Hastings":{c:4,i:'C'},"M1911":{c:3,i:'C'},
+  "Machete":{c:3,i:'C'},"Fedora":{c:2,i:'A'},"Hand-Crank Flashlight":{c:2},"Daniela's Wrench":{c:3,i:'C'},
+  "Aleksey Saburov":{c:4,i:'C'},"Resilience":{c:1},"Bandages":{c:1,i:'W'},"Cloak of Resonance":{c:2,i:'W'},
+  "Cosmic Flame":{c:2,i:'W'},"Second Sight":{c:1,i:'W'},"Jim Culver":{c:3,i:'W'},"Lucky Charm":{c:2,i:'W'},
+  "Sticky Fingers":{c:2,i:'A'},"Studious":{c:0,i:'I'},"Higher Education":{c:0,i:'W'},"Charisma":{c:0},
+  "Relic Hunter":{c:0},"Old Book of Lore":{c:3,i:'I'},"Unbridled Knowledge":{c:2,i:'I'},
+  "Mysterious Grimoire":{c:3,i:'I'},"Arcane Studies":{c:0,i:'W'},"Sledgehammer":{c:4,i:'C'},
+  "Winchester Model 12":{c:5,i:'C'},"Shrivelling":{c:3,i:'W'},"Lucky Cigarette Case":{c:3,i:'A'},"Fire Axe":{c:1,i:'C'},
+  // 事件(cost + 圖示)
+  "Detective's Intuition":{c:2,i:'II'},"Gather Intel":{c:1,i:'I'},"Through the Cracks":{c:0,i:'A'},
+  "Working a Hunch":{c:2,i:'I'},"Lesson Learned":{c:1,i:'I'},"Right Tool for the Job":{c:2,i:'I'},
+  "Scene of the Crime":{c:1,i:'I'},"Emergency Cache":{c:0},"Cryptic Research":{c:2,i:'I'},
+  "Get behind me!":{c:0,i:'C'},"Counterattack":{c:2,i:'C'},"Ward of Protection":{c:1,i:'W'},
+  "Premonition":{c:1,i:'W'},"Will of the Cosmos":{c:2,i:'W'},"Spiritual Intuition":{c:1,i:'W'},
+  "Decisive Strike":{c:1,i:'C'},"Mind over Matter":{c:1,i:'I'},"Preposterous Sketches":{c:1,i:'I'},
+};
+function enrich(card){ const m=META[card.name]; if(m){ if('c' in m) card.cost=m.c; if(m.i) card.icons=m.i.split(''); } return card; }
+function iconsHTML(card){ return (card.icons&&card.icons.length)
+  ? `<div class="icons">${card.icons.map(k=>`<span class="icon" style="background:${ICON[k][1]}">${ICON[k][0]}</span>`).join('')}</div>` : ''; }
+
+/* ---------- 戰役/故事線(每個存檔的牌組屬於哪條故事線的哪個點)---------- */
+const CAMPAIGNS=[
+  {name:'Brethren of Ash(修訂核心)', scen:[['開場 · 未開戰',0],['第1場 Spreading Flames 後',5],['第2場 Smoke and Mirrors 後',11]]},
+  {name:'The Dunwich Legacy',        scen:[['開場',0],['Extracurricular Activity 後',4],['The House Always Wins 後',9]]},
+];
+let story={c:0,s:0};
+function currentStoryXp(){ return CAMPAIGNS[story.c].scen[story.s][1]; }
+
+/* ---------- 目前調查員 + 牌組狀態 ---------- */
+let invIdx=0, INV, DECK=[], SIGNATURE=[], POOL=[], XP=0;
+function loadInvestigator(){
+  INV=INVESTIGATORS[invIdx];
+  DECK=INV.starter.map(c=>enrich(clone(c))); SIGNATURE=INV.signatures.map(clone);
+  POOL=INV.pool.map(c=>enrich(clone(c))); XP=currentStoryXp();
+}
+
+/* ---------- 選牌規則(構築驗證)---------- */
+function isAllowed(card){
+  if(card.type==='weakness') return true;               // 弱點/招牌強制納入
+  const r = INV.allowed.find(x=>x.cls===card.cls);      // 精確職業規則
+  if(r) return card.level<=r.max;
+  const star = INV.allowed.find(x=>x.cls==='*');         // 其餘職業規則
+  if(star) return card.level<=star.max;
+  return false;                                          // 不在可用職業
+}
+function reasonDisallowed(card){
+  const r=INV.allowed.find(x=>x.cls===card.cls), star=INV.allowed.find(x=>x.cls==='*');
+  if(r) return `${CLS[card.cls][0]} 僅可 ≤${r.max} 級(此為 ${card.level} 級)`;
+  if(star) return `其餘職業僅可 ≤${star.max} 級(此為 ${card.level} 級)`;
+  return `${INV.name} 不能使用「${CLS[card.cls][0]}」職業卡`;
+}
+function copiesInDeck(name){ return DECK.filter(x=>x.name===name).length; }
+function validateDeck(){
+  const v=[];
+  if(DECK.length!==INV.deckSize)
+    v.push(DECK.length<INV.deckSize ? `尚缺 ${INV.deckSize-DECK.length} 張(${DECK.length}/${INV.deckSize})`
+                                    : `超出 ${DECK.length-INV.deckSize} 張(${DECK.length}/${INV.deckSize})`);
+  const bad=[...new Set(DECK.filter(x=>!isAllowed(x)).map(x=>x.name))];
+  if(bad.length) v.push(`不符職業/等級:${bad.join('、')}`);
+  const counts={}; DECK.forEach(x=>counts[x.name]=(counts[x.name]||0)+1);
+  const over=Object.entries(counts).filter(([n,q])=>q>2).map(([n,q])=>`${n}×${q}`);
+  if(over.length) v.push(`同名超過 2 張:${over.join('、')}`);
+  return { legal:v.length===0, violations:v };
+}
 
 /* ---------- 工具 ---------- */
 const $=s=>document.querySelector(s);
-function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1900);}
+function toast(m){const t=$('#toast');t.innerHTML=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2200);}
 function clsColor(cls){return CLS[cls]?CLS[cls][1]:'var(--neutral)';}
 function pips(level){return [...Array(level)].map(()=>'<span class="pip"></span>').join('');}
+
+/* ---------- 卡圖(玩家自帶)----------
+   Tauri 桌面:呼叫 Rust 讀玩家指定的本機資料夾(無沙箱)。
+   純瀏覽器:退回讀同層 cardimg/<code>.<ext>(玩家自架靜態資料夾 / 示範)。
+   一律以 code(此原型用 name+level 的 slug)對應圖檔;有圖顯示圖、沒圖顯示卡磚。 */
+const CARDIMG = (function(){
+  const tauri = (window.__TAURI__ && window.__TAURI__.core) || null;
+  const cache = new Map();               // code -> url | null
+  const mode = tauri ? 'tauri' : 'web';
+  let folder = null;                     // tauri:資料夾路徑;web:URL 基底
+  const slug = card => card.code || (card.name.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'')+'_l'+card.level);
+  function setWebBase(b){ folder=b; }
+  async function pickFolder(){
+    if(mode==='tauri'){ folder = await tauri.invoke('pick_card_folder'); return folder; }
+    const b = prompt('(瀏覽器)輸入卡圖資料夾 URL 基底:', folder||'./cardimg/'); if(b) folder=b; return folder;
+  }
+  const tryWeb = (base,code)=>new Promise(res=>{ const ex=['webp','png','jpg','jpeg','svg']; let i=0;
+    (function n(){ if(i>=ex.length) return res(null); const u=base+code+'.'+ex[i++]; const im=new Image();
+      im.onload=()=>res(u); im.onerror=n; im.src=u; })(); });
+  async function fetchOne(code){
+    if(cache.has(code)) return cache.get(code);
+    let url=null;
+    if(mode==='tauri' && folder){ try{ url=await tauri.invoke('read_card_image',{dir:folder,code}); }catch(e){ url=null; } }
+    else if(mode==='web' && folder){ url=await tryWeb(folder,code); }
+    cache.set(code, url||null); return url;
+  }
+  async function preload(codes){ for(const cc of [...new Set(codes)]) await fetchOne(cc); }  // 開牌組/開場批次預載
+  return { slug, setWebBase, pickFolder, preload, get:code=>cache.get(code)||null, isTauri:()=>mode==='tauri', hasFolder:()=>!!folder };
+})();
+function allCodes(){ return [...DECK,...SIGNATURE,...POOL,...SEARCH_DB].map(CARDIMG.slug); }
 
 /* ---------- 卡片磚 ---------- */
 function tileHTML(card,idx,zone){
   const color=clsColor(card.cls);
   const isWk=card.type==='weakness';
-  return `<div class="tile ${isWk?'wk':''}" style="border-top:0" data-zone="${zone}" data-idx="${idx}"
-      ${zone==='pool'?'draggable="true"':''}>
-      <div class="top" style="background:${color}"></div>
+  const dis = !isWk && !isAllowed(card);
+  const img = CARDIMG.get(CARDIMG.slug(card));
+  const face = img
+    ? `<img class="cardart" src="${img}" alt="">`
+    : `<div class="top" style="background:${color}"></div>
+       <div class="art" style="color:${color}">${TYPE[card.type][1]}</div>
+       <div class="typ">${TYPE[card.type][0]}</div>
+       <div class="nm">${card.name}</div>`;
+  return `<div class="tile ${isWk?'wk':''} ${dis?'dis':''}" data-zone="${zone}" data-idx="${idx}" ${zone==='pool'?'draggable="true"':''}>
+      ${face}
+      ${card.cost!=null?`<div class="cost">${card.cost}</div>`:''}
+      ${iconsHTML(card)}
       <div class="lvl">${pips(card.level)}</div>
       ${card.xp>0?`<div class="xp">${card.xp}</div>`:''}
-      <div class="art" style="color:${color}">${TYPE[card.type][1]}</div>
-      <div class="typ">${TYPE[card.type][0]}</div>
-      <div class="nm">${card.name}</div>
+      ${dis?'<div class="ban">✗</div>':''}
     </div>`;
 }
 
 /* ---------- Render ---------- */
 function render(){
-  // 牌組
-  const dg=$('#deck-grid');
-  dg.innerHTML = DECK.map((c,i)=>tileHTML(c,i,'deck')).join('')
+  renderInvestigator();
+  $('#deck-grid').innerHTML = DECK.map((c,i)=>tileHTML(c,i,'deck')).join('')
     + SIGNATURE.map((c,i)=>tileHTML(c,'sig'+i,'sig')).join('');
   $('#deck-count').textContent=DECK.length;
-  // 被選區
-  $('#pool-grid').innerHTML = POOL.map((c,i)=>tileHTML(c,i,'pool')).join('') || '<div style="color:var(--muted);font-size:12px;padding:8px">（從右側搜尋結果點擊加入)</div>';
-  // XP
-  $('#xp-avail').textContent='XP 可用 '+INV.xp;
-  // 綁定 hover 預覽 + 拖曳
+  $('#deck-size').textContent=INV.deckSize;
+  $('#pool-grid').innerHTML = POOL.map((c,i)=>tileHTML(c,i,'pool')).join('') || '<div style="color:var(--muted);font-size:12px;padding:8px">（從右側搜尋結果點擊加入）</div>';
+  const _xi=$('#xp-input'); if(_xi && document.activeElement!==_xi) _xi.value=XP;
   bindTiles();
   renderResults();
+}
+function renderInvestigator(){
+  const sel=$('#inv-select'); if(sel && sel.options.length) sel.value=invIdx;
+  const col=clsColor(INV.cls);
+  const tag=$('#i-tag'); tag.textContent=`${CLS[INV.cls][0]} ${INV.cls.toUpperCase()}`;
+  tag.style.borderColor=col; tag.style.color=col;
+  $('#i-emblem').textContent=INV.emblem;
+  $('#i-name').textContent=INV.name;
+  $('#i-sub').textContent=INV.sub;
+  $('#i-stats').innerHTML=Object.entries(INV.stats).map(([k,v])=>`<div class="s"><b>${v}</b><span>${k}</span></div>`).join('');
+  $('#i-ability').textContent=INV.ability;
+  $('#i-elder').textContent=INV.elderSign;
+  $('#i-req').innerHTML =
+    INV.allowed.map(a=>`<li>${a.cls==='*'?'其餘職業':CLS[a.cls][0]} 0–${a.max} 級</li>`).join('')
+    + `<li>牌組 ${INV.deckSize} 張(不含弱點)</li>`
+    + `<li>招牌 + 招牌弱點強制納入</li>`;
+  // 合法性
+  const {legal,violations}=validateDeck();
+  const box=$('#legal'); box.className='legal-box '+(legal?'ok':'bad');
+  box.innerHTML = legal
+    ? '<span class="h">✔ 牌組合法</span>符合 '+INV.name+' 的構築規則。'
+    : '<span class="h">✘ 尚未合法</span><ul>'+violations.map(x=>`<li>${x}</li>`).join('')+'</ul>';
 }
 function bindTiles(){
   document.querySelectorAll('.tile').forEach(el=>{
@@ -302,7 +523,7 @@ function bindTiles(){
       el.ondragstart=e=>{e.dataTransfer.setData('text/plain',idx);e.dataTransfer.effectAllowed='move';el.classList.add('dragging');};
       el.ondragend=()=>{el.classList.remove('dragging');clearSwapTargets();};
     }
-    if(zone==='deck'){ // 可作為「被替換」的目標
+    if(zone==='deck'){
       el.ondragover=e=>{e.preventDefault();el.classList.add('swap-target');};
       el.ondragleave=()=>el.classList.remove('swap-target');
       el.ondrop=e=>{e.preventDefault();e.stopPropagation();handleDrop(+e.dataTransfer.getData('text/plain'),+idx);};
@@ -320,84 +541,111 @@ deckWrap.ondrop=e=>{e.preventDefault();deckWrap.classList.remove('drop-ok');hand
 function handleDrop(poolIdx, deckIdx){
   deckWrap.classList.remove('drop-ok'); clearSwapTargets();
   const up = POOL[poolIdx]; if(!up) return;
-  if(up.xp>INV.xp){ toast(`經驗不足:需 ${up.xp} XP,只有 ${INV.xp}`); return; }
-  if(deckIdx==null){ // 丟在空白處 = 直接加入(需牌組未滿)
-    if(DECK.length>=INV.deckSize){ toast('牌組已滿(30)。請拖到要「替換」的卡上。'); return; }
+  if(!isAllowed(up)){ toast(`✗ 不符構築規則:${reasonDisallowed(up)}`); return; }
+  if(up.xp>XP){ toast(`經驗不足:需 ${up.xp} XP,只有 ${XP}`); return; }
+  const willReplace = deckIdx!=null ? DECK[deckIdx] : null;
+  const already = copiesInDeck(up.name) - (willReplace && willReplace.name===up.name ? 1 : 0);
+  if(already>=2){ toast(`同名超過 2 張:${up.name} 已有 ${copiesInDeck(up.name)} 張`); return; }
+  if(deckIdx==null){
+    if(DECK.length>=INV.deckSize){ toast('牌組已滿。請拖到要「替換」的卡上。'); return; }
     DECK.push(up);
-    log(`加入 ${up.name}(Lv${up.level}),花 ${up.xp} XP`);
-  } else { // 丟在某張牌上 = 替換
-    const out=DECK[deckIdx]; DECK[deckIdx]=up;
-    log(`以 ${up.name}(Lv${up.level})替換 ${out.name},花 ${up.xp} XP`);
+  } else {
+    DECK[deckIdx]=up;
   }
-  INV.xp-=up.xp; POOL.splice(poolIdx,1);
+  XP-=up.xp; POOL.splice(poolIdx,1);
   render();
-  toast(`已換入 ${up.name} · 剩 ${INV.xp} XP`);
+  toast(`已換入 ${up.name}(Lv${up.level})· 剩 ${XP} XP`);
 }
-function log(m){ /* 可接事件流;此處用 toast */ }
 
 /* ---------- 搜尋結果 ---------- */
 function renderResults(){
-  const fc=$('#f-class').value, fl=$('#f-level').value, ft=$('#f-type').value, fx=$('#f-xp').value, txt=$('#f-text').value.trim().toLowerCase();
+  const fc=$('#f-class').value, fl=$('#f-level').value, ft=$('#f-type').value,
+        onlyOk=$('#f-onlyok').checked, txt=$('#f-text').value.trim().toLowerCase();
   const rows = SEARCH_DB.filter(card=>{
     if(fc && card.cls!==fc) return false;
     if(fl!=='' && card.level!==+fl) return false;
     if(ft && card.type!==ft) return false;
-    if(fx==='0' && card.xp!==0) return false;
-    if(fx==='1' && card.xp<1) return false;
+    if(onlyOk && !isAllowed(card)) return false;
     if(txt && !(card.name.toLowerCase().includes(txt)||card.traits.toLowerCase().includes(txt))) return false;
     return true;
   });
   $('#res-count').textContent=rows.length;
-  const inPool = new Set(POOL.map(p=>p.name+p.level));
-  $('#res-list').innerHTML = rows.map(card=>{
-    const color=clsColor(card.cls);
-    return `<div class="res" data-key="${card.name}|${card.level}">
+  const inPool=new Set(POOL.map(p=>p.name+p.level));
+  $('#res-list').innerHTML = rows.map((card,i)=>{
+    const color=clsColor(card.cls), ok=isAllowed(card);
+    return `<div class="res ${ok?'':'dis'}" data-i="${i}">
       <div class="thumb" style="border-top:3px solid ${color};color:${color}">${TYPE[card.type][1]}</div>
       <div class="info">
         <div class="r-nm">${card.name}</div>
         <div class="r-meta"><span class="clsdot" style="background:${color}"></span>${CLS[card.cls][0]} · ${TYPE[card.type][0]} · Lv${card.level}
-          ${inPool.has(card.name+card.level)?'<span class="in-deck">已在被選區</span>':''}</div>
+          ${ok?'':'<span class="r-ban">✗ 不符</span>'}${inPool.has(card.name+card.level)?'<span class="in-deck">已在被選區</span>':''}</div>
       </div>
       ${card.xp>0?`<div class="r-xp">${card.xp}</div>`:''}
     </div>`;
   }).join('') || '<div style="color:var(--muted);padding:14px">沒有符合的卡</div>';
-  // 綁定:hover 預覽、點擊加入被選區
   $('#res-list').querySelectorAll('.res').forEach(el=>{
-    const [nm,lv]=el.dataset.key.split('|'); const card=SEARCH_DB.find(x=>x.name===nm&&x.level===+lv);
+    const card=rows[+el.dataset.i];
     el.onmouseenter=()=>showPreview(card);
     el.onclick=()=>addToPool(card);
   });
 }
 function addToPool(card){
-  if(card.xp===0){ // 0 費卡:直接進牌組
-    if(DECK.length>=INV.deckSize){ toast('牌組已滿;此為 0 費卡,請先移出一張。'); return; }
-    DECK.push(card); render(); toast(`${card.name} 直接加入牌組(0 XP)`); return;
+  if(!isAllowed(card)){ toast(`✗ 不符構築規則:${reasonDisallowed(card)}`); return; }
+  if(card.xp===0){
+    if(copiesInDeck(card.name)>=2){ toast(`同名超過 2 張:${card.name}`); return; }
+    if(DECK.length>=INV.deckSize){ toast('牌組已滿;請先移出一張。'); return; }
+    DECK.push(clone(card)); render(); toast(`${card.name} 加入牌組(0 XP)`); return;
   }
   if(POOL.some(p=>p.name===card.name&&p.level===card.level)){ toast('已在被選區'); return; }
-  POOL.push(card); render(); toast(`${card.name} 已放入被選區 —— 拖上去即可換入`);
+  POOL.push(clone(card)); render(); toast(`${card.name} 已放入被選區 —— 拖上去即可換入`);
 }
 
 /* ---------- 卡片預覽 ---------- */
 function showPreview(card){
   if(!card) return;
-  const color=clsColor(card.cls);
+  const color=clsColor(card.cls), ok=card.type==='weakness'||isAllowed(card);
+  const img=CARDIMG.get(CARDIMG.slug(card));
   $('#pv').innerHTML=`
+    ${img?`<img src="${img}" style="width:100%;border-radius:8px;margin-bottom:8px" alt="">`:''}
     <div class="pv-name">${card.name}</div>
     <div class="pv-meta"><span class="clsdot" style="background:${color};margin-right:5px"></span>
-      ${CLS[card.cls][0]} · ${TYPE[card.type][0]} · 等級 ${card.level}${card.xp>0?` · <b style="color:var(--gold)">${card.xp} XP</b>`:' · 免費'}</div>
+      ${CLS[card.cls][0]} · ${TYPE[card.type][0]} · 等級 ${card.level}${card.cost!=null?` · 費用 ${card.cost}`:''}${card.xp>0?` · <b style="color:var(--gold)">${card.xp} XP</b>`:''}</div>
+    ${card.icons&&card.icons.length?`<div class="pv-meta">技能圖示(投入點數):</div><div class="pv-icons">${card.icons.map(k=>`<span class="icon" style="background:${ICON[k][1]}">${ICON[k][0]}</span>`).join('')}</div>`:''}
     <div style="font-size:11px;color:var(--muted);margin-bottom:8px">特徵:${card.traits}</div>
     <div class="pv-text">${card.text}</div>
-    <div style="margin-top:12px;padding-top:8px;border-top:1px solid var(--line);font-size:11px;color:var(--muted)">
-      ${card.xp>0?'此卡需花 XP;於「被選區」拖上去替換牌組中的卡。':'0 XP,可直接加入牌組。'}</div>`;
+    <div style="margin-top:12px;padding-top:8px;border-top:1px solid var(--line);font-size:11px;color:${ok?'var(--muted)':'#e8998c'}">
+      ${ok ? (card.xp>0?'此卡需花 XP;於「被選區」拖上去替換牌組中的卡。':'0 XP,可直接加入牌組。')
+           : '✗ '+INV.name+' 不能使用:'+reasonDisallowed(card)}</div>`;
 }
 
-/* ---------- 篩選事件 ---------- */
-['#f-class','#f-level','#f-type','#f-xp'].forEach(s=>$(s).onchange=renderResults);
+/* ---------- 事件綁定 ---------- */
+['#f-class','#f-level','#f-type'].forEach(s=>$(s).onchange=renderResults);
+$('#f-onlyok').onchange=renderResults;
 $('#f-text').oninput=renderResults;
 $('#btn-search').onclick=renderResults;
-$('#btn-change').onclick=()=>toast('(示意)換角色會依新調查員的構築需求,重設可用職業/等級與招牌卡。');
+/* 調查員下拉(取代舊的循環按鈕)+ 故事線下拉 */
+SEARCH_DB.forEach(enrich);
+$('#inv-select').innerHTML = INVESTIGATORS.map((v,i)=>`<option value="${i}">${v.name} · ${CLS[v.cls][0]}</option>`).join('');
+$('#inv-select').onchange = e=>{ invIdx=+e.target.value; loadInvestigator(); render();
+  toast(`切換到 <b>${INV.name}</b> —— 構築規則與可用卡池已更新`); };
+$('#storyline').innerHTML = CAMPAIGNS.map((cp,ci)=>cp.scen.map((s,si)=>`<option value="${ci}:${si}">${cp.name} · ${s[0]}(XP ${s[1]})</option>`).join('')).join('');
+$('#storyline').onchange = e=>{ const [ci,si]=e.target.value.split(':').map(Number); story={c:ci,s:si}; XP=currentStoryXp(); render();
+  toast(`故事線:${CAMPAIGNS[ci].name} · ${CAMPAIGNS[ci].scen[si][0]} → 可用 XP ${XP}(可再手動調整)`); };
+$('#xp-input').onchange = e=>{ XP=Math.max(0,Math.floor(+e.target.value||0)); render(); toast('XP 手動設為 '+XP); };
+$('#btn-cardimg').onclick=async ()=>{
+  await CARDIMG.pickFolder();
+  if(!CARDIMG.hasFolder()){ toast('未選資料夾'); return; }
+  toast('載入卡圖中…'); await CARDIMG.preload(allCodes()); render();
+  toast(CARDIMG.isTauri()?'✔ 卡圖已從本機資料夾載入':'✔ 卡圖已載入');
+};
 
+/* ---------- 開場 ---------- */
+loadInvestigator();
 render();
+// 卡圖:Tauri 等玩家按「載入卡圖」選資料夾;瀏覽器自動試同層 cardimg/(示範)
+(async function initCardImages(){
+  if(!CARDIMG.isTauri()){ CARDIMG.setWebBase('./cardimg/'); await CARDIMG.preload(allCodes()); render(); }
+})();
 </script>
 </body>
 </html>

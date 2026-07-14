@@ -10,7 +10,9 @@ public final class Agenda {
     private final int threshold;
     private int doom;
 
-    public Agenda(String name, int threshold) {
+    @com.fasterxml.jackson.annotation.JsonCreator
+    public Agenda(@com.fasterxml.jackson.annotation.JsonProperty("name") String name,
+                  @com.fasterxml.jackson.annotation.JsonProperty("threshold") int threshold) {
         this.name = name;
         this.threshold = threshold;
     }

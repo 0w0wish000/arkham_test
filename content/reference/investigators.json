@@ -1,0 +1,947 @@
+[
+ {
+  "code": "01001",
+  "name": "Roland Banks",
+  "faction": "guardian",
+  "pack": "core",
+  "health": 9,
+  "sanity": 5,
+  "imagesrc": "/bundles/cards/01001.png"
+ },
+ {
+  "code": "01005",
+  "name": "Wendy Adams",
+  "faction": "survivor",
+  "pack": "core",
+  "health": 7,
+  "sanity": 7,
+  "imagesrc": "/bundles/cards/01005.png"
+ },
+ {
+  "code": "01003",
+  "name": "\"Skids\" O'Toole",
+  "faction": "rogue",
+  "pack": "core",
+  "health": 8,
+  "sanity": 6,
+  "imagesrc": "/bundles/cards/01003.png"
+ },
+ {
+  "code": "01002",
+  "name": "Daisy Walker",
+  "faction": "seeker",
+  "pack": "core",
+  "health": 5,
+  "sanity": 9,
+  "imagesrc": "/bundles/cards/01002.png"
+ },
+ {
+  "code": "01004",
+  "name": "Agnes Baker",
+  "faction": "mystic",
+  "pack": "core",
+  "health": 6,
+  "sanity": 8,
+  "imagesrc": "/bundles/cards/01004.png"
+ },
+ {
+  "code": "02001",
+  "name": "Zoey Samaras",
+  "faction": "guardian",
+  "pack": "dwl",
+  "health": 9,
+  "sanity": 6,
+  "imagesrc": "/bundles/cards/02001.png"
+ },
+ {
+  "code": "02004",
+  "name": "Jim Culver",
+  "faction": "mystic",
+  "pack": "dwl",
+  "health": 7,
+  "sanity": 8,
+  "imagesrc": "/bundles/cards/02004.png"
+ },
+ {
+  "code": "02002",
+  "name": "Rex Murphy",
+  "faction": "seeker",
+  "pack": "dwl",
+  "health": 6,
+  "sanity": 9,
+  "imagesrc": "/bundles/cards/02002.png"
+ },
+ {
+  "code": "02003",
+  "name": "Jenny Barnes",
+  "faction": "rogue",
+  "pack": "dwl",
+  "health": 8,
+  "sanity": 7,
+  "imagesrc": "/bundles/cards/02003.png"
+ },
+ {
+  "code": "99001",
+  "name": "Marie Lambeau",
+  "faction": "mystic",
+  "pack": "promo",
+  "health": 6,
+  "sanity": 8,
+  "imagesrc": "/bundles/cards/99001.png"
+ },
+ {
+  "code": "02005",
+  "name": "\"Ashcan\" Pete",
+  "faction": "survivor",
+  "pack": "dwl",
+  "health": 6,
+  "sanity": 5,
+  "imagesrc": "/bundles/cards/02005.png"
+ },
+ {
+  "code": "03006",
+  "name": "Lola Hayes",
+  "faction": "neutral",
+  "pack": "ptc",
+  "health": 6,
+  "sanity": 6,
+  "imagesrc": "/bundles/cards/03006.png"
+ },
+ {
+  "code": "03001",
+  "name": "Mark Harrigan",
+  "faction": "guardian",
+  "pack": "ptc",
+  "health": 9,
+  "sanity": 5,
+  "imagesrc": "/bundles/cards/03001.png"
+ },
+ {
+  "code": "03002",
+  "name": "Minh Thi Phan",
+  "faction": "seeker",
+  "pack": "ptc",
+  "health": 7,
+  "sanity": 7,
+  "imagesrc": "/bundles/cards/03002.png"
+ },
+ {
+  "code": "03003",
+  "name": "Sefina Rousseau",
+  "faction": "rogue",
+  "pack": "ptc",
+  "health": 5,
+  "sanity": 9,
+  "imagesrc": "/bundles/cards/03003.png"
+ },
+ {
+  "code": "03004",
+  "name": "Akachi Onyele",
+  "faction": "mystic",
+  "pack": "ptc",
+  "health": 6,
+  "sanity": 8,
+  "imagesrc": "/bundles/cards/03004.png"
+ },
+ {
+  "code": "03005",
+  "name": "William Yorick",
+  "faction": "survivor",
+  "pack": "ptc",
+  "health": 8,
+  "sanity": 6,
+  "imagesrc": "/bundles/cards/03005.png"
+ },
+ {
+  "code": "98001",
+  "name": "Jenny Barnes",
+  "faction": "rogue",
+  "pack": "hoth",
+  "health": 8,
+  "sanity": 7,
+  "imagesrc": "/bundles/cards/98001.png"
+ },
+ {
+  "code": "98004",
+  "name": "Roland Banks",
+  "faction": "guardian",
+  "pack": "core",
+  "health": 9,
+  "sanity": 5,
+  "imagesrc": "/bundles/cards/98004.png"
+ },
+ {
+  "code": "98007",
+  "name": "Norman Withers",
+  "faction": "seeker",
+  "pack": "iotv",
+  "health": 6,
+  "sanity": 8,
+  "imagesrc": "/bundles/cards/98007.png"
+ },
+ {
+  "code": "04005",
+  "name": "Calvin Wright",
+  "faction": "survivor",
+  "pack": "tfa",
+  "health": 6,
+  "sanity": 6,
+  "imagesrc": "/bundles/cards/04005.png"
+ },
+ {
+  "code": "98010",
+  "name": "Carolyn Fern",
+  "faction": "guardian",
+  "pack": "tftbw",
+  "health": 6,
+  "sanity": 9,
+  "imagesrc": "/bundles/cards/98010.png"
+ },
+ {
+  "code": "04004",
+  "name": "Father Mateo",
+  "faction": "mystic",
+  "pack": "tfa",
+  "health": 6,
+  "sanity": 8,
+  "imagesrc": "/bundles/cards/04004.png"
+ },
+ {
+  "code": "04001",
+  "name": "Leo Anderson",
+  "faction": "guardian",
+  "pack": "tfa",
+  "health": 8,
+  "sanity": 6,
+  "imagesrc": "/bundles/cards/04001.png"
+ },
+ {
+  "code": "04002",
+  "name": "Ursula Downs",
+  "faction": "seeker",
+  "pack": "tfa",
+  "health": 7,
+  "sanity": 7,
+  "imagesrc": "/bundles/cards/04002.png"
+ },
+ {
+  "code": "04003",
+  "name": "Finn Edwards",
+  "faction": "rogue",
+  "pack": "tfa",
+  "health": 7,
+  "sanity": 7,
+  "imagesrc": "/bundles/cards/04003.png"
+ },
+ {
+  "code": "98013",
+  "name": "Silas Marsh",
+  "faction": "survivor",
+  "pack": "tdg",
+  "health": 9,
+  "sanity": 5,
+  "imagesrc": "/bundles/cards/98013.png"
+ },
+ {
+  "code": "05001",
+  "name": "Carolyn Fern",
+  "faction": "guardian",
+  "pack": "tcu",
+  "health": 6,
+  "sanity": 9,
+  "imagesrc": "/bundles/cards/05001.png"
+ },
+ {
+  "code": "05002",
+  "name": "Joe Diamond",
+  "faction": "seeker",
+  "pack": "tcu",
+  "health": 8,
+  "sanity": 6,
+  "imagesrc": "/bundles/cards/05002.png"
+ },
+ {
+  "code": "05003",
+  "name": "Preston Fairmont",
+  "faction": "rogue",
+  "pack": "tcu",
+  "health": 7,
+  "sanity": 7,
+  "imagesrc": "/bundles/cards/05003.png"
+ },
+ {
+  "code": "05004",
+  "name": "Diana Stanley",
+  "faction": "mystic",
+  "pack": "tcu",
+  "health": 7,
+  "sanity": 7,
+  "imagesrc": "/bundles/cards/05004.png"
+ },
+ {
+  "code": "05005",
+  "name": "Rita Young",
+  "faction": "survivor",
+  "pack": "tcu",
+  "health": 9,
+  "sanity": 5,
+  "imagesrc": "/bundles/cards/05005.png"
+ },
+ {
+  "code": "05006",
+  "name": "Marie Lambeau",
+  "faction": "mystic",
+  "pack": "tcu",
+  "health": 6,
+  "sanity": 8,
+  "imagesrc": "/bundles/cards/05006.png"
+ },
+ {
+  "code": "06003",
+  "name": "Tony Morgan",
+  "faction": "rogue",
+  "pack": "tde",
+  "health": 9,
+  "sanity": 5,
+  "imagesrc": "/bundles/cards/06003.png"
+ },
+ {
+  "code": "06001",
+  "name": "Tommy Muldoon",
+  "faction": "guardian",
+  "pack": "tde",
+  "health": 8,
+  "sanity": 6,
+  "imagesrc": "/bundles/cards/06001.png"
+ },
+ {
+  "code": "06005",
+  "name": "Patrice Hathaway",
+  "faction": "survivor",
+  "pack": "tde",
+  "health": 7,
+  "sanity": 7,
+  "imagesrc": "/bundles/cards/06005.png"
+ },
+ {
+  "code": "06002",
+  "name": "Mandy Thompson",
+  "faction": "seeker",
+  "pack": "tde",
+  "health": 6,
+  "sanity": 8,
+  "imagesrc": "/bundles/cards/06002.png"
+ },
+ {
+  "code": "06004",
+  "name": "Luke Robinson",
+  "faction": "mystic",
+  "pack": "tde",
+  "health": 5,
+  "sanity": 9,
+  "imagesrc": "/bundles/cards/06004.png"
+ },
+ {
+  "code": "60301",
+  "name": "Winifred Habbamock",
+  "faction": "rogue",
+  "pack": "win",
+  "health": 8,
+  "sanity": 7,
+  "imagesrc": "/bundles/cards/60301.png"
+ },
+ {
+  "code": "60201",
+  "name": "Harvey Walters",
+  "faction": "seeker",
+  "pack": "har",
+  "health": 7,
+  "sanity": 8,
+  "imagesrc": "/bundles/cards/60201.png"
+ },
+ {
+  "code": "60401",
+  "name": "Jacqueline Fine",
+  "faction": "mystic",
+  "pack": "jac",
+  "health": 6,
+  "sanity": 9,
+  "imagesrc": "/bundles/cards/60401.png"
+ },
+ {
+  "code": "60101",
+  "name": "Nathaniel Cho",
+  "faction": "guardian",
+  "pack": "nat",
+  "health": 9,
+  "sanity": 6,
+  "imagesrc": "/bundles/cards/60101.png"
+ },
+ {
+  "code": "60501",
+  "name": "Stella Clark",
+  "faction": "survivor",
+  "pack": "ste",
+  "health": 8,
+  "sanity": 8,
+  "imagesrc": "/bundles/cards/60501.png"
+ },
+ {
+  "code": "98016",
+  "name": "Dexter Drake",
+  "faction": "mystic",
+  "pack": "bob",
+  "health": 6,
+  "sanity": 8,
+  "imagesrc": "/bundles/cards/98016.png"
+ },
+ {
+  "code": "07001",
+  "name": "Sister Mary",
+  "faction": "guardian",
+  "pack": "tic",
+  "health": 5,
+  "sanity": 9,
+  "imagesrc": "/bundles/cards/07001.png"
+ },
+ {
+  "code": "07002",
+  "name": "Amanda Sharpe",
+  "faction": "seeker",
+  "pack": "tic",
+  "health": 7,
+  "sanity": 7,
+  "imagesrc": "/bundles/cards/07002.png"
+ },
+ {
+  "code": "90001",
+  "name": "Daisy Walker",
+  "faction": "seeker",
+  "pack": "rod",
+  "health": 5,
+  "sanity": 7,
+  "imagesrc": "/bundles/cards/90001.png"
+ },
+ {
+  "code": "90008",
+  "name": "\"Skids\" O'Toole",
+  "faction": "rogue",
+  "pack": "aon",
+  "health": 8,
+  "sanity": 6,
+  "imagesrc": "/bundles/cards/90008.png"
+ },
+ {
+  "code": "07003",
+  "name": "Trish Scarborough",
+  "faction": "rogue",
+  "pack": "tic",
+  "health": 8,
+  "sanity": 6,
+  "imagesrc": "/bundles/cards/07003.png"
+ },
+ {
+  "code": "07004",
+  "name": "Dexter Drake",
+  "faction": "mystic",
+  "pack": "tic",
+  "health": 6,
+  "sanity": 8,
+  "imagesrc": "/bundles/cards/07004.png"
+ },
+ {
+  "code": "07005",
+  "name": "Silas Marsh",
+  "faction": "survivor",
+  "pack": "tic",
+  "health": 9,
+  "sanity": 5,
+  "imagesrc": "/bundles/cards/07005.png"
+ },
+ {
+  "code": "98019",
+  "name": "Gloria Goldberg",
+  "faction": "mystic",
+  "pack": "dre",
+  "health": 5,
+  "sanity": 9,
+  "imagesrc": "/bundles/cards/98019.png"
+ },
+ {
+  "code": "90017",
+  "name": "Agnes Baker",
+  "faction": "mystic",
+  "pack": "bad",
+  "health": 8,
+  "sanity": 6,
+  "imagesrc": "/bundles/cards/90017.png"
+ },
+ {
+  "code": "90024",
+  "name": "Roland Banks",
+  "faction": "guardian",
+  "pack": "btb",
+  "health": 9,
+  "sanity": 5,
+  "imagesrc": "/bundles/cards/90024.png"
+ },
+ {
+  "code": "08004",
+  "name": "Norman Withers",
+  "faction": "seeker",
+  "pack": "eoep",
+  "health": 6,
+  "sanity": 8,
+  "imagesrc": "/bundles/cards/08004.png"
+ },
+ {
+  "code": "08007",
+  "name": "Monterey Jack",
+  "faction": "rogue",
+  "pack": "eoep",
+  "health": 8,
+  "sanity": 6,
+  "imagesrc": "/bundles/cards/08007.png"
+ },
+ {
+  "code": "08010",
+  "name": "Lily Chen",
+  "faction": "mystic",
+  "pack": "eoep",
+  "health": 7,
+  "sanity": 7,
+  "imagesrc": "/bundles/cards/08010.png"
+ },
+ {
+  "code": "08016",
+  "name": "Bob Jenkins",
+  "faction": "survivor",
+  "pack": "eoep",
+  "health": 6,
+  "sanity": 8,
+  "imagesrc": "/bundles/cards/08016.png"
+ },
+ {
+  "code": "08001",
+  "name": "Daniela Reyes",
+  "faction": "guardian",
+  "pack": "eoep",
+  "health": 8,
+  "sanity": 6,
+  "imagesrc": "/bundles/cards/08001.png"
+ },
+ {
+  "code": "90037",
+  "name": "Wendy Adams",
+  "faction": "survivor",
+  "pack": "rtr",
+  "health": 7,
+  "sanity": 7,
+  "imagesrc": "/bundles/cards/90037.png"
+ },
+ {
+  "code": "09018",
+  "name": "Charlie Kane",
+  "faction": "neutral",
+  "pack": "tskp",
+  "health": 6,
+  "sanity": 6,
+  "imagesrc": "/bundles/cards/09018.png"
+ },
+ {
+  "code": "01501",
+  "name": "Roland Banks",
+  "faction": "guardian",
+  "pack": "rcore",
+  "health": 9,
+  "sanity": 5,
+  "imagesrc": "/bundles/cards/01501.png"
+ },
+ {
+  "code": "01502",
+  "name": "Daisy Walker",
+  "faction": "seeker",
+  "pack": "rcore",
+  "health": 5,
+  "sanity": 9,
+  "imagesrc": "/bundles/cards/01502.png"
+ },
+ {
+  "code": "01503",
+  "name": "\"Skids\" O'Toole",
+  "faction": "rogue",
+  "pack": "rcore",
+  "health": 8,
+  "sanity": 6,
+  "imagesrc": "/bundles/cards/01503.png"
+ },
+ {
+  "code": "01504",
+  "name": "Agnes Baker",
+  "faction": "mystic",
+  "pack": "rcore",
+  "health": 6,
+  "sanity": 8,
+  "imagesrc": "/bundles/cards/01504.png"
+ },
+ {
+  "code": "01505",
+  "name": "Wendy Adams",
+  "faction": "survivor",
+  "pack": "rcore",
+  "health": 7,
+  "sanity": 7,
+  "imagesrc": "/bundles/cards/01505.png"
+ },
+ {
+  "code": "09008",
+  "name": "Kymani Jones",
+  "faction": "rogue",
+  "pack": "tskp",
+  "health": 8,
+  "sanity": 6,
+  "imagesrc": "/bundles/cards/09008.png"
+ },
+ {
+  "code": "09015",
+  "name": "Darrell Simmons",
+  "faction": "survivor",
+  "pack": "tskp",
+  "health": 6,
+  "sanity": 8,
+  "imagesrc": "/bundles/cards/09015.png"
+ },
+ {
+  "code": "09004",
+  "name": "Vincent Lee",
+  "faction": "seeker",
+  "pack": "tskp",
+  "health": 9,
+  "sanity": 6,
+  "imagesrc": "/bundles/cards/09004.png"
+ },
+ {
+  "code": "09001",
+  "name": "Carson Sinclair",
+  "faction": "guardian",
+  "pack": "tskp",
+  "health": 6,
+  "sanity": 6,
+  "imagesrc": "/bundles/cards/09001.png"
+ },
+ {
+  "code": "09011",
+  "name": "Amina Zidane",
+  "faction": "mystic",
+  "pack": "tskp",
+  "health": 5,
+  "sanity": 9,
+  "imagesrc": "/bundles/cards/09011.png"
+ },
+ {
+  "code": "90046",
+  "name": "\"Ashcan\" Pete",
+  "faction": "survivor",
+  "pack": "otr",
+  "health": 7,
+  "sanity": 7,
+  "imagesrc": "/bundles/cards/90046.jpg"
+ },
+ {
+  "code": "89001",
+  "name": "Subject 5U-21",
+  "faction": "neutral",
+  "pack": "blbe",
+  "health": 6,
+  "sanity": 6,
+  "imagesrc": "/bundles/cards/89001.png"
+ },
+ {
+  "code": "90049",
+  "name": "Jim Culver",
+  "faction": "mystic",
+  "pack": "ltr",
+  "health": 7,
+  "sanity": 8,
+  "imagesrc": "/bundles/cards/90049.jpg"
+ },
+ {
+  "code": "90059",
+  "name": "Zoey Samaras",
+  "faction": "guardian",
+  "pack": "ptr",
+  "health": 8,
+  "sanity": 6,
+  "imagesrc": "/bundles/cards/90059.jpg"
+ },
+ {
+  "code": "10001",
+  "name": "Wilson Richards",
+  "faction": "guardian",
+  "pack": "fhvp",
+  "health": 8,
+  "sanity": 6,
+  "imagesrc": "/bundles/cards/10001.png"
+ },
+ {
+  "code": "10009",
+  "name": "Alessandra Zorzi",
+  "faction": "rogue",
+  "pack": "fhvp",
+  "health": 7,
+  "sanity": 7,
+  "imagesrc": "/bundles/cards/10009.png"
+ },
+ {
+  "code": "10012",
+  "name": "Kōhaku Narukami",
+  "faction": "mystic",
+  "pack": "fhvp",
+  "health": 6,
+  "sanity": 8,
+  "imagesrc": "/bundles/cards/10012.png"
+ },
+ {
+  "code": "90062",
+  "name": "Monterey Jack",
+  "faction": "rogue",
+  "pack": "rop",
+  "health": 8,
+  "sanity": 6,
+  "imagesrc": "/bundles/cards/90062.jpg"
+ },
+ {
+  "code": "10004",
+  "name": "Kate Winthrop",
+  "faction": "seeker",
+  "pack": "fhvp",
+  "health": 6,
+  "sanity": 8,
+  "imagesrc": "/bundles/cards/10004.png"
+ },
+ {
+  "code": "10015",
+  "name": "Hank Samson",
+  "faction": "survivor",
+  "pack": "fhvp",
+  "health": 5,
+  "sanity": 5,
+  "imagesrc": "/bundles/cards/10015.png"
+ },
+ {
+  "code": "10016a",
+  "name": "Hank Samson",
+  "faction": "survivor",
+  "pack": "fhvp",
+  "health": 4,
+  "sanity": 6,
+  "imagesrc": "/bundles/cards/10016a.png"
+ },
+ {
+  "code": "10016b",
+  "name": "Hank Samson",
+  "faction": "survivor",
+  "pack": "fhvp",
+  "health": 6,
+  "sanity": 4,
+  "imagesrc": "/bundles/cards/10016b.png"
+ },
+ {
+  "code": "90078",
+  "name": "Rex Murphy",
+  "faction": "seeker",
+  "pack": "hfa",
+  "health": 6,
+  "sanity": 9,
+  "imagesrc": "/bundles/cards/90078.jpg"
+ },
+ {
+  "code": "90084",
+  "name": "Jenny Barnes",
+  "faction": "rogue",
+  "pack": "pap",
+  "health": 8,
+  "sanity": 7,
+  "imagesrc": "/bundles/cards/90084.jpg"
+ },
+ {
+  "code": "90081",
+  "name": "Father Mateo",
+  "faction": "mystic",
+  "pack": "aof",
+  "health": 6,
+  "sanity": 8,
+  "imagesrc": "/bundles/cards/90081.jpg"
+ },
+ {
+  "code": "11017",
+  "name": "George Barnaby",
+  "faction": "survivor",
+  "pack": "tdcp",
+  "health": 7,
+  "sanity": 7,
+  "imagesrc": "/bundles/cards/11017.png"
+ },
+ {
+  "code": "11001",
+  "name": "Marion Tavares",
+  "faction": "guardian",
+  "pack": "tdcp",
+  "health": 8,
+  "sanity": 6,
+  "imagesrc": "/bundles/cards/11001.png"
+ },
+ {
+  "code": "11004",
+  "name": "Lucius Galloway",
+  "faction": "seeker",
+  "pack": "tdcp",
+  "health": 8,
+  "sanity": 6,
+  "imagesrc": "/bundles/cards/11004.png"
+ },
+ {
+  "code": "11007",
+  "name": "Agatha Crane",
+  "faction": "seeker",
+  "pack": "tdcp",
+  "health": 6,
+  "sanity": 8,
+  "imagesrc": "/bundles/cards/11007.png"
+ },
+ {
+  "code": "11008",
+  "name": "Agatha Crane",
+  "faction": "mystic",
+  "pack": "tdcp",
+  "health": 6,
+  "sanity": 8,
+  "imagesrc": "/bundles/cards/11008.png"
+ },
+ {
+  "code": "11011",
+  "name": "Michael McGlen",
+  "faction": "rogue",
+  "pack": "tdcp",
+  "health": 9,
+  "sanity": 5,
+  "imagesrc": "/bundles/cards/11011.png"
+ },
+ {
+  "code": "11014",
+  "name": "Gloria Goldberg",
+  "faction": "mystic",
+  "pack": "tdcp",
+  "health": 5,
+  "sanity": 9,
+  "imagesrc": "/bundles/cards/11014.png"
+ },
+ {
+  "code": "11068b",
+  "name": "Lost Homunculus",
+  "faction": "mystic",
+  "pack": "tdcp",
+  "health": 6,
+  "sanity": 6,
+  "imagesrc": null
+ },
+ {
+  "code": "90087",
+  "name": "Lola Hayes",
+  "faction": "neutral",
+  "pack": "enc",
+  "health": 6,
+  "sanity": 6,
+  "imagesrc": "/bundles/cards/90087.jpg"
+ },
+ {
+  "code": "12001",
+  "name": "Daniela Reyes",
+  "faction": "guardian",
+  "pack": "core_2026",
+  "health": 9,
+  "sanity": 5,
+  "imagesrc": "/bundles/cards/12001.png"
+ },
+ {
+  "code": "12004",
+  "name": "Joe Diamond",
+  "faction": "seeker",
+  "pack": "core_2026",
+  "health": 7,
+  "sanity": 7,
+  "imagesrc": "/bundles/cards/12004.png"
+ },
+ {
+  "code": "12007",
+  "name": "Trish Scarborough",
+  "faction": "rogue",
+  "pack": "core_2026",
+  "health": 8,
+  "sanity": 6,
+  "imagesrc": "/bundles/cards/12007.png"
+ },
+ {
+  "code": "12010",
+  "name": "Dexter Drake",
+  "faction": "mystic",
+  "pack": "core_2026",
+  "health": 6,
+  "sanity": 8,
+  "imagesrc": "/bundles/cards/12010.png"
+ },
+ {
+  "code": "12013",
+  "name": "Isabelle Barnes",
+  "faction": "survivor",
+  "pack": "core_2026",
+  "health": 5,
+  "sanity": 9,
+  "imagesrc": "/bundles/cards/12013.png"
+ },
+ {
+  "code": "60351",
+  "name": "André Patel",
+  "faction": "rogue",
+  "pack": "and",
+  "health": 7,
+  "sanity": 8,
+  "imagesrc": "/bundles/cards/60351.png"
+ },
+ {
+  "code": "60251",
+  "name": "Carolyn Fern",
+  "faction": "seeker",
+  "pack": "car",
+  "health": 6,
+  "sanity": 9,
+  "imagesrc": "/bundles/cards/60251.png"
+ },
+ {
+  "code": "60451",
+  "name": "Marie Lambeau",
+  "faction": "mystic",
+  "pack": "mar",
+  "health": 8,
+  "sanity": 7,
+  "imagesrc": "/bundles/cards/60451.png"
+ },
+ {
+  "code": "60551",
+  "name": "Miguel de la Cruz",
+  "faction": "survivor",
+  "pack": "mig",
+  "health": 8,
+  "sanity": 8,
+  "imagesrc": "/bundles/cards/60551.png"
+ },
+ {
+  "code": "60151",
+  "name": "Tommy Muldoon",
+  "faction": "guardian",
+  "pack": "tom",
+  "health": 9,
+  "sanity": 6,
+  "imagesrc": "/bundles/cards/60151.png"
+ }
+]

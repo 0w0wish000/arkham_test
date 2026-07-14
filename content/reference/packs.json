@@ -1,0 +1,914 @@
+[
+ {
+  "code": "core",
+  "name": "Core Set",
+  "cycle": 1,
+  "category": "core",
+  "cards": 185,
+  "investigators": 6
+ },
+ {
+  "code": "cotr",
+  "name": "Curse of the Rougarou",
+  "cycle": 70,
+  "category": "standalone",
+  "cards": 36,
+  "investigators": 0
+ },
+ {
+  "code": "coh",
+  "name": "Carnevale of Horrors",
+  "cycle": 70,
+  "category": "standalone",
+  "cards": 40,
+  "investigators": 0
+ },
+ {
+  "code": "promo",
+  "name": "Promo",
+  "cycle": 80,
+  "category": "novella",
+  "cards": 3,
+  "investigators": 1
+ },
+ {
+  "code": "dwl",
+  "name": "The Dunwich Legacy",
+  "cycle": 2,
+  "category": "campaign",
+  "cards": 104,
+  "investigators": 5
+ },
+ {
+  "code": "tmm",
+  "name": "The Miskatonic Museum",
+  "cycle": 2,
+  "category": "campaign",
+  "cards": 42,
+  "investigators": 0
+ },
+ {
+  "code": "tece",
+  "name": "The Essex County Express",
+  "cycle": 2,
+  "category": "campaign",
+  "cards": 37,
+  "investigators": 0
+ },
+ {
+  "code": "bota",
+  "name": "Blood on the Altar",
+  "cycle": 2,
+  "category": "campaign",
+  "cards": 41,
+  "investigators": 0
+ },
+ {
+  "code": "uau",
+  "name": "Undimensioned and Unseen",
+  "cycle": 2,
+  "category": "campaign",
+  "cards": 35,
+  "investigators": 0
+ },
+ {
+  "code": "wda",
+  "name": "Where Doom Awaits",
+  "cycle": 2,
+  "category": "campaign",
+  "cards": 39,
+  "investigators": 0
+ },
+ {
+  "code": "litas",
+  "name": "Lost in Time and Space",
+  "cycle": 2,
+  "category": "campaign",
+  "cards": 35,
+  "investigators": 0
+ },
+ {
+  "code": "ptc",
+  "name": "The Path to Carcosa",
+  "cycle": 3,
+  "category": "campaign",
+  "cards": 121,
+  "investigators": 6
+ },
+ {
+  "code": "books",
+  "name": "Books",
+  "cycle": 80,
+  "category": "novella",
+  "cards": 0,
+  "investigators": 0
+ },
+ {
+  "code": "hoth",
+  "name": "Hour of the Huntress",
+  "cycle": 80,
+  "category": "novella",
+  "cards": 3,
+  "investigators": 1
+ },
+ {
+  "code": "eotp",
+  "name": "Echoes of the Past",
+  "cycle": 3,
+  "category": "campaign",
+  "cards": 41,
+  "investigators": 0
+ },
+ {
+  "code": "tuo",
+  "name": "The Unspeakable Oath",
+  "cycle": 3,
+  "category": "campaign",
+  "cards": 43,
+  "investigators": 0
+ },
+ {
+  "code": "iotv",
+  "name": "Ire of the Void",
+  "cycle": 80,
+  "category": "novella",
+  "cards": 3,
+  "investigators": 1
+ },
+ {
+  "code": "apot",
+  "name": "A Phantom of Truth",
+  "cycle": 3,
+  "category": "campaign",
+  "cards": 40,
+  "investigators": 0
+ },
+ {
+  "code": "tpm",
+  "name": "The Pallid Mask",
+  "cycle": 3,
+  "category": "campaign",
+  "cards": 36,
+  "investigators": 0
+ },
+ {
+  "code": "bsr",
+  "name": "Black Stars Rise",
+  "cycle": 3,
+  "category": "campaign",
+  "cards": 43,
+  "investigators": 0
+ },
+ {
+  "code": "tdor",
+  "name": "The Dirge of Reason",
+  "cycle": 80,
+  "category": "novella",
+  "cards": 2,
+  "investigators": 0
+ },
+ {
+  "code": "dca",
+  "name": "Dim Carcosa",
+  "cycle": 3,
+  "category": "campaign",
+  "cards": 59,
+  "investigators": 0
+ },
+ {
+  "code": "tftbw",
+  "name": "To Fight the Black Wind",
+  "cycle": 80,
+  "category": "novella",
+  "cards": 3,
+  "investigators": 1
+ },
+ {
+  "code": "tfa",
+  "name": "The Forgotten Age",
+  "cycle": 4,
+  "category": "campaign",
+  "cards": 102,
+  "investigators": 5
+ },
+ {
+  "code": "lol",
+  "name": "The Labyrinths of Lunacy",
+  "cycle": 70,
+  "category": "standalone",
+  "cards": 67,
+  "investigators": 0
+ },
+ {
+  "code": "tdg",
+  "name": "The Deep Gate",
+  "cycle": 80,
+  "category": "novella",
+  "cards": 3,
+  "investigators": 1
+ },
+ {
+  "code": "tof",
+  "name": "Threads of Fate",
+  "cycle": 4,
+  "category": "campaign",
+  "cards": 56,
+  "investigators": 0
+ },
+ {
+  "code": "rtnotz",
+  "name": "Return to the Night of the Zealot",
+  "cycle": 50,
+  "category": "return_to",
+  "cards": 48,
+  "investigators": 0
+ },
+ {
+  "code": "tbb",
+  "name": "The Boundary Beyond",
+  "cycle": 4,
+  "category": "campaign",
+  "cards": 43,
+  "investigators": 0
+ },
+ {
+  "code": "hote",
+  "name": "Heart of the Elders",
+  "cycle": 4,
+  "category": "campaign",
+  "cards": 39,
+  "investigators": 0
+ },
+ {
+  "code": "tcoa",
+  "name": "The City of Archives",
+  "cycle": 4,
+  "category": "campaign",
+  "cards": 36,
+  "investigators": 1
+ },
+ {
+  "code": "tdoy",
+  "name": "The Depths of Yoth",
+  "cycle": 4,
+  "category": "campaign",
+  "cards": 39,
+  "investigators": 0
+ },
+ {
+  "code": "sha",
+  "name": "Shattered Aeons",
+  "cycle": 4,
+  "category": "campaign",
+  "cards": 46,
+  "investigators": 0
+ },
+ {
+  "code": "guardians",
+  "name": "Guardians of the Abyss",
+  "cycle": 70,
+  "category": "standalone",
+  "cards": 70,
+  "investigators": 0
+ },
+ {
+  "code": "rtdwl",
+  "name": "Return to the Dunwich Legacy",
+  "cycle": 50,
+  "category": "return_to",
+  "cards": 73,
+  "investigators": 0
+ },
+ {
+  "code": "tcu",
+  "name": "The Circle Undone",
+  "cycle": 5,
+  "category": "campaign",
+  "cards": 110,
+  "investigators": 10
+ },
+ {
+  "code": "tsn",
+  "name": "The Secret Name",
+  "cycle": 5,
+  "category": "campaign",
+  "cards": 42,
+  "investigators": 0
+ },
+ {
+  "code": "wos",
+  "name": "The Wages of Sin",
+  "cycle": 5,
+  "category": "campaign",
+  "cards": 57,
+  "investigators": 0
+ },
+ {
+  "code": "fgg",
+  "name": "For the Greater Good",
+  "cycle": 5,
+  "category": "campaign",
+  "cards": 44,
+  "investigators": 0
+ },
+ {
+  "code": "uad",
+  "name": "Union and Disillusion",
+  "cycle": 5,
+  "category": "campaign",
+  "cards": 48,
+  "investigators": 0
+ },
+ {
+  "code": "icc",
+  "name": "In the Clutches of Chaos",
+  "cycle": 5,
+  "category": "campaign",
+  "cards": 42,
+  "investigators": 0
+ },
+ {
+  "code": "bbt",
+  "name": "Before the Black Throne",
+  "cycle": 5,
+  "category": "campaign",
+  "cards": 34,
+  "investigators": 0
+ },
+ {
+  "code": "rtptc",
+  "name": "Return to the Path to Carcosa",
+  "cycle": 50,
+  "category": "return_to",
+  "cards": 84,
+  "investigators": 0
+ },
+ {
+  "code": "tde",
+  "name": "The Dream-Eaters",
+  "cycle": 6,
+  "category": "campaign",
+  "cards": 112,
+  "investigators": 5
+ },
+ {
+  "code": "hotel",
+  "name": "Murder at the Excelsior Hotel",
+  "cycle": 70,
+  "category": "standalone",
+  "cards": 52,
+  "investigators": 0
+ },
+ {
+  "code": "sfk",
+  "name": "The Search for Kadath",
+  "cycle": 6,
+  "category": "campaign",
+  "cards": 62,
+  "investigators": 0
+ },
+ {
+  "code": "tsh",
+  "name": "A Thousand Shapes of Horror",
+  "cycle": 6,
+  "category": "campaign",
+  "cards": 41,
+  "investigators": 0
+ },
+ {
+  "code": "dsm",
+  "name": "Dark Side of the Moon",
+  "cycle": 6,
+  "category": "campaign",
+  "cards": 40,
+  "investigators": 0
+ },
+ {
+  "code": "pnr",
+  "name": "Point of No Return",
+  "cycle": 6,
+  "category": "campaign",
+  "cards": 54,
+  "investigators": 0
+ },
+ {
+  "code": "wgd",
+  "name": "Where the Gods Dwell",
+  "cycle": 6,
+  "category": "campaign",
+  "cards": 47,
+  "investigators": 0
+ },
+ {
+  "code": "rod",
+  "name": "Read or Die",
+  "cycle": 90,
+  "category": "parallel_challenge",
+  "cards": 7,
+  "investigators": 1
+ },
+ {
+  "code": "woc",
+  "name": "Weaver of the Cosmos",
+  "cycle": 6,
+  "category": "campaign",
+  "cards": 32,
+  "investigators": 0
+ },
+ {
+  "code": "bob",
+  "name": "Blood of Baalshandor",
+  "cycle": 80,
+  "category": "novella",
+  "cards": 3,
+  "investigators": 1
+ },
+ {
+  "code": "blob",
+  "name": "The Blob That Ate Everything",
+  "cycle": 70,
+  "category": "standalone",
+  "cards": 53,
+  "investigators": 0
+ },
+ {
+  "code": "wog",
+  "name": "War of the Outer Gods",
+  "cycle": 70,
+  "category": "standalone",
+  "cards": 59,
+  "investigators": 0
+ },
+ {
+  "code": "rttfa",
+  "name": "Return to the Forgotten Age",
+  "cycle": 50,
+  "category": "return_to",
+  "cards": 85,
+  "investigators": 0
+ },
+ {
+  "code": "aon",
+  "name": "All or Nothing",
+  "cycle": 90,
+  "category": "parallel_challenge",
+  "cards": 9,
+  "investigators": 1
+ },
+ {
+  "code": "nat",
+  "name": "Nathaniel Cho",
+  "cycle": 60,
+  "category": "investigator_pack",
+  "cards": 32,
+  "investigators": 1
+ },
+ {
+  "code": "har",
+  "name": "Harvey Walters",
+  "cycle": 60,
+  "category": "investigator_pack",
+  "cards": 33,
+  "investigators": 1
+ },
+ {
+  "code": "win",
+  "name": "Winifred Habbamock",
+  "cycle": 60,
+  "category": "investigator_pack",
+  "cards": 32,
+  "investigators": 1
+ },
+ {
+  "code": "jac",
+  "name": "Jacqueline Fine",
+  "cycle": 60,
+  "category": "investigator_pack",
+  "cards": 32,
+  "investigators": 1
+ },
+ {
+  "code": "ste",
+  "name": "Stella Clark",
+  "cycle": 60,
+  "category": "investigator_pack",
+  "cards": 31,
+  "investigators": 1
+ },
+ {
+  "code": "rcore",
+  "name": "Revised Core Set",
+  "cycle": 1,
+  "category": "core",
+  "cards": 116,
+  "investigators": 5
+ },
+ {
+  "code": "tic",
+  "name": "The Innsmouth Conspiracy",
+  "cycle": 7,
+  "category": "campaign",
+  "cards": 108,
+  "investigators": 5
+ },
+ {
+  "code": "itd",
+  "name": "In Too Deep",
+  "cycle": 7,
+  "category": "campaign",
+  "cards": 44,
+  "investigators": 0
+ },
+ {
+  "code": "dre",
+  "name": "Dark Revelations",
+  "cycle": 80,
+  "category": "novella",
+  "cards": 3,
+  "investigators": 1
+ },
+ {
+  "code": "bad",
+  "name": "Bad Blood",
+  "cycle": 90,
+  "category": "parallel_challenge",
+  "cards": 8,
+  "investigators": 1
+ },
+ {
+  "code": "def",
+  "name": "Devil Reef",
+  "cycle": 7,
+  "category": "campaign",
+  "cards": 43,
+  "investigators": 0
+ },
+ {
+  "code": "hhg",
+  "name": "Horror in High Gear",
+  "cycle": 7,
+  "category": "campaign",
+  "cards": 42,
+  "investigators": 0
+ },
+ {
+  "code": "lif",
+  "name": "A Light in the Fog",
+  "cycle": 7,
+  "category": "campaign",
+  "cards": 42,
+  "investigators": 0
+ },
+ {
+  "code": "lod",
+  "name": "The Lair of Dagon",
+  "cycle": 7,
+  "category": "campaign",
+  "cards": 42,
+  "investigators": 0
+ },
+ {
+  "code": "itm",
+  "name": "Into the Maelstrom",
+  "cycle": 7,
+  "category": "campaign",
+  "cards": 40,
+  "investigators": 0
+ },
+ {
+  "code": "btb",
+  "name": "By the Book",
+  "cycle": 90,
+  "category": "parallel_challenge",
+  "cards": 14,
+  "investigators": 1
+ },
+ {
+  "code": "rttcu",
+  "name": "Return to the Circle Undone",
+  "cycle": 50,
+  "category": "return_to",
+  "cards": 78,
+  "investigators": 0
+ },
+ {
+  "code": "eoep",
+  "name": "Edge of the Earth Investigator Expansion",
+  "cycle": 8,
+  "category": "campaign",
+  "cards": 137,
+  "investigators": 5
+ },
+ {
+  "code": "eoec",
+  "name": "Edge of the Earth Campaign Expansion",
+  "cycle": 8,
+  "category": "campaign",
+  "cards": 266,
+  "investigators": 0
+ },
+ {
+  "code": "rtr",
+  "name": "Red Tide Rising",
+  "cycle": 90,
+  "category": "parallel_challenge",
+  "cards": 10,
+  "investigators": 1
+ },
+ {
+  "code": "mtt",
+  "name": "Machinations Through Time",
+  "cycle": 70,
+  "category": "standalone",
+  "cards": 69,
+  "investigators": 0
+ },
+ {
+  "code": "fhvc",
+  "name": "The Feast of Hemlock Vale Campaign Expansion",
+  "cycle": 10,
+  "category": "campaign",
+  "cards": 301,
+  "investigators": 1
+ },
+ {
+  "code": "tskp",
+  "name": "The Scarlet Keys Investigator Expansion",
+  "cycle": 9,
+  "category": "campaign",
+  "cards": 128,
+  "investigators": 6
+ },
+ {
+  "code": "tskc",
+  "name": "The Scarlet Keys Campaign Expansion",
+  "cycle": 9,
+  "category": "campaign",
+  "cards": 311,
+  "investigators": 0
+ },
+ {
+  "code": "fhvp",
+  "name": "The Feast of Hemlock Vale Investigator Expansion",
+  "cycle": 10,
+  "category": "campaign",
+  "cards": 140,
+  "investigators": 7
+ },
+ {
+  "code": "fof",
+  "name": "Fortune and Folly",
+  "cycle": 70,
+  "category": "standalone",
+  "cards": 89,
+  "investigators": 0
+ },
+ {
+  "code": "otr",
+  "name": "On the Road Again",
+  "cycle": 90,
+  "category": "parallel_challenge",
+  "cards": 3,
+  "investigators": 1
+ },
+ {
+  "code": "blbe",
+  "name": "The Blob That Ate Everything ELSE!",
+  "cycle": 70,
+  "category": "standalone",
+  "cards": 31,
+  "investigators": 1
+ },
+ {
+  "code": "ltr",
+  "name": "Laid to Rest",
+  "cycle": 90,
+  "category": "parallel_challenge",
+  "cards": 12,
+  "investigators": 1
+ },
+ {
+  "code": "ptr",
+  "name": "Path of the Righteous",
+  "cycle": 90,
+  "category": "parallel_challenge",
+  "cards": 3,
+  "investigators": 1
+ },
+ {
+  "code": "rop",
+  "name": "Relics of the Past",
+  "cycle": 90,
+  "category": "parallel_challenge",
+  "cards": 17,
+  "investigators": 1
+ },
+ {
+  "code": "dwlp",
+  "name": "The Dunwich Legacy Investigator Expansion",
+  "cycle": 2,
+  "category": "campaign",
+  "cards": 0,
+  "investigators": 0
+ },
+ {
+  "code": "dwlc",
+  "name": "The Dunwich Legacy Campaign Expansion",
+  "cycle": 2,
+  "category": "campaign",
+  "cards": 0,
+  "investigators": 0
+ },
+ {
+  "code": "ptcp",
+  "name": "The Path to Carcosa Investigator Expansion",
+  "cycle": 3,
+  "category": "campaign",
+  "cards": 0,
+  "investigators": 0
+ },
+ {
+  "code": "ptcc",
+  "name": "The Path to Carcosa Campaign Expansion",
+  "cycle": 3,
+  "category": "campaign",
+  "cards": 0,
+  "investigators": 0
+ },
+ {
+  "code": "tcup",
+  "name": "The Circle Undone Investigator Expansion",
+  "cycle": 5,
+  "category": "campaign",
+  "cards": 0,
+  "investigators": 0
+ },
+ {
+  "code": "tcuc",
+  "name": "The Circle Undone Campaign Expansion",
+  "cycle": 5,
+  "category": "campaign",
+  "cards": 0,
+  "investigators": 0
+ },
+ {
+  "code": "hfa",
+  "name": "Hunting for Answers",
+  "cycle": 90,
+  "category": "parallel_challenge",
+  "cards": 3,
+  "investigators": 1
+ },
+ {
+  "code": "tfap",
+  "name": "The Forgotten Age Investigator Expansion",
+  "cycle": 4,
+  "category": "campaign",
+  "cards": 0,
+  "investigators": 0
+ },
+ {
+  "code": "tfac",
+  "name": "The Forgotten Age Campaign Expansion",
+  "cycle": 4,
+  "category": "campaign",
+  "cards": 0,
+  "investigators": 0
+ },
+ {
+  "code": "pap",
+  "name": "Pistols and Pearls",
+  "cycle": 90,
+  "category": "parallel_challenge",
+  "cards": 3,
+  "investigators": 1
+ },
+ {
+  "code": "tmg",
+  "name": "The Midwinter Gala",
+  "cycle": 70,
+  "category": "standalone",
+  "cards": 74,
+  "investigators": 0
+ },
+ {
+  "code": "tdep",
+  "name": "The Dream-Eaters Investigator Expansion",
+  "cycle": 6,
+  "category": "campaign",
+  "cards": 0,
+  "investigators": 0
+ },
+ {
+  "code": "tdec",
+  "name": "The Dream-Eaters Campaign Expansion",
+  "cycle": 6,
+  "category": "campaign",
+  "cards": 0,
+  "investigators": 0
+ },
+ {
+  "code": "ticp",
+  "name": "The Innsmouth Conspiracy Investigator Expansion",
+  "cycle": 7,
+  "category": "campaign",
+  "cards": 0,
+  "investigators": 0
+ },
+ {
+  "code": "ticc",
+  "name": "The Innsmouth Conspiracy Campaign Expansion",
+  "cycle": 7,
+  "category": "campaign",
+  "cards": 0,
+  "investigators": 0
+ },
+ {
+  "code": "aof",
+  "name": "Aura of Faith",
+  "cycle": 90,
+  "category": "parallel_challenge",
+  "cards": 3,
+  "investigators": 1
+ },
+ {
+  "code": "tdcp",
+  "name": "The Drowned City Investigator Expansion",
+  "cycle": 11,
+  "category": "campaign",
+  "cards": 130,
+  "investigators": 8
+ },
+ {
+  "code": "tdcc",
+  "name": "The Drowned City Campaign Expansion",
+  "cycle": 11,
+  "category": "campaign",
+  "cards": 295,
+  "investigators": 0
+ },
+ {
+  "code": "film_fatale",
+  "name": "Film Fatale",
+  "cycle": 70,
+  "category": "standalone",
+  "cards": 64,
+  "investigators": 0
+ },
+ {
+  "code": "enc",
+  "name": "Enthralling Encore",
+  "cycle": 90,
+  "category": "parallel_challenge",
+  "cards": 11,
+  "investigators": 1
+ },
+ {
+  "code": "core_2026",
+  "name": "Core Set (2026)",
+  "cycle": 12,
+  "category": "core",
+  "cards": 196,
+  "investigators": 5
+ },
+ {
+  "code": "tom",
+  "name": "Tommy Muldoon",
+  "cycle": 61,
+  "category": "investigator_pack",
+  "cards": 32,
+  "investigators": 1
+ },
+ {
+  "code": "car",
+  "name": "Carolyn Fern",
+  "cycle": 61,
+  "category": "investigator_pack",
+  "cards": 32,
+  "investigators": 1
+ },
+ {
+  "code": "and",
+  "name": "André Patel",
+  "cycle": 61,
+  "category": "investigator_pack",
+  "cards": 34,
+  "investigators": 1
+ },
+ {
+  "code": "mar",
+  "name": "Marie Lambeau",
+  "cycle": 61,
+  "category": "investigator_pack",
+  "cards": 33,
+  "investigators": 1
+ },
+ {
+  "code": "mig",
+  "name": "Miguel de la Cruz",
+  "cycle": 61,
+  "category": "investigator_pack",
+  "cards": 32,
+  "investigators": 1
+ }
+]

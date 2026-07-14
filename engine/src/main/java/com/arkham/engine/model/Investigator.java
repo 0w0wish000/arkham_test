@@ -31,8 +31,14 @@ public final class Investigator {
     private final List<CardInstance> discardPile = new ArrayList<>();
     private final List<String> engagedEnemyIds = new ArrayList<>();
 
-    public Investigator(String id, String name, Skills skills, int health, int sanity,
-                        int resources, String locationId) {
+    @com.fasterxml.jackson.annotation.JsonCreator
+    public Investigator(@com.fasterxml.jackson.annotation.JsonProperty("id") String id,
+                        @com.fasterxml.jackson.annotation.JsonProperty("name") String name,
+                        @com.fasterxml.jackson.annotation.JsonProperty("skills") Skills skills,
+                        @com.fasterxml.jackson.annotation.JsonProperty("health") int health,
+                        @com.fasterxml.jackson.annotation.JsonProperty("sanity") int sanity,
+                        @com.fasterxml.jackson.annotation.JsonProperty("resources") int resources,
+                        @com.fasterxml.jackson.annotation.JsonProperty("locationId") String locationId) {
         this.id = id;
         this.name = name;
         this.skills = skills;

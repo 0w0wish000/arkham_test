@@ -4,6 +4,9 @@ server:
 spring:
   application:
     name: arkham-server
+  jackson:
+    serialization:
+      fail-on-empty-beans: false   # 存檔序列化整個 GameState 時,容忍無 getter 的內部類別
 
 # The game WebSocket endpoint is registered at /ws/game by config.WebSocketConfig,
 # so clients connect at ws://localhost:8080/ws/game (protocol.md).

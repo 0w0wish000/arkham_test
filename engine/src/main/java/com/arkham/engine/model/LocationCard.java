@@ -21,9 +21,15 @@ public final class LocationCard {
     private boolean revealed;
     private int clues;
 
-    public LocationCard(String id, String name, int shroud, int clueValue,
-                        boolean revealed, List<String> connections,
-                        boolean victory, String spawnDefKey) {
+    @com.fasterxml.jackson.annotation.JsonCreator
+    public LocationCard(@com.fasterxml.jackson.annotation.JsonProperty("id") String id,
+                        @com.fasterxml.jackson.annotation.JsonProperty("name") String name,
+                        @com.fasterxml.jackson.annotation.JsonProperty("shroud") int shroud,
+                        @com.fasterxml.jackson.annotation.JsonProperty("clueValue") int clueValue,
+                        @com.fasterxml.jackson.annotation.JsonProperty("revealed") boolean revealed,
+                        @com.fasterxml.jackson.annotation.JsonProperty("connections") List<String> connections,
+                        @com.fasterxml.jackson.annotation.JsonProperty("victory") boolean victory,
+                        @com.fasterxml.jackson.annotation.JsonProperty("spawnDefKey") String spawnDefKey) {
         this.id = id;
         this.name = name;
         this.shroud = shroud;
