@@ -108,12 +108,23 @@ public final class CardCatalog {
         weakness("Paranoia");
     }
 
+    /** 外部登記層(G1):伺服器啟動時由 content/cards/generated/ 灌入真卡資料;查找優先於內建。 */
+    private static final Map<String, Spec> EXTERNAL = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** 登記一張外部卡(type ∈ asset/event/skill;icons 為 SkillIcon 名)。 */
+    public static void register(String name, String type, int cost, List<SkillIcon> icons) {
+        EXTERNAL.put(name, new Spec(type, Math.max(0, cost), icons.toArray(new SkillIcon[0])));
+    }
+
+    public static int externalCount() { return EXTERNAL.size(); }
+
     /** 把一份卡名清單實體化成牌堆(cardId 依 {@code prefix-d1..} 編)。 */
     public static List<CardInstance> buildDeck(String idPrefix, List<String> names) {
         List<CardInstance> deck = new java.util.ArrayList<>();
         int n = 1;
         for (String name : names) {
-            Spec s = CARDS.getOrDefault(name, new Spec("event", 0, NONE));   // 未知卡名 → 0費無效果事件
+            Spec s = EXTERNAL.get(name);                                      // 真卡資料優先
+            if (s == null) s = CARDS.getOrDefault(name, new Spec("event", 0, NONE));   // 內建 → 未知=0費無效果
             deck.add(new CardInstance(idPrefix + "-d" + (n++), name, s.type(), s.cost(), List.of(s.icons())));
         }
         return deck;
