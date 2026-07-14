@@ -1,0 +1,551 @@
+{
+ "_comment": "由 build_campaigns.py 從卡資料推導的戰役章節索引(僅名稱/順序;無敘事/分支)。",
+ "campaigns": [
+  {
+   "key": "core",
+   "name": "Core Set",
+   "cycle": 1,
+   "chapters": [
+    {
+     "code": "01104",
+     "pack": "core",
+     "name": "The Gathering"
+    },
+    {
+     "code": "01120",
+     "pack": "core",
+     "name": "The Midnight Masks"
+    },
+    {
+     "code": "01142",
+     "pack": "core",
+     "name": "The Devourer Below"
+    }
+   ],
+   "maxXpAwardPerChapter": null
+  },
+  {
+   "key": "dwl",
+   "name": "The Dunwich Legacy",
+   "cycle": 2,
+   "chapters": [
+    {
+     "code": "02041",
+     "pack": "dwl",
+     "name": "Extracurricular Activity"
+    },
+    {
+     "code": "02062",
+     "pack": "dwl",
+     "name": "The House Always Wins"
+    },
+    {
+     "code": "02118",
+     "pack": "tmm",
+     "name": "The Miskatonic Museum"
+    },
+    {
+     "code": "02159",
+     "pack": "tece",
+     "name": "Essex County Express"
+    },
+    {
+     "code": "02195",
+     "pack": "bota",
+     "name": "Blood on the Altar"
+    },
+    {
+     "code": "02236",
+     "pack": "uau",
+     "name": "Undimensioned and Unseen"
+    },
+    {
+     "code": "02274",
+     "pack": "wda",
+     "name": "Where Doom Awaits"
+    },
+    {
+     "code": "02311",
+     "pack": "litas",
+     "name": "Lost in Time and Space"
+    }
+   ],
+   "maxXpAwardPerChapter": null
+  },
+  {
+   "key": "ptc",
+   "name": "The Path to Carcosa",
+   "cycle": 3,
+   "chapters": [
+    {
+     "code": "03043",
+     "pack": "ptc",
+     "name": "Curtain Call"
+    },
+    {
+     "code": "03061",
+     "pack": "ptc",
+     "name": "The Last King"
+    },
+    {
+     "code": "03120",
+     "pack": "eotp",
+     "name": "Echoes of the Past"
+    },
+    {
+     "code": "03159",
+     "pack": "tuo",
+     "name": "The Unspeakable Oath"
+    },
+    {
+     "code": "03200",
+     "pack": "apot",
+     "name": "A Phantom of Truth"
+    },
+    {
+     "code": "03240",
+     "pack": "tpm",
+     "name": "The Pallid Mask"
+    },
+    {
+     "code": "03274",
+     "pack": "bsr",
+     "name": "Black Stars Rise"
+    },
+    {
+     "code": "03316",
+     "pack": "dca",
+     "name": "Dim Carcosa"
+    }
+   ],
+   "maxXpAwardPerChapter": null
+  },
+  {
+   "key": "tfa",
+   "name": "The Forgotten Age",
+   "cycle": 4,
+   "chapters": [
+    {
+     "code": "04043",
+     "pack": "tfa",
+     "name": "The Untamed Wilds"
+    },
+    {
+     "code": "04054",
+     "pack": "tfa",
+     "name": "The Doom of Eztli"
+    },
+    {
+     "code": "04113",
+     "pack": "tof",
+     "name": "Threads of Fate"
+    },
+    {
+     "code": "04161",
+     "pack": "tbb",
+     "name": "The Boundary Beyond"
+    },
+    {
+     "code": "04205",
+     "pack": "hote",
+     "name": "Heart of the Elders"
+    },
+    {
+     "code": "04237",
+     "pack": "tcoa",
+     "name": "The City of Archives"
+    },
+    {
+     "code": "04277",
+     "pack": "tdoy",
+     "name": "The Depths of Yoth"
+    },
+    {
+     "code": "04314",
+     "pack": "sha",
+     "name": "Shattered Aeons"
+    },
+    {
+     "code": "04344",
+     "pack": "sha",
+     "name": "Turn Back Time"
+    }
+   ],
+   "maxXpAwardPerChapter": null
+  },
+  {
+   "key": "tcu",
+   "name": "The Circle Undone",
+   "cycle": 5,
+   "chapters": [
+    {
+     "code": "05043",
+     "pack": "tcu",
+     "name": "Disappearance at the Twilight Estate"
+    },
+    {
+     "code": "05050",
+     "pack": "tcu",
+     "name": "The Witching Hour"
+    },
+    {
+     "code": "05065",
+     "pack": "tcu",
+     "name": "At Death's Doorstep"
+    },
+    {
+     "code": "05120",
+     "pack": "tsn",
+     "name": "The Secret Name"
+    },
+    {
+     "code": "05161",
+     "pack": "wos",
+     "name": "The Wages of Sin"
+    },
+    {
+     "code": "05197",
+     "pack": "fgg",
+     "name": "For the Greater Good"
+    },
+    {
+     "code": "05238",
+     "pack": "uad",
+     "name": "Union and Disillusion"
+    },
+    {
+     "code": "05284",
+     "pack": "icc",
+     "name": "In the Clutches of Chaos"
+    },
+    {
+     "code": "05325",
+     "pack": "bbt",
+     "name": "Before the Black Throne"
+    }
+   ],
+   "maxXpAwardPerChapter": null
+  },
+  {
+   "key": "tde",
+   "name": "The Dream-Eaters",
+   "cycle": 6,
+   "chapters": [
+    {
+     "code": "06039",
+     "pack": "tde",
+     "name": "Beyond the Gates of Sleep"
+    },
+    {
+     "code": "06063",
+     "pack": "tde",
+     "name": "Waking Nightmare"
+    },
+    {
+     "code": "06119",
+     "pack": "sfk",
+     "name": "The Search for Kadath"
+    },
+    {
+     "code": "06168",
+     "pack": "tsh",
+     "name": "A Thousand Shapes of Horror"
+    },
+    {
+     "code": "06206",
+     "pack": "dsm",
+     "name": "Dark Side of the Moon"
+    },
+    {
+     "code": "06247",
+     "pack": "pnr",
+     "name": "Point of No Return"
+    },
+    {
+     "code": "06286",
+     "pack": "wgd",
+     "name": "Where the Gods Dwell"
+    },
+    {
+     "code": "06333",
+     "pack": "woc",
+     "name": "Weaver of the Cosmos"
+    }
+   ],
+   "maxXpAwardPerChapter": null
+  },
+  {
+   "key": "tic",
+   "name": "The Innsmouth Conspiracy",
+   "cycle": 7,
+   "chapters": [
+    {
+     "code": "07041",
+     "pack": "tic",
+     "name": "The Pit of Despair"
+    },
+    {
+     "code": "07056",
+     "pack": "tic",
+     "name": "The Vanishing of Elina Harper"
+    },
+    {
+     "code": "07123",
+     "pack": "itd",
+     "name": "In Too Deep"
+    },
+    {
+     "code": "07163",
+     "pack": "def",
+     "name": "Devil Reef"
+    },
+    {
+     "code": "07198",
+     "pack": "hhg",
+     "name": "Horror in High Gear"
+    },
+    {
+     "code": "07231",
+     "pack": "lif",
+     "name": "A Light in the Fog"
+    },
+    {
+     "code": "07274",
+     "pack": "lod",
+     "name": "The Lair of Dagon"
+    },
+    {
+     "code": "07311",
+     "pack": "itm",
+     "name": "Into the Maelstrom"
+    }
+   ],
+   "maxXpAwardPerChapter": null
+  },
+  {
+   "key": "eoec",
+   "name": "Edge of the Earth Campaign Expansion",
+   "cycle": 8,
+   "chapters": [
+    {
+     "code": "08501",
+     "pack": "eoec",
+     "name": "Ice and Death"
+    },
+    {
+     "code": "08549",
+     "pack": "eoec",
+     "name": "Fatal Mirage"
+    },
+    {
+     "code": "08596",
+     "pack": "eoec",
+     "name": "To the Forbidden Peaks"
+    },
+    {
+     "code": "08621",
+     "pack": "eoec",
+     "name": "City of the Elder Things"
+    },
+    {
+     "code": "08648",
+     "pack": "eoec",
+     "name": "The Heart of Madness"
+    }
+   ],
+   "maxXpAwardPerChapter": null
+  },
+  {
+   "key": "tskc",
+   "name": "The Scarlet Keys Campaign Expansion",
+   "cycle": 9,
+   "chapters": [
+    {
+     "code": "09501",
+     "pack": "tskc",
+     "name": "Riddles and Rain"
+    },
+    {
+     "code": "09520",
+     "pack": "tskc",
+     "name": "Dead Heat"
+    },
+    {
+     "code": "09545",
+     "pack": "tskc",
+     "name": "Sanguine Shadows"
+    },
+    {
+     "code": "09566",
+     "pack": "tskc",
+     "name": "Dealings in the Dark"
+    },
+    {
+     "code": "09591",
+     "pack": "tskc",
+     "name": "Dancing Mad"
+    },
+    {
+     "code": "09609",
+     "pack": "tskc",
+     "name": "On Thin Ice"
+    },
+    {
+     "code": "09635",
+     "pack": "tskc",
+     "name": "Dogs of War"
+    },
+    {
+     "code": "09660",
+     "pack": "tskc",
+     "name": "Shades of Suffering"
+    },
+    {
+     "code": "09681",
+     "pack": "tskc",
+     "name": "Without a Trace"
+    },
+    {
+     "code": "09694",
+     "pack": "tskc",
+     "name": "Congress of the Keys"
+    }
+   ],
+   "maxXpAwardPerChapter": null
+  },
+  {
+   "key": "fhvc",
+   "name": "The Feast of Hemlock Vale Campaign Expansion",
+   "cycle": 10,
+   "chapters": [
+    {
+     "code": "10501",
+     "pack": "fhvc",
+     "name": "Written in Rock"
+    },
+    {
+     "code": "10523",
+     "pack": "fhvc",
+     "name": "Hemlock House"
+    },
+    {
+     "code": "10549",
+     "pack": "fhvc",
+     "name": "The Silent Heath"
+    },
+    {
+     "code": "10569",
+     "pack": "fhvc",
+     "name": "The Lost Sister"
+    },
+    {
+     "code": "10588",
+     "pack": "fhvc",
+     "name": "The Thing in the Depths"
+    },
+    {
+     "code": "10605",
+     "pack": "fhvc",
+     "name": "The Twisted Hollow"
+    },
+    {
+     "code": "10626",
+     "pack": "fhvc",
+     "name": "The Longest Night"
+    },
+    {
+     "code": "10651",
+     "pack": "fhvc",
+     "name": "Fate of the Vale"
+    },
+    {
+     "code": "10704",
+     "pack": "fhvc",
+     "name": "The Vale"
+    }
+   ],
+   "maxXpAwardPerChapter": null
+  },
+  {
+   "key": "tdcc",
+   "name": "The Drowned City Campaign Expansion",
+   "cycle": 11,
+   "chapters": [
+    {
+     "code": "11501",
+     "pack": "tdcc",
+     "name": "One Last Job"
+    },
+    {
+     "code": "11517",
+     "pack": "tdcc",
+     "name": "The Western Wall"
+    },
+    {
+     "code": "11536",
+     "pack": "tdcc",
+     "name": "The Drowned Quarter"
+    },
+    {
+     "code": "11553",
+     "pack": "tdcc",
+     "name": "The Apiary"
+    },
+    {
+     "code": "11587",
+     "pack": "tdcc",
+     "name": "The Grand Vault"
+    },
+    {
+     "code": "11612",
+     "pack": "tdcc",
+     "name": "Court of the Ancients"
+    },
+    {
+     "code": "11639",
+     "pack": "tdcc",
+     "name": "Obsidian Canyons"
+    },
+    {
+     "code": "11673",
+     "pack": "tdcc",
+     "name": "Sepulchre of the Sleeper"
+    },
+    {
+     "code": "11682",
+     "pack": "tdcc",
+     "name": "The Doom of Arkham Pt I"
+    },
+    {
+     "code": "11688a",
+     "pack": "tdcc",
+     "name": "The Doom of Arkham Pt II"
+    }
+   ],
+   "maxXpAwardPerChapter": null
+  },
+  {
+   "key": "core_2026",
+   "name": "Core Set (2026)",
+   "cycle": 12,
+   "chapters": [
+    {
+     "code": "12105",
+     "pack": "core_2026",
+     "name": "Spreading Flames"
+    },
+    {
+     "code": "12133",
+     "pack": "core_2026",
+     "name": "Smoke and Mirrors"
+    },
+    {
+     "code": "12168",
+     "pack": "core_2026",
+     "name": "Queen of Ash"
+    }
+   ],
+   "maxXpAwardPerChapter": null
+  }
+ ]
+}

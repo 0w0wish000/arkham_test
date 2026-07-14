@@ -37,6 +37,7 @@ if not defined PYCMD (
 )
 
 %PYCMD% content\tools\build_cards.py
+%PYCMD% content\tools\build_campaigns.py
 echo(
 echo ✓ 完成。資料在 content\cards\generated\(本機專用,不會進 git)。
 echo （按任意鍵關閉）

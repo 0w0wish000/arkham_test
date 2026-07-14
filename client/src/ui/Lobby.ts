@@ -1,13 +1,23 @@
 import type { SessionSummary, RosterMember, SessionRosterMsg, Difficulty, CampaignSave } from "../protocol";
+import campaignsData from "../../../content/reference/campaigns.json";
 
 /**
  * 大廳畫面(docs/09 P1):身分輸入 → 主選單(新檔/載入/離開)→ 名冊 waiting。
  * 純 DOM;透過 callback 把「建桌 / 加入 / 離桌 / 改名」交回給 main.ts → Connection。
  */
 
+/** 戰役章節索引(build_campaigns.py 由卡資料推導;12 條主線 + 章節順序)。 */
+const CAMPAIGNS = (campaignsData as {
+  campaigns: { key: string; name: string; cycle: number; chapters: { name: string }[] }[];
+}).campaigns;
+
 const CAMPAIGN_ZH: Record<string, string> = {
-  sandbox: "測試沙盒", core: "核心設定", dunwich: "敦威治的遺產", carcosa: "卡爾克薩之路",
+  sandbox: "測試沙盒", core: "核心設定(舊)", core_2026: "2026 修訂核心",
+  dunwich: "敦威治的遺產", carcosa: "卡爾克薩之路",
 };
+for (const c of CAMPAIGNS) {
+  if (!CAMPAIGN_ZH[c.key]) CAMPAIGN_ZH[c.key] = c.name;
+}
 const DIFF_ZH: Record<string, string> = {
   EASY: "簡單", STANDARD: "標準", HARD: "困難", EXPERT: "專家",
 };
@@ -79,6 +89,21 @@ export class Lobby {
       const difficulty = this.select("new-diff").value as Difficulty;
       this.onCreate?.(name, campaignKey, difficulty);
     };
+
+    // ── 戰役下拉:由 campaigns.json 動態生成(沙盒置頂;12 條主線含章節數)──
+    const sel = this.select("new-campaign");
+    sel.replaceChildren();
+    const sandbox = document.createElement("option");
+    sandbox.value = "sandbox";
+    sandbox.textContent = "🧪 測試沙盒(試牌組 / 特殊卡)";
+    sel.appendChild(sandbox);
+    for (const c of [...CAMPAIGNS].sort((a, b) => b.cycle - a.cycle)) {   // 新的排前面
+      const o = document.createElement("option");
+      o.value = c.key;
+      o.textContent = `${CAMPAIGN_ZH[c.key] ?? c.name}(${c.chapters.length} 章)`;
+      sel.appendChild(o);
+    }
+    if (sel.options.length > 1) sel.selectedIndex = 1;   // 預設最新戰役(2026 修訂核心)
 
     // ── 名冊 / 牌組大廳 ──
     this.$("roster-leave").onclick = () => this.onLeave?.();

@@ -31,5 +31,6 @@ if ! command -v python3 >/dev/null 2>&1; then
 fi
 
 python3 content/tools/build_cards.py
+python3 content/tools/build_campaigns.py
 echo
 echo "✓ 完成。資料在 $GEN/(本機專用,不會進 git)。"
