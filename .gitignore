@@ -21,6 +21,7 @@ src-tauri/gen/
 prototype/cardimg/*
 !prototype/cardimg/.gitkeep
 client/public/cardimg/
+client/public/deckbuilder.html   # 由 prototype/ 同步(單一來源)
 
 # Claude Code 本機工作區(worktree / launch.json,不入版控)
 .claude/

@@ -7,7 +7,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "sync-db": "node scripts/sync-deckbuilder.mjs",
+    "predev": "npm run sync-db",
+    "prebuild": "npm run sync-db"
   },
   "dependencies": {
     "pixi.js": "^8.6.0"

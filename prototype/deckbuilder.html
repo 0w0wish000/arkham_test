@@ -141,6 +141,7 @@
     <div class="grp"><input id="f-text" placeholder="名稱 / 特徵…" size="12" /></div>
     <button class="primary" id="btn-search">搜尋</button>
     <button id="btn-cardimg" title="讀本機卡圖資料夾(Tauri 桌面直接讀檔;瀏覽器退回讀同層 cardimg/)">🖼 載入卡圖</button>
+    <button id="btn-done" class="primary" style="display:none;background:#2d5a3a;border-color:#5aa06b" title="把此牌組送回大廳(選角 + 牌組 + XP)並準備完成">✅ 完成牌組</button>
     <div style="margin-left:auto" class="grp"><span class="count-badge">XP 可用 <input id="xp-input" type="number" min="0" title="可手動修改(經驗會受戰役結果影響);故事線下拉會給預設值" style="width:46px;background:#0e1521;border:1px solid var(--line);color:var(--gold);border-radius:5px;padding:2px 4px;font-size:13px;font-family:inherit" value="12"></span></div>
   </header>
 
@@ -645,6 +646,35 @@ render();
 // 卡圖:Tauri 等玩家按「載入卡圖」選資料夾;瀏覽器自動試同層 cardimg/(示範)
 (async function initCardImages(){
   if(!CARDIMG.isTauri()){ CARDIMG.setWebBase('./cardimg/'); await CARDIMG.preload(allCodes()); render(); }
+})();
+
+/* ---------- 大廳整合橋接(docs/09 P2-2)----------
+   內嵌於連線版 client 時:讀 URL 參數預選/鎖定角色與 XP;
+   「✅ 完成牌組」把 {investigatorId, deck, xp} postMessage 回大廳。 */
+(function lobbyBridge(){
+  const ENGINE_ID = { joe:'joe_diamond', daniela:'daniela', dexter:'dexter_drake' };
+  const DECK_ID   = { joe_diamond:'joe', daniela:'daniela', dexter_drake:'dexter' };
+  const p = new URLSearchParams(location.search);
+  if(p.get('inv')){
+    const dbId = DECK_ID[p.get('inv')];
+    const i = INVESTIGATORS.findIndex(v=>v.id===dbId);
+    if(i>=0){ invIdx=i; loadInvestigator(); }
+  }
+  if(p.get('xp')!==null && p.get('xp')!==''){ XP = Math.max(0, Math.floor(+p.get('xp')||0)); }
+  if(p.get('lockInv')){ const s=$('#inv-select'); if(s) s.disabled=true; }
+  render();
+  if(p.get('embed')){
+    const btn=$('#btn-done');
+    if(btn){
+      btn.style.display='';
+      btn.onclick=()=>{
+        const investigatorId = ENGINE_ID[INV.id] || INV.id;
+        const deck = [...DECK.map(c=>c.name), ...SIGNATURE.map(c=>c.name)];
+        parent.postMessage({ type:'DECK_DONE', investigatorId, deck, xp: XP }, '*');
+        toast('已送出牌組給大廳');
+      };
+    }
+  }
 })();
 </script>
 </body>
