@@ -17,6 +17,7 @@ import com.arkham.engine.model.SkillType;
 import com.arkham.engine.protocol.ChooseOptionOptions;
 import com.arkham.engine.protocol.CommitCardsOptions;
 import com.arkham.engine.rng.SeededRng;
+import com.arkham.engine.scenario.CardCatalog;
 import com.arkham.engine.view.ActView;
 import com.arkham.engine.view.AgendaView;
 import com.arkham.engine.view.EnemyView;
@@ -473,32 +474,61 @@ public final class RulesEngine {
         inv.spendAction();
     }
 
-    /** 測試特殊卡的手寫效果(真正版本會走 docs/11 §B 能力引擎 + §C 效果 DSL)。 */
+    /**
+     * C1 效果 DSL 直譯器:卡的 onPlay 原子清單(資料,在 {@link CardCatalog})逐一套用。
+     * 常駐修正(B5)不在這裡執行 —— 只印裝備訊息,加值由 effSkill/effWeaponBonus 從檯面推導。
+     */
     private void applyCardEffect(Investigator inv, CardInstance card, List<GameEvent> events) {
-        switch (card.name()) {
-            case "Emergency Cache" -> {
-                inv.gainResources(3);
-                events.add(GameEvent.of("PLAY", inv.getName() + " 打出 緊急補給:+3 資源。"));
+        List<com.arkham.engine.effect.EffectAtom> atoms = CardCatalog.onPlayEffects(card.name());
+        String modNote = CardCatalog.modifierNote(card.name());
+        if (atoms.isEmpty() && modNote == null) {
+            events.add(GameEvent.of("PLAY", inv.getName() + " 打出 " + card.name() + "(此卡尚無打出特效)。"));
+            return;
+        }
+        if (modNote != null) {
+            events.add(GameEvent.of("PLAY", inv.getName() + " 裝備 " + card.name() + ":" + modNote + "。"));
+        } else {
+            events.add(GameEvent.of("PLAY", inv.getName() + " 打出 " + card.name() + ":"));
+        }
+        for (com.arkham.engine.effect.EffectAtom atom : atoms) {
+            applyAtom(inv, atom, events);
+            if (state.isGameOver()) {
+                return;
             }
-            case "Working a Hunch" -> {
+        }
+    }
+
+    /** 套用一顆效果原子(規則語意集中在此;新增原子時同步擴充)。 */
+    private void applyAtom(Investigator inv, com.arkham.engine.effect.EffectAtom atom, List<GameEvent> events) {
+        switch (atom) {
+            case com.arkham.engine.effect.EffectAtom.GainResources(int n) -> {
+                inv.gainResources(n);
+                events.add(GameEvent.of("PLAY", "　→ +" + n + " 資源(共 " + inv.getResources() + ")。"));
+            }
+            case com.arkham.engine.effect.EffectAtom.DrawCards(int n) -> {
+                for (int i = 0; i < n && !state.isGameOver() && !inv.isEliminated(); i++) {
+                    drawOne(inv, events);
+                }
+                events.add(GameEvent.of("PLAY", "　→ 抽 " + n + " 張。"));
+            }
+            case com.arkham.engine.effect.EffectAtom.Heal(int d, int h) -> {
+                inv.heal(d);
+                inv.healHorror(h);
+                events.add(GameEvent.of("PLAY", "　→ 治療 "
+                        + (d > 0 ? d + " 傷害" : "") + (d > 0 && h > 0 ? "、" : "") + (h > 0 ? h + " 恐懼" : "") + "。"));
+            }
+            case com.arkham.engine.effect.EffectAtom.DiscoverClues(int n) -> {
                 LocationCard loc = state.location(inv.getLocationId());
-                if (loc != null && loc.getClues() > 0) {
+                int took = 0;
+                while (took < n && loc != null && loc.getClues() > 0) {
                     loc.setClues(loc.getClues() - 1);
                     inv.gainClue();
-                    events.add(GameEvent.of("PLAY", inv.getName() + " 打出 靈光一閃:直接取得 1 線索(免檢定)。"));
-                } else {
-                    events.add(GameEvent.of("PLAY", inv.getName() + " 打出 靈光一閃,但此處已無線索。"));
+                    took++;
                 }
+                events.add(GameEvent.of("PLAY", took > 0
+                        ? "　→ 免檢定發現 " + took + " 個線索。"
+                        : "　→ 此處已無線索可發現。"));
             }
-            case "First Aid" -> {
-                inv.heal(1);
-                events.add(GameEvent.of("PLAY", inv.getName() + " 打出 急救:治療 1 點傷害。"));
-            }
-            case "Magnifying Glass" ->
-                events.add(GameEvent.of("PLAY", inv.getName() + " 裝備 放大鏡:智力 +1(持續,常駐修正)。"));
-            case "Machete" ->
-                events.add(GameEvent.of("PLAY", inv.getName() + " 裝備 大砍刀:戰鬥造成傷害 +1(持續,常駐修正)。"));
-            default -> events.add(GameEvent.of("PLAY", inv.getName() + " 打出 " + card.name() + "(此測試卡尚無特效)。"));
         }
     }
 

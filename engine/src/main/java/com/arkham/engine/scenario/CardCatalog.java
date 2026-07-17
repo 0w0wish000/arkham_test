@@ -108,21 +108,82 @@ public final class CardCatalog {
         weakness("Paranoia");
     }
 
-    // ---- B5 常駐修正層(lite):檯面支援卡提供的持續加值,由引擎「推導」而非改欄位 ----
-    private static final Map<String, SkillIcon> CONSTANT_SKILL = Map.of(
-            "Magnifying Glass", SkillIcon.INTELLECT);   // +1 智力(持續)
-    private static final Map<String, Integer> WEAPON_BONUS = Map.of(
-            "Machete", 1);                              // 戰鬥傷害 +1(持續)
+    // ------------------------------------------------------------------
+    // C1 效果 DSL:卡名 → onPlay 原子清單(純資料;直譯器在 RulesEngine)
+    // ------------------------------------------------------------------
 
-    /** 這張檯面卡對某技能的常駐加值(目前每卡 +1;完整修正層見 docs/11 B5)。 */
+    private static final Map<String, List<com.arkham.engine.effect.EffectAtom>> ON_PLAY = Map.of(
+            "Emergency Cache", List.of(new com.arkham.engine.effect.EffectAtom.GainResources(3)),
+            "Working a Hunch", List.of(new com.arkham.engine.effect.EffectAtom.DiscoverClues(1)),
+            "First Aid", List.of(new com.arkham.engine.effect.EffectAtom.Heal(1, 0)));
+
+    /** 外部效果登記(未來由授權內容管線灌入;查找優先於內建)。 */
+    private static final Map<String, List<com.arkham.engine.effect.EffectAtom>> EXTERNAL_ON_PLAY =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static void registerEffect(String name, List<com.arkham.engine.effect.EffectAtom> atoms) {
+        EXTERNAL_ON_PLAY.put(name, List.copyOf(atoms));
+    }
+
+    /** 這張卡打出時的效果原子(無 → 空清單 = 打出無特效)。 */
+    public static List<com.arkham.engine.effect.EffectAtom> onPlayEffects(String name) {
+        List<com.arkham.engine.effect.EffectAtom> ext = EXTERNAL_ON_PLAY.get(name);
+        return ext != null ? ext : ON_PLAY.getOrDefault(name, List.of());
+    }
+
+    // ------------------------------------------------------------------
+    // B5 常駐修正層:檯面支援卡的持續加值,同樣資料化(引擎推導,不改欄位)
+    // ------------------------------------------------------------------
+
+    /** 常駐修正資料:skill=加值的技能圖示(null=無)、skillBonus、weaponBonus。 */
+    public record Mods(SkillIcon skill, int skillBonus, int weaponBonus) {}
+
+    private static final Map<String, Mods> MODS = Map.of(
+            "Magnifying Glass", new Mods(SkillIcon.INTELLECT, 1, 0),   // +1 智力(持續)
+            "Machete", new Mods(null, 0, 1));                          // 戰鬥傷害 +1(持續)
+
+    private static final Map<String, Mods> EXTERNAL_MODS = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static void registerModifier(String name, Mods mods) { EXTERNAL_MODS.put(name, mods); }
+
+    private static Mods modsOf(String cardName) {
+        Mods m = EXTERNAL_MODS.get(cardName);
+        return m != null ? m : MODS.get(cardName);
+    }
+
+    /** 這張檯面卡對某技能的常駐加值(完整修正層見 docs/11 B5)。 */
     public static int constantSkillBonus(String cardName, com.arkham.engine.model.SkillType type) {
-        SkillIcon ic = CONSTANT_SKILL.get(cardName);
-        return ic != null && ic.matches(type) ? 1 : 0;
+        Mods m = modsOf(cardName);
+        return m != null && m.skill() != null && m.skill().matches(type) ? m.skillBonus() : 0;
     }
 
     /** 這張檯面卡提供的武器傷害加值。 */
     public static int weaponBonus(String cardName) {
-        return WEAPON_BONUS.getOrDefault(cardName, 0);
+        Mods m = modsOf(cardName);
+        return m == null ? 0 : m.weaponBonus();
+    }
+
+    /** 常駐修正的展示文字(裝備訊息用);無修正 → null。 */
+    public static String modifierNote(String cardName) {
+        Mods m = modsOf(cardName);
+        if (m == null) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        if (m.skill() != null && m.skillBonus() != 0) {
+            String zh = switch (m.skill()) {
+                case WILLPOWER -> "意志"; case INTELLECT -> "智力";
+                case COMBAT -> "戰鬥"; case AGILITY -> "敏捷"; case WILD -> "任一技能";
+            };
+            sb.append(zh).append(" +").append(m.skillBonus());
+        }
+        if (m.weaponBonus() != 0) {
+            if (sb.length() > 0) {
+                sb.append("、");
+            }
+            sb.append("戰鬥傷害 +").append(m.weaponBonus());
+        }
+        return sb.length() == 0 ? null : sb.append("(持續,常駐修正)").toString();
     }
 
     /** 外部登記層(G1):伺服器啟動時由 content/cards/generated/ 灌入真卡資料;查找優先於內建。 */

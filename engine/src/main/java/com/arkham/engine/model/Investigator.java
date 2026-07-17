@@ -140,6 +140,9 @@ public final class Investigator {
     /** 治療傷害(下限 0)。 */
     public void heal(int n) { this.damage = Math.max(0, this.damage - n); }
 
+    /** 治療恐懼(下限 0)。 */
+    public void healHorror(int n) { this.horror = Math.max(0, this.horror - n); }
+
     /** Wire projection including private hand contents. */
     public List<HandCard> handView() {
         return hand.stream().map(CardInstance::toHandCard).toList();
