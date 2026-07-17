@@ -76,6 +76,11 @@ export class Hud {
   private $ = (id: string) => document.getElementById(id)!;
 
   constructor() {
+    this.$("act-draw").onclick = () => this.onIntent?.("DRAW");
+    this.$("act-resource").onclick = () => this.onIntent?.("GAIN_RESOURCE");
+    this.$("act-resign").onclick = () => {
+      if (confirm("確定撤退?你將退出本劇本(成果保留;人數縮放不變)。")) this.onIntent?.("RESIGN");
+    };
     this.$("act-investigate").onclick = () => this.onIntent?.("INVESTIGATE");
     this.$("act-endturn").onclick = () => this.onIntent?.("END_TURN");   // 「我打完了」(屏障)
     this.$("act-endround").onclick = () => {
@@ -167,7 +172,10 @@ export class Hud {
     const doneCount = (view.you.turnDone ? 1 : 0)
       + view.otherInvestigators.filter((o) => o.turnDone).length;
     const total = 1 + view.otherInvestigators.length;
-    if (view.phase === "INVESTIGATION") {
+    if (view.you.elimination) {
+      now.append(view.you.elimination === "RESIGNED" ? "🏳️ 你已撤退 — 觀戰中" : "☠️ 你已被擊敗,退出本劇本 — 觀戰中");
+      hint.append("等隊友完成本章;全員退場則本章以「未達成結局」收場。跨章回大廳後可再參戰。");
+    } else if (view.phase === "INVESTIGATION") {
       if (view.you.turnDone) {
         now.append(`✅ 你已結束本輪 — 完成 ${doneCount}/${total}`);
         hint.append("等隊友按「✋我打完了」;全員完成自動結算敵人/神話。卡住時可「⏭️全體結束」強制。");
@@ -250,9 +258,13 @@ export class Hud {
 
   private updateActionButtons(view: GameStateView, canAct: boolean) {
     const here: LocationView | undefined = view.locations.find((l) => l.id === view.you.locationId);
-    (this.$("act-investigate") as HTMLButtonElement).disabled = !(canAct && (here?.clues ?? 0) > 0);
+    const out = !!view.you.elimination;   // 已退場:所有行動關閉
+    (this.$("act-draw") as HTMLButtonElement).disabled = !canAct || out;
+    (this.$("act-resource") as HTMLButtonElement).disabled = !canAct || out;
+    (this.$("act-resign") as HTMLButtonElement).disabled = out || view.phase !== "INVESTIGATION";
+    (this.$("act-investigate") as HTMLButtonElement).disabled = !(canAct && (here?.clues ?? 0) > 0) || out;
     const endTurn = this.$("act-endturn") as HTMLButtonElement;
-    endTurn.disabled = view.phase !== "INVESTIGATION" || view.you.turnDone;
+    endTurn.disabled = view.phase !== "INVESTIGATION" || view.you.turnDone || out;
     endTurn.textContent = view.you.turnDone ? "✅ 已結束(等隊友)" : "✋ 我打完了";
     (this.$("act-endround") as HTMLButtonElement).disabled = view.phase !== "INVESTIGATION";
     (this.$("act-advance") as HTMLButtonElement).disabled = view.phase !== "INVESTIGATION";

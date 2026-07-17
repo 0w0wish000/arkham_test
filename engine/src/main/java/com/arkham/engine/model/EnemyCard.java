@@ -59,6 +59,12 @@ public final class EnemyCard {
     public int getHorror() { return horror; }
     public List<Keyword> getKeywords() { return keywords; }
 
+    /** 此卡上的毀滅 — 計入密謀門檻(官方:「場上所有毀滅」)。 */
+    private int doom;
+    public int getDoom() { return doom; }
+    public void addDoom(int n) { this.doom += Math.max(0, n); }
+    public void clearDoom() { this.doom = 0; }
+
     public int getDamageOn() { return damageOn; }
     public boolean isExhausted() { return exhausted; }
     public String getLocationId() { return locationId; }

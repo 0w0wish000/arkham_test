@@ -45,6 +45,12 @@ public final class LocationCard {
     public int getShroud() { return shroud; }
     public int getClueValue() { return clueValue; }
     public List<String> getConnections() { return connections; }
+    /** 此卡上的毀滅 — 計入密謀門檻(官方:「場上所有毀滅」)。 */
+    private int doom;
+    public int getDoom() { return doom; }
+    public void addDoom(int n) { this.doom += Math.max(0, n); }
+    public void clearDoom() { this.doom = 0; }
+
     public boolean isVictory() { return victory; }
     public String getSpawnDefKey() { return spawnDefKey; }
 

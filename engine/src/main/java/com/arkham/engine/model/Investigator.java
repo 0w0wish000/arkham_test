@@ -34,6 +34,11 @@ public final class Investigator {
     private final List<String> engagedEnemyIds = new ArrayList<>();
     private int[] skillBonus = new int[4];                           // 支援卡給的技能加值(依 SkillType 序;存檔可還原)
     private boolean turnDone;                                        // 本輪「我打完了」(END_TURN 屏障)
+    private Elimination elimination;                                 // 個別淘汰(null = 仍在場)
+    private boolean mulliganed;                                      // 開局調整只能一次(官方 p20)
+
+    /** 退場原因(官方 p41 Elimination):被傷害/恐懼擊敗,或主動撤退。 */
+    public enum Elimination { DAMAGE, HORROR, RESIGNED }
     private final List<String> usedAbilities = new ArrayList<>();    // 本輪已用的「每回合限一次」能力 id
 
     @com.fasterxml.jackson.annotation.JsonCreator
@@ -117,6 +122,15 @@ public final class Investigator {
 
     public boolean isTurnDone() { return turnDone; }
     public void setTurnDone(boolean done) { this.turnDone = done; }
+
+    public Elimination getElimination() { return elimination; }
+    public boolean isEliminated() { return elimination != null; }
+    /** 仍在本劇本中(未被淘汰)。 */
+    public boolean isInPlay() { return elimination == null; }
+    public void eliminate(Elimination cause) { this.elimination = cause; }
+
+    public boolean hasMulliganed() { return mulliganed; }
+    public void setMulliganed(boolean m) { this.mulliganed = m; }
 
     /** 「每回合限一次」能力記帳(新回合由引擎清空)。 */
     public List<String> getUsedAbilities() { return usedAbilities; }

@@ -13,8 +13,9 @@ export type Keyword =
   | "ELUSIVE" | "PATROL" | "PREY" | "PERIL" | "FAST";
 
 export type IntentAction =
-  | "MOVE" | "INVESTIGATE" | "FIGHT" | "EVADE" | "ENGAGE"
-  | "PLAY_CARD" | "ACTIVATE" | "END_TURN" | "ADVANCE_ACT";
+  | "DRAW" | "GAIN_RESOURCE" | "PLAY_CARD" | "ACTIVATE"
+  | "MOVE" | "INVESTIGATE" | "ENGAGE" | "FIGHT" | "EVADE"
+  | "PARLEY" | "RESIGN" | "MULLIGAN" | "END_TURN" | "ADVANCE_ACT";
 
 export type ChoiceKind = "COMMIT_CARDS" | "CHOOSE_TARGET" | "CHOOSE_OPTION";
 
@@ -135,11 +136,12 @@ export interface SelfView {
   locationId: string; hand: HandCard[]; playArea: HandCard[];
   deckCount: number;      // 牌堆剩餘(C-lite 牌組管線)
   turnDone: boolean;      // 本輪已按「我打完了」(END_TURN 屏障)
+  elimination: string | null;   // null=在場;DAMAGE/HORROR/RESIGNED=已退場(個別淘汰制)
   engagedEnemyIds: string[];
 }
 export interface OtherInvestigatorView {
   investigatorId: string; locationId: string; damage: number; horror: number; handCount: number;
-  turnDone: boolean;
+  turnDone: boolean; elimination: string | null;
 }
 export interface LocationView {
   id: string; name: string; revealed: boolean; shroud: number; clues: number;

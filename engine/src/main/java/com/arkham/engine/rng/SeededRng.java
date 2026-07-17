@@ -1,5 +1,6 @@
 package com.arkham.engine.rng;
 
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -28,5 +29,15 @@ public final class SeededRng {
     /** Uniform int in {@code [0, bound)}. */
     public int nextInt(int bound) {
         return random.nextInt(bound);
+    }
+
+    /** In-place Fisher–Yates shuffle(牌堆/遭遇堆)— 同種子同順序。 */
+    public <T> void shuffle(List<T> list) {
+        for (int i = list.size() - 1; i > 0; i--) {
+            int j = random.nextInt(i + 1);
+            T tmp = list.get(i);
+            list.set(i, list.get(j));
+            list.set(j, tmp);
+        }
     }
 }

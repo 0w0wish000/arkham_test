@@ -272,11 +272,16 @@ public final class RulesEngine {
         Map<String, Object> p = payload == null ? Map.of() : payload;
 
         switch (action) {
+            case DRAW -> drawAction(inv, events);
+            case GAIN_RESOURCE -> gainResourceAction(inv, events);
             case MOVE -> move(inv, str(p, "toLocationId"), events);
             case INVESTIGATE -> investigate(inv, events);
             case FIGHT -> fight(inv, str(p, "enemyId"), events);
             case EVADE -> evade(inv, str(p, "enemyId"), events);
             case ENGAGE -> engage(inv, str(p, "enemyId"), events);
+            case PARLEY -> throw new IllegalArgumentException("交涉需由卡牌能力發動(本版尚未提供可交涉目標)");
+            case RESIGN -> resign(inv, events);
+            case MULLIGAN -> mulligan(inv, (List<?>) p.getOrDefault("cardIds", List.of()), events);
             case END_TURN -> endTurn(inv, bool(p, "force"), events);
             case ADVANCE_ACT -> advanceAct(inv, events);
             case PLAY_CARD -> playCard(inv, str(p, "cardId"), events);
@@ -305,7 +310,7 @@ public final class RulesEngine {
         LocationCard dest = state.location(toLocationId);
         if (!dest.isRevealed()) {
             dest.setRevealed(true);
-            dest.setClues(dest.getClueValue() * state.getInvestigators().size()); // clueValue × players
+            dest.setClues(dest.getClueValue() * state.getPlayerCount()); // clueValue × 開局玩家數(撤退不減,官方 p14)
             events.add(GameEvent.of("MOVE",
                     "進入並揭示 " + dest.getName() + ",放上 " + dest.getClues() + " 線索。"));
             if (dest.getSpawnDefKey() != null) {
@@ -371,10 +376,74 @@ public final class RulesEngine {
         if (e == null || !e.getLocationId().equals(inv.getLocationId())) {
             throw new IllegalArgumentException("No enemy to engage here");
         }
+        attackOfOpportunity(inv, "交戰", events);   // 官方 p22:交戰不在豁免之列(目標尚未交戰,不會攻擊)
+        if (state.isGameOver() || inv.isEliminated()) {
+            return;
+        }
         e.setEngagedWith(inv.getId());
         inv.engage(e.getId());
         events.add(GameEvent.of("ENGAGE", inv.getName() + " 與 " + e.getName() + " 交戰。"));
         inv.spendAction();
+    }
+
+    /** 抽牌行動(官方基本行動;會引發趁隙攻擊)。 */
+    private void drawAction(Investigator inv, List<GameEvent> events) {
+        requireInvestigationTurn(inv);
+        attackOfOpportunity(inv, "抽牌", events);
+        if (state.isGameOver() || inv.isEliminated()) {
+            return;
+        }
+        drawOne(inv, events);
+        events.add(GameEvent.of("DRAW", inv.getName() + " 抽了 1 張牌。"));
+        inv.spendAction();
+    }
+
+    /** 取資源行動(官方基本行動;會引發趁隙攻擊)。 */
+    private void gainResourceAction(Investigator inv, List<GameEvent> events) {
+        requireInvestigationTurn(inv);
+        attackOfOpportunity(inv, "取資源", events);
+        if (state.isGameOver() || inv.isEliminated()) {
+            return;
+        }
+        inv.gainResources(1);
+        events.add(GameEvent.of("RESOURCE", inv.getName() + " 獲得 1 資源(共 " + inv.getResources() + ")。"));
+        inv.spendAction();
+    }
+
+    /** 撤退(官方 p14):主動退場保住成果;不引發趁隙攻擊;不減人數縮放。 */
+    private void resign(Investigator inv, List<GameEvent> events) {
+        if (state.getPhase() != Phase.INVESTIGATION) {
+            throw new IllegalArgumentException("只能在調查階段撤退");
+        }
+        events.add(GameEvent.of("RESIGN", "🏳️ " + inv.getName() + " 撤退,離開本劇本(成果保留)。"));
+        eliminate(inv, Investigator.Elimination.RESIGNED, events);
+    }
+
+    /** 開局手牌調整(官方 p20):每人一次,把選定的手牌放一旁、補抽等量、放一旁者洗回牌庫。 */
+    private void mulligan(Investigator inv, List<?> cardIds, List<GameEvent> events) {
+        if (state.getRound() != 1 || state.getPhase() != Phase.INVESTIGATION) {
+            throw new IllegalArgumentException("只能在第 1 輪行動前調整手牌");
+        }
+        if (inv.hasMulliganed()) {
+            throw new IllegalArgumentException("每人只能調整一次手牌");
+        }
+        if (inv.getActionsRemaining() < 3 || inv.isTurnDone()) {
+            throw new IllegalArgumentException("已開始行動,不能再調整手牌");
+        }
+        inv.setMulliganed(true);
+        List<CardInstance> aside = new ArrayList<>();
+        for (Object idObj : cardIds) {
+            CardInstance c = inv.findHandCard(String.valueOf(idObj));
+            if (c != null && inv.getHand().remove(c)) {
+                aside.add(c);
+            }
+        }
+        for (int i = 0; i < aside.size(); i++) {
+            drawOne(inv, events);
+        }
+        inv.getDeckPile().addAll(aside);        // 放一旁的牌洗回牌庫
+        shuffleCards(inv.getDeckPile());
+        events.add(GameEvent.of("MULLIGAN", inv.getName() + " 調整手牌:換掉 " + aside.size() + " 張。"));
     }
 
     /** 打出手牌(測試沙盒:一組手寫效果的特殊卡;docs/11 是「B 能力引擎 + C 效果 DSL」的垂直切片)。 */
@@ -389,6 +458,10 @@ public final class RulesEngine {
         }
         if (inv.getResources() < card.cost()) {
             throw new IllegalArgumentException("資源不足:需 " + card.cost() + ",只有 " + inv.getResources());
+        }
+        attackOfOpportunity(inv, "打出卡牌", events);   // 官方:打非快速卡會引發趁隙攻擊
+        if (state.isGameOver() || inv.isEliminated()) {
+            return;
         }
         inv.gainResources(-card.cost());
         applyCardEffect(inv, card, events);
@@ -462,7 +535,7 @@ public final class RulesEngine {
         int base = effSkill(performer, skill);
         List<String> eligible = new ArrayList<>();
         eligible.add(performer.getId());
-        for (Investigator other : state.orderedInvestigators()) {
+        for (Investigator other : state.investigatorsInPlay()) {
             if (!other.getId().equals(performer.getId())
                     && other.getLocationId().equals(performer.getLocationId())) {
                 eligible.add(other.getId()); // same-location allies may commit ≤1 (docs/05 §2.1)
@@ -635,7 +708,7 @@ public final class RulesEngine {
         }
         inv.setTurnDone(true);
         inv.setActionsRemaining(0);
-        long waiting = state.orderedInvestigators().stream().filter(i -> !i.isTurnDone()).count();
+        long waiting = state.investigatorsInPlay().stream().filter(i -> !i.isTurnDone()).count();
         if (waiting > 0) {
             events.add(GameEvent.of("TURN",
                     "✋ " + inv.getName() + " 結束了本輪行動(等待其餘 " + waiting + " 位)。"));
@@ -661,7 +734,7 @@ public final class RulesEngine {
         for (EnemyCard e : state.getEnemies().values()) {
             e.setExhausted(false); // ready all
         }
-        for (Investigator inv : state.orderedInvestigators()) {
+        for (Investigator inv : state.investigatorsInPlay()) {
             inv.gainResources(1);       // 整備:獲得 1 資源
             drawOne(inv, events);       // 整備:抽 1 張(C-lite 牌堆;空堆 → 洗回棄牌堆 +1 恐懼)
             int over = inv.getHand().size() - 8;   // 整備:手牌上限 8(官方 p17;lite 自動棄最舊,正式版改玩家選)
@@ -699,6 +772,32 @@ public final class RulesEngine {
             inv.getUsedAbilities().clear();  // 「每回合限一次」能力重置
         }
         events.add(GameEvent.of("PHASE", "—— 調查階段 ——"));
+    }
+
+    /** 淘汰(官方 p41):線索放到所在地點、威脅區敵人解交戰留在地點;全員退場 → 未達成結局。 */
+    private void eliminate(Investigator inv, Investigator.Elimination cause, List<GameEvent> events) {
+        if (inv.isEliminated()) {
+            return;
+        }
+        inv.eliminate(cause);
+        LocationCard here = state.location(inv.getLocationId());
+        if (here != null && inv.getCluesHeld() > 0) {
+            here.setClues(here.getClues() + inv.getCluesHeld());
+            events.add(GameEvent.of("ELIMINATED", inv.getName() + " 的 " + inv.getCluesHeld() + " 個線索掉落在 " + here.getName() + "。"));
+            inv.spendClues(inv.getCluesHeld());
+        }
+        for (String enemyId : new ArrayList<>(inv.getEngagedEnemyIds())) {
+            EnemyCard e = state.enemy(enemyId);
+            if (e != null) {
+                e.setEngagedWith(null);   // 敵人留在地點、解除交戰
+            }
+            inv.disengage(enemyId);
+        }
+        inv.setTurnDone(true);   // 不再擋 END_TURN 屏障
+        if (state.allEliminated()) {
+            state.endGame(false, "所有調查員都已退場 —— 未達成任何結局。");
+            events.add(GameEvent.of("GAME_OVER", state.getOutcomeMessage()));
+        }
     }
 
     /** 抽 1 張(C-lite 牌堆):空堆 → 棄牌堆洗回並受 1 恐懼(正規規則);兩者皆空 → 不抽。 */
@@ -783,15 +882,18 @@ public final class RulesEngine {
 
         Agenda agenda = state.getAgenda();
         agenda.addDoom(1);
+        int doomInPlay = agenda.getDoom()
+                + state.getEnemies().values().stream().mapToInt(EnemyCard::getDoom).sum()
+                + state.getLocations().values().stream().mapToInt(LocationCard::getDoom).sum();
         events.add(GameEvent.of("MYTHOS",
-                "🕯️ 密謀累積毀滅:" + agenda.getDoom() + "/" + agenda.getThreshold() + "。"));
-        if (agenda.atThreshold()) {
+                "🕯️ 場上毀滅:" + doomInPlay + "/" + agenda.getThreshold() + "(官方:計入所有卡上的毀滅)。"));
+        if (doomInPlay >= agenda.getThreshold()) {
             state.endGame(false, "密謀推進 —— 黑暗吞噬了阿卡姆大學。");
             events.add(GameEvent.of("GAME_OVER", state.getOutcomeMessage()));
             return;
         }
 
-        for (Investigator inv : state.orderedInvestigators()) {
+        for (Investigator inv : state.investigatorsInPlay()) {
             EncounterCard card = state.drawEncounter();
             if (card != null) {
                 resolveEncounter(inv, card, events);
@@ -899,16 +1001,17 @@ public final class RulesEngine {
         }
     }
 
+    /** 個別淘汰制(官方 p41):被擊敗只退場,劇本繼續;全員退場才以「未達成結局」收場。 */
     private void checkDefeat(Investigator inv, List<GameEvent> events) {
-        if (state.isGameOver()) {
+        if (state.isGameOver() || inv.isEliminated()) {
             return;
         }
         if (inv.getDamage() >= inv.getHealth()) {
-            state.endGame(false, inv.getName() + " 傷重被擊敗(生命歸零)。");
-            events.add(GameEvent.of("GAME_OVER", state.getOutcomeMessage()));
+            events.add(GameEvent.of("DEFEATED", "☠️ " + inv.getName() + " 傷重被擊敗,退出本劇本。"));
+            eliminate(inv, Investigator.Elimination.DAMAGE, events);
         } else if (inv.getHorror() >= inv.getSanity()) {
-            state.endGame(false, inv.getName() + " 精神崩潰(理智歸零)。");
-            events.add(GameEvent.of("GAME_OVER", state.getOutcomeMessage()));
+            events.add(GameEvent.of("DEFEATED", "🧠 " + inv.getName() + " 精神崩潰,退出本劇本。"));
+            eliminate(inv, Investigator.Elimination.HORROR, events);
         }
     }
 
@@ -1011,7 +1114,7 @@ public final class RulesEngine {
     }
 
     private Investigator investigatorAt(String locationId) {
-        return state.orderedInvestigators().stream()
+        return state.investigatorsInPlay().stream()
                 .filter(inv -> inv.getLocationId().equals(locationId))
                 .findFirst().orElse(null);
     }
@@ -1036,6 +1139,7 @@ public final class RulesEngine {
                 me.getId(), eff, me.getHealth(), me.getDamage(), me.getSanity(), me.getHorror(),
                 me.getResources(), me.getCluesHeld(), me.getActionsRemaining(), me.getLocationId(),
                 me.handView(), me.playAreaView(), me.getDeckPile().size(), me.isTurnDone(),
+                me.getElimination() == null ? null : me.getElimination().name(),
                 List.copyOf(me.getEngagedEnemyIds()));
 
         List<OtherInvestigatorView> others = new ArrayList<>();
@@ -1043,7 +1147,7 @@ public final class RulesEngine {
             if (!inv.getId().equals(investigatorId)) {
                 others.add(new OtherInvestigatorView(
                         inv.getId(), inv.getLocationId(), inv.getDamage(), inv.getHorror(), inv.getHand().size(),
-                        inv.isTurnDone()));
+                        inv.isTurnDone(), inv.getElimination() == null ? null : inv.getElimination().name()));
             }
         }
 
@@ -1097,6 +1201,9 @@ public final class RulesEngine {
     }
 
     private void requireInvestigationTurn(Investigator inv) {
+        if (inv.isEliminated()) {
+            throw new IllegalArgumentException("你已退出本劇本,無法再行動");
+        }
         if (state.getPhase() != Phase.INVESTIGATION) {
             throw new IllegalArgumentException("Not the investigation phase");
         }

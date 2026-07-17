@@ -111,6 +111,22 @@ public final class GameState {
 
     public String nextEnemyId() { return "e" + (++enemySeq); }
 
+    /**
+     * 開局固定的玩家數 —— 撤退/淘汰不減(官方 p14:人數縮放判定不因撤退改變)。
+     * 任何「×玩家數」縮放一律讀這裡,不要讀 investigators.size()。
+     */
+    private int playerCount;
+    public int getPlayerCount() { return playerCount > 0 ? playerCount : investigators.size(); }
+    public void lockPlayerCount() { this.playerCount = investigators.size(); }
+
+    /** 仍在場(未淘汰)的調查員。 */
+    public java.util.List<Investigator> investigatorsInPlay() {
+        return orderedInvestigators().stream().filter(Investigator::isInPlay).toList();
+    }
+
+    /** 全員退場 → 劇本以「未達成結局」收場(官方 p41)。 */
+    public boolean allEliminated() { return investigatorsInPlay().isEmpty(); }
+
     public boolean isGameOver() { return gameOver; }
     public boolean isWon() { return won; }
     public String getOutcomeMessage() { return outcomeMessage; }

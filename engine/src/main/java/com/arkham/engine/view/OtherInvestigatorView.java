@@ -11,4 +11,5 @@ public record OtherInvestigatorView(
         int damage,
         int horror,
         int handCount,
-        boolean turnDone) {}
+        boolean turnDone,
+        String elimination) {}

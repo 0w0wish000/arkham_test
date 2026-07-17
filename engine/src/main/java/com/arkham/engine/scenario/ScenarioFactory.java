@@ -148,9 +148,9 @@ public final class ScenarioFactory {
         state.setActiveInvestigatorId(roster.get(0));
 
         // Starting location is revealed at setup: place clueValue × players.
-        int players = state.getInvestigators().size();
+        state.lockPlayerCount();   // 撤退不減縮放(官方 p14)
         LocationCard start = state.location("friends_room");
-        start.setClues(start.getClueValue() * players);
+        start.setClues(start.getClueValue() * state.getPlayerCount());
 
         return state;
     }
@@ -248,9 +248,9 @@ public final class ScenarioFactory {
         }
         state.setActiveInvestigatorId(roster.get(0));
 
-        int players = state.getInvestigators().size();
+        state.lockPlayerCount();
         LocationCard hub = state.location("test_hub");
-        hub.setClues(hub.getClueValue() * players);
+        hub.setClues(hub.getClueValue() * state.getPlayerCount());
         return state;
     }
 

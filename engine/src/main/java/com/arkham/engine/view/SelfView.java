@@ -25,4 +25,5 @@ public record SelfView(
         List<HandCard> playArea,
         int deckCount,
         boolean turnDone,
+        String elimination,   // null=在場;DAMAGE/HORROR/RESIGNED=已退場
         List<String> engagedEnemyIds) {}
