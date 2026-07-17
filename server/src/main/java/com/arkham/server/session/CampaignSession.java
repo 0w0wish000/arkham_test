@@ -215,13 +215,26 @@ public final class CampaignSession {
         broadcastRoster();
     }
 
-    /** 提交牌組;XP 不得超過此戰役路線至今可取得的上限(docs/09 §11)。 */
+    /** 提交牌組;XP 不得超過上限(docs/09 §11);F1-lite 構築驗證(同名 ≤2、張數上限)。 */
     public synchronized void setDeck(String playerId, List<String> deck, int xp) throws IOException {
         Member m = roster.get(playerId);
         if (m == null) return;
         if (xp > maxXp) {
             sendTo(playerId, new ServerMessage.Error("經驗超過此戰役可取得上限 " + maxXp + "。"));
             return;
+        }
+        String violation = com.arkham.engine.scenario.DeckRules.validate(deck);
+        if (violation != null) {
+            sendTo(playerId, new ServerMessage.Error("牌組不合法:" + violation));
+            return;
+        }
+        List<String> unknown = com.arkham.engine.scenario.DeckRules.unknownCards(deck);
+        if (!unknown.isEmpty()) {
+            // 不擋(內容管線未跑的環境仍可玩;未知卡入場為 0 費無效果),但明講
+            sendTo(playerId, new ServerMessage.Event("deck",
+                    "⚠️ 牌組含目錄查無的卡(將以無效果卡入場):" + String.join("、",
+                            unknown.subList(0, Math.min(5, unknown.size())))
+                            + (unknown.size() > 5 ? " …等 " + unknown.size() + " 種" : "")));
         }
         m.deck = deck == null ? new ArrayList<>() : new ArrayList<>(deck);
         m.xp = Math.max(0, xp);

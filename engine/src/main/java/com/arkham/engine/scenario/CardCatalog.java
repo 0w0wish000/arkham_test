@@ -196,6 +196,9 @@ public final class CardCatalog {
 
     public static int externalCount() { return EXTERNAL.size(); }
 
+    /** 目錄(內建或外部真卡資料)認得這個卡名嗎?(F1-lite 牌組驗證的警告依據) */
+    public static boolean isKnown(String name) { return EXTERNAL.containsKey(name) || CARDS.containsKey(name); }
+
     /** 把一份卡名清單實體化成牌堆(cardId 依 {@code prefix-d1..} 編)。 */
     public static List<CardInstance> buildDeck(String idPrefix, List<String> names) {
         List<CardInstance> deck = new java.util.ArrayList<>();

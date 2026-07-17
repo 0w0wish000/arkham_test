@@ -90,6 +90,18 @@ async function main() {
   await sleep(200);
   check(!A.q.some((m) => m.type === "ERROR"), "合法 XP(5)不報錯");
 
+  // ── F1-lite 牌組驗證 ──
+  section("①b 牌組構築驗證(同名 ≤2 / 張數上限)");
+  A.send({ type: "SET_DECK", deck: ["Guts", "Guts", "Guts"], xp: 0 });
+  const dupErr = await A.waitFor((m) => m.type === "ERROR", "同名第 3 張 ERROR");
+  check(/同名.*Guts|Guts.*同名/.test(dupErr.message), "同名第 3 張被擋", dupErr.message);
+  A.send({ type: "SET_DECK", deck: Array.from({ length: 61 }, (_, i) => `卡${i}`), xp: 0 });
+  const sizeErr = await A.waitFor((m) => m.type === "ERROR", "61 張 ERROR");
+  check(/60/.test(sizeErr.message), "超過 60 張上限被擋", sizeErr.message);
+  A.send({ type: "SET_DECK", deck: ["Deduction", "沒這張卡"], xp: 0 });
+  const warn = await A.waitFor((m) => m.type === "EVENT" && /查無/.test(m.message), "未知卡警告");
+  check(/沒這張卡/.test(warn.message), "未知卡不擋但警告", warn.message);
+
   // ── 死亡換角投票 ──
   section("② 死亡換角投票 → 通過 → 永久封鎖");
   B.send({ type: "PROPOSE_NEW_CHARACTER", playerId: "cv-a" });   // 對 A 的角色發起
