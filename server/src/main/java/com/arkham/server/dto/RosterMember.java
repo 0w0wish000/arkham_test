@@ -11,5 +11,6 @@ public record RosterMember(
         String displayName,
         String investigatorId,
         boolean ready,
-        String status) {
+        String status,
+        boolean connected) {
 }

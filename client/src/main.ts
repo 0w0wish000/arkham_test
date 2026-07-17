@@ -111,6 +111,7 @@ async function main() {
   lobby.onDeleteSave = (campaignId) => { deleteSave(campaignId); lobby.renderSaves(listSaves()); };
   lobby.onSitOut = (sitOut) => conn.sitOut(sitOut);       // 本章中離/歸隊(docs/09 §9)
   lobby.onProposeNewChar = (playerId) => conn.proposeNewCharacter(playerId);   // 死亡換角(§10)
+  lobby.onClaimSeat = (targetPlayerId) => conn.claimSeat(targetPlayerId);       // 席位認領(P6)
 
   // 完整選卡器(P2-2):開 iframe 構築;「完成牌組」→ 送回 PICK + SET_DECK + READY
   lobby.onOpenDeckbuilder = () => {

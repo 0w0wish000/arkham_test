@@ -52,6 +52,7 @@ public final class CampaignSession {
     private int maxXp = 50;                               // XP 上限(lite 版先給常數;正式版依戰役路線)
     private int currentChapter = 1;                       // 跨章推進(docs/09 §9;campaigns.json 章節序)
     private CharVote charVote;                            // 換角投票進行中
+    private ClaimVote claimVote;                          // 席位認領投票進行中(docs/09 P6)
 
     public CampaignSession(String campaignId, String name, String campaignKey,
                            String difficulty, ObjectMapper mapper) {
@@ -153,6 +154,9 @@ public final class CampaignSession {
         }
         if (charVote != null && charVote.outstanding.remove(playerId) && charVote.outstanding.isEmpty()) {
             resolveCharVote();
+        }
+        if (claimVote != null && claimVote.outstanding.remove(playerId) && claimVote.outstanding.isEmpty()) {
+            resolveClaimVote();
         }
 
         if (game != null) {
@@ -318,11 +322,19 @@ public final class CampaignSession {
     }
 
     public synchronized void vote(String requestId, String voterId, boolean yes) throws IOException {
-        if (charVote == null || !charVote.requestId.equals(requestId)) return;
-        if (!charVote.outstanding.remove(voterId)) return;
-        charVote.total++;
-        if (yes) charVote.yes++;
-        if (charVote.outstanding.isEmpty()) resolveCharVote();
+        if (charVote != null && charVote.requestId.equals(requestId)) {
+            if (!charVote.outstanding.remove(voterId)) return;
+            charVote.total++;
+            if (yes) charVote.yes++;
+            if (charVote.outstanding.isEmpty()) resolveCharVote();
+            return;
+        }
+        if (claimVote != null && claimVote.requestId.equals(requestId)) {
+            if (!claimVote.outstanding.remove(voterId)) return;
+            claimVote.total++;
+            if (yes) claimVote.yes++;
+            if (claimVote.outstanding.isEmpty()) resolveClaimVote();
+        }
     }
 
     private void resolveCharVote() throws IOException {
@@ -341,6 +353,80 @@ public final class CampaignSession {
             broadcast(new ServerMessage.Event("death", "換角投票未過半,維持現狀。"));
         }
         broadcastRoster();
+    }
+
+    // ------------------------------------------------------------------
+    // 席位認領(docs/09 P6):換裝置(新 playerId)認回離線席位
+    // ------------------------------------------------------------------
+
+    /**
+     * 認領離線席位:認領者(已入桌的新身分)繼承目標席位的角色/牌組/XP/狀態,
+     * 目標席位移除。需其餘「在線」成員表決(無異議通過;無人在線 → 直接通過)。
+     * 戰役進行中不可認領(接手限原玩家 —— 使用者定案);請於章節之間處理。
+     */
+    public synchronized void claimSeat(String claimerId, String targetPlayerId) throws IOException {
+        if (game != null) {
+            sendTo(claimerId, new ServerMessage.Error("戰役進行中無法認領席位;請於章節之間(牌組大廳)認領。"));
+            return;
+        }
+        if (claimVote != null) {
+            sendTo(claimerId, new ServerMessage.Error("已有一場席位認領投票進行中,請稍候。"));
+            return;
+        }
+        Member claimer = roster.get(claimerId);
+        Member target = roster.get(targetPlayerId);
+        if (claimer == null || target == null || claimerId.equals(targetPlayerId)) {
+            sendTo(claimerId, new ServerMessage.Error("找不到可認領的席位。"));
+            return;
+        }
+        if (clients.containsKey(targetPlayerId)) {
+            sendTo(claimerId, new ServerMessage.Error("該席位的玩家仍在線上,無法認領。"));
+            return;
+        }
+        java.util.Set<String> voters = new HashSet<>(clients.keySet());
+        voters.remove(claimerId);   // 認領者不投自己的案
+        String reqId = UUID.randomUUID().toString();
+        claimVote = new ClaimVote(reqId, claimerId, targetPlayerId, voters);
+        broadcast(new ServerMessage.Event("claim", claimer.displayName + " 想認領 "
+                + target.displayName + " 的席位(換了裝置的隊友回歸)。"));
+        if (voters.isEmpty()) {          // 桌上只剩認領者 → 無人異議,直接通過
+            resolveClaimVote();
+            return;
+        }
+        String reason = claimer.displayName + " 想認領 " + target.displayName + " 的席位("
+                + (target.investigatorId == null ? "尚未選角" : target.investigatorId)
+                + ",XP " + target.xp + ")—— 他換了裝置,同意讓他繼承這個席位嗎?";
+        for (String pid : voters) {
+            sendTo(pid, new ServerMessage.VotePrompt(reqId, targetPlayerId, reason));
+        }
+    }
+
+    /** 結案:無人投反對過半即通過(0 票 = 通過);目標若已重新上線則取消。 */
+    private void resolveClaimVote() throws IOException {
+        ClaimVote v = claimVote;
+        claimVote = null;
+        Member claimer = roster.get(v.claimerId);
+        Member target = roster.get(v.targetPlayerId);
+        boolean pass = v.yes * 2 >= v.total;   // 同意 ≥ 半數(含平手;無人投票=通過)
+        if (!pass || claimer == null || target == null || clients.containsKey(v.targetPlayerId)) {
+            broadcast(new ServerMessage.Event("claim", "席位認領未成立,維持現狀。"));
+            broadcastRoster();
+            return;
+        }
+        claimer.investigatorId = target.investigatorId;
+        claimer.deck = new ArrayList<>(target.deck);
+        claimer.xp = target.xp;
+        claimer.status = target.status;
+        claimer.ready = false;
+        roster.remove(v.targetPlayerId);
+        broadcast(new ServerMessage.Event("claim", "✅ " + claimer.displayName + " 認領了 "
+                + target.displayName + " 的席位,繼承其調查員"
+                + (claimer.investigatorId != null ? "「" + claimer.investigatorId + "」" : "")
+                + "、牌組與 " + claimer.xp + " XP。"));
+        broadcastRoster();
+        if ("DECKBUILDING".equals(stage)) {
+            commitSave();   // 席位易主 → 立即出新存檔版本(LOADING 階段不動存檔,避免蓋掉戰役快照)
+        }
     }
 
     // ------------------------------------------------------------------
@@ -476,7 +562,8 @@ public final class CampaignSession {
     private ServerMessage.SessionRoster rosterMessage() {
         List<RosterMember> members = new ArrayList<>();
         for (Member m : roster.values()) {
-            members.add(new RosterMember(m.playerId, m.displayName, m.investigatorId, m.ready, m.status));
+            members.add(new RosterMember(m.playerId, m.displayName, m.investigatorId, m.ready, m.status,
+                    clients.containsKey(m.playerId)));
         }
         // 牌組/載入階段任何人都能強制越過屏障(熟人內網信任;docs/09 §8.3)。
         boolean canForce = "DECKBUILDING".equals(stage) || "LOADING".equals(stage);
@@ -530,6 +617,22 @@ public final class CampaignSession {
             this.requestId = requestId;
             this.subjectPlayerId = subjectPlayerId;
             this.deadInvestigatorId = deadInvestigatorId;
+            this.outstanding = outstanding;
+        }
+    }
+
+    /** Tracks one open seat-claim vote (docs/09 P6). */
+    private static final class ClaimVote {
+        final String requestId;
+        final String claimerId;
+        final String targetPlayerId;
+        final java.util.Set<String> outstanding;
+        int yes = 0;
+        int total = 0;
+        ClaimVote(String requestId, String claimerId, String targetPlayerId, java.util.Set<String> outstanding) {
+            this.requestId = requestId;
+            this.claimerId = claimerId;
+            this.targetPlayerId = targetPlayerId;
             this.outstanding = outstanding;
         }
     }

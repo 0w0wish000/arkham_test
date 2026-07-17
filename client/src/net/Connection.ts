@@ -78,6 +78,7 @@ export class Connection {
   sitOut(sitOut: boolean) { this.send({ type: "SIT_OUT", sitOut }); }
   // 死亡換角投票(docs/09 §10)
   proposeNewCharacter(playerId: string) { this.send({ type: "PROPOSE_NEW_CHARACTER", playerId }); }
+  claimSeat(targetPlayerId: string) { this.send({ type: "CLAIM_SEAT", targetPlayerId }); }   // 席位認領(P6)
   vote(requestId: string, yes: boolean) { this.send({ type: "VOTE", requestId, yes }); }
 
   // ---- 戰役板 ----

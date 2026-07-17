@@ -55,6 +55,7 @@ export class Lobby {
   onDeleteSave?: (campaignId: string) => void;   // 刪除本機存檔(localStorage 有限)
   onSitOut?: (sitOut: boolean) => void;   // 中離/歸隊(docs/09 §9)
   onProposeNewChar?: (playerId: string) => void;   // 死亡換角投票(docs/09 §10)
+  onClaimSeat?: (targetPlayerId: string) => void;  // 席位認領(docs/09 P6:換裝置回歸)
 
   private currentName = "";
   private myPlayerId = "";
@@ -224,7 +225,10 @@ export class Lobby {
 
     const list = this.$("roster-list");
     list.replaceChildren();
-    for (const m of msg.members) list.appendChild(this.memberRow(m, loading));
+    const meNow = msg.members.find((x) => x.playerId === this.myPlayerId);
+    // 我尚未有角色時,可對「離線且已選角」的席位發起認領(換裝置回歸的自己)
+    const canClaim = !!meNow && !meNow.investigatorId;
+    for (const m of msg.members) list.appendChild(this.memberRow(m, loading, canClaim));
 
     // 牌組控制(選角/選卡器)只在 DECKBUILDING 顯示;LOADING 只需「我已就緒」
     const invField = this.$("deck-inv").closest(".field") as HTMLElement | null;
@@ -263,16 +267,30 @@ export class Lobby {
     this.show("roster");
   }
 
-  private memberRow(m: RosterMember, loading: boolean): HTMLElement {
+  private memberRow(m: RosterMember, loading: boolean, canClaim = false): HTMLElement {
     const row = el("div", "m");
     const dot = el("span", "dot");
-    if (m.status === "DEAD") dot.style.background = "#8a3b2f";
+    if (m.connected === false) dot.style.background = "#4a5563";        // 離線:深灰
+    else if (m.status === "DEAD") dot.style.background = "#8a3b2f";
     else if (m.status === "SITTING_OUT") dot.style.background = "#93a4b3";
     row.appendChild(dot);
     row.appendChild(el("span", "m-name", m.displayName));
-    const role = (m.investigatorId ?? "尚未選角") + (STATUS_ZH[m.status] ? " " + STATUS_ZH[m.status] : "");
+    const role = (m.investigatorId ?? "尚未選角")
+      + (STATUS_ZH[m.status] ? " " + STATUS_ZH[m.status] : "")
+      + (m.connected === false ? "(離線)" : "");
     row.appendChild(el("span", "m-role", role));
     if (m.ready) row.appendChild(el("span", "m-ready", "✓ 就緒"));
+    // 席位認領(P6):我還沒角色 + 對方離線 → 「這是我」認回席位(繼承角色/牌組/XP)
+    if (canClaim && m.connected === false && m.playerId !== this.myPlayerId) {
+      const c = el("button", "m-dead", "🔑 這是我");
+      c.title = "換了裝置?認領這個離線席位,繼承其調查員/牌組/經驗(需在線隊友同意)";
+      c.onclick = () => {
+        if (confirm(`認領「${m.displayName}」的席位?通過後你將繼承其角色、牌組與經驗。`)) {
+          this.onClaimSeat?.(m.playerId);
+        }
+      };
+      row.appendChild(c);
+    }
     // 牌組大廳:對「已選角的成員」可發起死亡換角投票(其角色陣亡時)
     if (!loading && m.investigatorId) {
       const b = el("button", "m-dead", "☠ 換角");

@@ -26,7 +26,7 @@
 - **之後**:自動帶入,不再詢問。
 - **改名**:設定裡可改 `displayName`(`playerId` 不變,記錄不斷)。
 - **同組玩家怎麼被認出(續玩)**:`campaignId` 認「團」、`playerId` 認「人」—— 載檔開桌後,加入者以 playerId 對回名冊席位,自動還原其角色/牌組;戰役中只接受名冊內的 playerId(接手)。
-- ⚠️ **已知缺口**:playerId 綁瀏覽器 localStorage,**換裝置/清資料 = 新身分,舊席位認不回**(牌組階段會被當新人)。待辦:「認領席位」流程或 profile 匯出/匯入(排 P6)。
+- ✅ **P6 席位認領已實作**:playerId 綁瀏覽器 localStorage,換裝置/清資料 = 新身分 —— 解法:入桌後對「離線席位」按「🔑 這是我」(`CLAIM_SEAT`)→ 其餘在線者表決(無異議通過;無人在線直接通過)→ 新身分**繼承該席位的角色/牌組/XP/狀態**,舊席位移除,並自動出新存檔版本。限章節之間(牌組大廳/載入等待);戰役進行中仍維持「只有原玩家可接手」。
 - **有無記錄**:連上主機時送 `HELLO { playerId }`;主機用 `playerId` 去**存檔名冊**比對此人參與過哪些戰役(用於「加載存檔」清單標示「你在此檔中帶 XXX」)。
 
 ---
@@ -324,8 +324,9 @@ Member {
 | ✅ **P3 戰役載入 + 屏障 A** | 戰役級存檔(名冊+牌組+快照+eventLog)→ `CAMPAIGN_SNAPSHOT` 複製各本機;`OFFER_SAVE` 依 stage 還原(DECKBUILDING 還原牌組 / IN_SCENARIO→`LOADING`)→ `READY_LOAD` 屏障A → 重建對局 → `LOG_HISTORY` 回放 | 續玩到一半的戰役 / 牌組 |
 | ✅ **P4 動態名冊** | `SIT_OUT`(中離/歸隊、不擋屏障)、亂入(大廳 JOIN)、**接手**(戰役中掉線保留名冊+session,原玩家重連 `JOIN_SESSION`→`reattach` 送 STATE + 補發卡住的投入決策=重打掉線那一動)、難度隨參戰人數、旁白事件。**跨章 version / 打完接下一章**待多劇本引擎(暫緩) | 中離/亂入/接手 |
 | ✅ **P5 死亡換角 + 投票** | `PROPOSE_NEW_CHARACTER`→`VOTE_PROMPT`→`VOTE`(過半通過)→ 死者角色加入 `deadInvestigators` 永久封鎖、該玩家可改選;`PICK_INVESTIGATOR` 擋封鎖角色;`SET_DECK` 擋 `xp > maxXp`(存檔含 deadInvestigators + maxXp) | 完整戰役生命週期 |
+| ✅ **P6 席位認領** | `CLAIM_SEAT`(targetPlayerId)→ 在線者表決(認領者不投;無異議 `yes*2 ≥ total` 通過、0 票=通過;目標重新上線即取消)→ 繼承角色/牌組/XP、舊席位移除 → DECKBUILDING 自動 `commitSave`;`RosterMember.connected` 讓前端標離線並顯示「🔑 這是我」 | 換裝置/清資料後認回身分 |
 
-> **docs/09 全數(P1–P5)已實作完成。** e2e:`lobby-e2e`(14)、`deckbuild-e2e`(13)、`save-reload-e2e`(18)、`dynamic-roster-e2e`(9,中離+難度縮放+接手+重打掉線那一動)、`char-vote-e2e`(7,死亡換角+封鎖+XP 上限)、`protocol-e2e`(32)。全部由 `node e2e/run.mjs` 一次跑完(自帶暫時 server、自動收尾)。
+> **docs/09 全數(P1–P6)已實作完成。** e2e:`lobby-e2e`(14)、`deckbuild-e2e`(13)、`save-reload-e2e`(18)、`dynamic-roster-e2e`(9,中離+難度縮放+接手+重打掉線那一動)、`char-vote-e2e`(7,死亡換角+封鎖+XP 上限)、`seat-claim-e2e`(12,換裝置認回席位)、`protocol-e2e`(33)。全部由 `node e2e/run.mjs` 一次跑完(自帶暫時 server、自動收尾)。
 >
 > **未竟(需多劇本引擎)**:跨章 version / 打完一章接下一章的戰役推進、完整能力時機系統、全卡實作、戰役劇情文本(FFG 版權)。XP 上限的 `maxXp` 目前為常數(50);正式版應依戰役路線 `Σ maxXpAward` 計算。
 >

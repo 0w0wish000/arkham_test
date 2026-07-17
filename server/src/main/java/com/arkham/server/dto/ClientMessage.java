@@ -34,6 +34,7 @@ import java.util.Map;
         @JsonSubTypes.Type(value = ClientMessage.ReadyLoad.class, name = "READY_LOAD"),
         @JsonSubTypes.Type(value = ClientMessage.SitOut.class, name = "SIT_OUT"),
         @JsonSubTypes.Type(value = ClientMessage.ProposeNewCharacter.class, name = "PROPOSE_NEW_CHARACTER"),
+        @JsonSubTypes.Type(value = ClientMessage.ClaimSeat.class, name = "CLAIM_SEAT"),
         @JsonSubTypes.Type(value = ClientMessage.Vote.class, name = "VOTE")
 })
 public sealed interface ClientMessage
@@ -42,7 +43,7 @@ public sealed interface ClientMessage
                 ClientMessage.Hello, ClientMessage.CreateCampaign, ClientMessage.JoinSession, ClientMessage.LeaveSession,
                 ClientMessage.PickInvestigator, ClientMessage.SetDeck, ClientMessage.ReadyDeck, ClientMessage.ForceStart,
                 ClientMessage.OfferSave, ClientMessage.ReadyLoad, ClientMessage.SitOut,
-                ClientMessage.ProposeNewCharacter, ClientMessage.Vote {
+                ClientMessage.ProposeNewCharacter, ClientMessage.ClaimSeat, ClientMessage.Vote {
 
     /** {@code { type:"JOIN", sessionId, investigatorId }} */
     record Join(String sessionId, String investigatorId) implements ClientMessage {}
@@ -101,7 +102,10 @@ public sealed interface ClientMessage
     /** {@code { type:"PROPOSE_NEW_CHARACTER", playerId }} — 對死亡者發起換角投票(docs/09 §10) */
     record ProposeNewCharacter(String playerId) implements ClientMessage {}
 
-    /** {@code { type:"VOTE", requestId, yes }} — 換角投票 */
+    /** {@code { type:"CLAIM_SEAT", targetPlayerId }} — 認領離線席位(docs/09 P6;換裝置回歸) */
+    record ClaimSeat(String targetPlayerId) implements ClientMessage {}
+
+    /** {@code { type:"VOTE", requestId, yes }} — 換角 / 席位認領投票 */
     record Vote(String requestId, boolean yes) implements ClientMessage {}
 
     /**

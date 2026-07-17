@@ -197,6 +197,10 @@ public class GameSocketHandler extends TextWebSocketHandler {
                 CampaignSession cs = currentCampaign(ws);
                 if (cs != null) cs.proposeNewCharacter(playerId(ws), propose.playerId());
             }
+            case ClientMessage.ClaimSeat claim -> {
+                CampaignSession cs = currentCampaign(ws);
+                if (cs != null) cs.claimSeat(playerId(ws), claim.targetPlayerId());
+            }
             case ClientMessage.Vote v -> {
                 CampaignSession cs = currentCampaign(ws);
                 if (cs != null) cs.vote(v.requestId(), playerId(ws), v.yes());

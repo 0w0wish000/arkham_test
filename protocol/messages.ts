@@ -31,6 +31,7 @@ export interface RosterMember {
   investigatorId: string | null;   // 尚未選角時為 null
   ready: boolean;
   status: MemberStatus;
+  connected: boolean;              // 此席位目前是否在線(P6 席位認領的依據)
 }
 
 /** 全戰役存檔(docs/09 §5):複製到各玩家本機、可 OFFER_SAVE 載回。 */
@@ -83,12 +84,14 @@ export interface OfferSaveMsg        { type: "OFFER_SAVE"; save: CampaignSave; }
 export interface ReadyLoadMsg        { type: "READY_LOAD"; ready: boolean; }
 export interface SitOutMsg           { type: "SIT_OUT"; sitOut: boolean; }   // 本章中離/歸隊(docs/09 §9)
 export interface ProposeNewCharacterMsg { type: "PROPOSE_NEW_CHARACTER"; playerId: string; }  // 死亡換角(§10)
+// 席位認領(docs/09 P6):換裝置(新 playerId)認回離線席位,繼承角色/牌組/XP;需其餘在線者表決
+export interface ClaimSeatMsg        { type: "CLAIM_SEAT"; targetPlayerId: string; }
 export interface VoteMsg             { type: "VOTE"; requestId: string; yes: boolean; }
 export type ClientMessage =
   | JoinMsg | IntentMsg | ChoiceResponseMsg | SaveRequestMsg | SaveVoteMsg | ResumeMsg | PingMsg
   | HelloMsg | CreateCampaignMsg | JoinSessionMsg | LeaveSessionMsg
   | PickInvestigatorMsg | SetDeckMsg | ReadyDeckMsg | ForceStartMsg
-  | OfferSaveMsg | ReadyLoadMsg | SitOutMsg | ProposeNewCharacterMsg | VoteMsg;
+  | OfferSaveMsg | ReadyLoadMsg | SitOutMsg | ProposeNewCharacterMsg | ClaimSeatMsg | VoteMsg;
 
 export type ChoiceResponse =
   | { committedCardIds: string[] }   // COMMIT_CARDS
