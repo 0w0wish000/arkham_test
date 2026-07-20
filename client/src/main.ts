@@ -29,6 +29,7 @@ async function main() {
     const hud = new Hud();
     hud.onIntent = (action, payload) => conn.intent(action, payload);
     hud.onCommit = (requestId, ids) => conn.respond(requestId, { committedCardIds: ids });
+    hud.onDiscard = (requestId, ids) => conn.respond(requestId, { targetIds: ids });   // B6 超限棄牌
     hud.onSave = () => { conn.saveRequest(); hud.log("已發起存檔請求,等待隊友確認…"); };
     view.onMove = (toLocationId) => conn.intent("MOVE", { toLocationId });
     lobby.show("game");
@@ -54,6 +55,9 @@ async function main() {
     onChoiceRequest: (req) => {
       if (req.kind === "COMMIT_CARDS" && board) {
         board.hud.showCommit(req.requestId, req.options as CommitCardsOptions);
+      } else if (req.kind === "CHOOSE_TARGET" && board) {
+        // B6:整備超限棄牌(棄完才能行動)
+        board.hud.showDiscard(req.requestId, req.options as import("./protocol").ChooseTargetOptions);
       } else if (req.kind === "CHOOSE_OPTION") {
         // 反應能力(如 Joe 成功調查後抽牌):彈窗問「使用/跳過」
         const opts = req.options as ChooseOptionOptions;

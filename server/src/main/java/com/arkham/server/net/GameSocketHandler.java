@@ -83,6 +83,8 @@ public class GameSocketHandler extends TextWebSocketHandler {
                 ClientMessage.ChoiceResponseBody body = response.choice();
                 if (body != null && body.optionId() != null) {
                     session.submitOption(response.requestId(), body.optionId());   // 反應能力回答
+                } else if (body != null && body.targetIds() != null) {
+                    session.submitDiscard(response.requestId(), body.targetIds()); // B6 超限棄牌(CHOOSE_TARGET)
                 } else {
                     session.submitCommit(response.requestId(), committedCardIds(response));
                 }

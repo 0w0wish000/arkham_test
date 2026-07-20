@@ -56,12 +56,21 @@ public final class RulesEngine {
     private final List<com.arkham.engine.ability.Ability> abilities = new ArrayList<>();
     private final java.util.ArrayDeque<PendingOption> reactionQueue = new java.util.ArrayDeque<>();
     private PendingOption pendingOption;   // 等玩家回答的反應能力(一次一個)
+
+    /** B6/E3:整備超過手牌上限 8 → 待棄張數(invId → n)。本人行動被擋到棄完;隊友不受影響(自由順序)。 */
+    private final Map<String, Integer> pendingDiscards = new java.util.LinkedHashMap<>();
     private Integer pendingRevealIcons;    // B7:投入已收、待抽標記(窗口期間暫停)
 
     public RulesEngine(GameState state, SeededRng rng) {
         this.state = state;
         this.rng = rng;
         registerInvestigatorAbilities();
+        for (Investigator inv : state.orderedInvestigators()) {   // 續玩重掃:存檔當下欠棄的照樣欠(B6)
+            int over = inv.getHand().size() - 8;
+            if (over > 0 && inv.isInPlay()) {
+                pendingDiscards.put(inv.getId(), over);
+            }
+        }
     }
 
     public GameState state() {
@@ -168,6 +177,67 @@ public final class RulesEngine {
 
     /** 登記一條能力(卡池/測試用;調查員內建能力由建構子登記)。 */
     public void registerAbility(com.arkham.engine.ability.Ability a) { abilities.add(a); }
+
+    // ------------------------------------------------------------------
+    // B6/E3:整備超限自選棄牌(CHOOSE_TARGET)
+    // ------------------------------------------------------------------
+
+    /** 尚未棄完的超限者(invId → 需棄張數);伺服器據此發 CHOOSE_TARGET。 */
+    public Map<String, Integer> pendingDiscardsView() { return Map.copyOf(pendingDiscards); }
+
+    /** 棄牌選項:候選 = 全部手牌,必棄剛好 n 張。 */
+    public com.arkham.engine.protocol.ChooseTargetOptions discardOptionsFor(String investigatorId) {
+        Investigator inv = requireInvestigator(investigatorId);
+        int n = pendingDiscards.getOrDefault(investigatorId, 0);
+        List<com.arkham.engine.protocol.ChooseTargetOptions.Candidate> cands = new ArrayList<>();
+        for (CardInstance c : inv.getHand()) {
+            cands.add(new com.arkham.engine.protocol.ChooseTargetOptions.Candidate(c.cardId(), c.name()));
+        }
+        return new com.arkham.engine.protocol.ChooseTargetOptions(cands, n, n);
+    }
+
+    /** 玩家自選棄牌:張數需剛好、且都在手牌;完成後解除行動封鎖。 */
+    public List<GameEvent> resolveDiscard(String investigatorId, List<String> cardIds) {
+        List<GameEvent> events = new ArrayList<>();
+        Integer need = pendingDiscards.get(investigatorId);
+        if (need == null) {
+            return events;   // 沒欠棄(重複送)→ 忽略
+        }
+        Investigator inv = requireInvestigator(investigatorId);
+        List<String> ids = cardIds == null ? List.of() : cardIds;
+        if (ids.size() != need) {
+            throw new IllegalArgumentException("需棄剛好 " + need + " 張(選了 " + ids.size() + " 張)");
+        }
+        List<CardInstance> picked = new ArrayList<>();
+        for (String id : ids) {
+            CardInstance c = inv.findHandCard(id);
+            if (c == null || picked.contains(c)) {
+                throw new IllegalArgumentException("選擇的卡不在手牌中");
+            }
+            picked.add(c);
+        }
+        for (CardInstance c : picked) {
+            inv.discard(c);
+        }
+        pendingDiscards.remove(investigatorId);
+        events.add(GameEvent.of("UPKEEP", inv.getName() + " 棄置 " + picked.size() + " 張,手牌回到上限內。"));
+        return events;
+    }
+
+    /** 掉線逾時後備:自動棄最舊(維持舊行為),解除封鎖。 */
+    public List<GameEvent> autoDiscardIfPending(String investigatorId) {
+        List<GameEvent> events = new ArrayList<>();
+        Integer need = pendingDiscards.remove(investigatorId);
+        if (need == null) {
+            return events;
+        }
+        Investigator inv = requireInvestigator(investigatorId);
+        for (int k = 0; k < need && !inv.getHand().isEmpty(); k++) {
+            inv.discard(inv.getHand().get(0));
+        }
+        events.add(GameEvent.of("UPKEEP", inv.getName() + " 離線逾時:自動棄最舊 " + need + " 張至上限。"));
+        return events;
+    }
 
     public boolean hasPendingOption() { return pendingOption != null; }
     public PendingOption pendingOptionInfo() { return pendingOption; }
@@ -761,6 +831,9 @@ public final class RulesEngine {
             runRoundEnd(events);
             return;
         }
+        if (pendingDiscards.containsKey(inv.getId())) {
+            throw new IllegalArgumentException("手牌超過上限:請先棄 " + pendingDiscards.get(inv.getId()) + " 張");
+        }
         if (inv.isTurnDone()) {
             return;   // 重複點擊忽略
         }
@@ -796,12 +869,11 @@ public final class RulesEngine {
         for (Investigator inv : state.investigatorsInPlay()) {
             inv.gainResources(1);       // 整備:獲得 1 資源
             drawOne(inv, events);       // 整備:抽 1 張(C-lite 牌堆;空堆 → 洗回棄牌堆 +1 恐懼)
-            int over = inv.getHand().size() - 8;   // 整備:手牌上限 8(官方 p17;lite 自動棄最舊,正式版改玩家選)
+            int over = inv.getHand().size() - 8;   // 整備:手牌上限 8(官方 p17)
             if (over > 0) {
-                for (int k = 0; k < over; k++) {
-                    inv.discard(inv.getHand().get(0));
-                }
-                events.add(GameEvent.of("UPKEEP", inv.getName() + " 手牌超過 8 張,棄置 " + over + " 張。"));
+                pendingDiscards.put(inv.getId(), over);   // B6:改玩家自選(擋本人行動;掉線逾時自動棄最舊)
+                events.add(GameEvent.of("UPKEEP",
+                        "🃏 " + inv.getName() + " 手牌超過上限 8,需自選棄 " + over + " 張(未棄完前不能行動)。"));
             }
         }
         // Same-location unengaged enemies engage (docs/05 §1.4c).
@@ -1287,6 +1359,9 @@ public final class RulesEngine {
     private void requireInvestigationTurn(Investigator inv) {
         if (inv.isEliminated()) {
             throw new IllegalArgumentException("你已退出本劇本,無法再行動");
+        }
+        if (pendingDiscards.containsKey(inv.getId())) {
+            throw new IllegalArgumentException("手牌超過上限:請先棄 " + pendingDiscards.get(inv.getId()) + " 張再行動");
         }
         if (state.getPhase() != Phase.INVESTIGATION) {
             throw new IllegalArgumentException("Not the investigation phase");

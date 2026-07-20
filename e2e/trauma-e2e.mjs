@@ -63,6 +63,7 @@ class Client {
 const isRoster = (m) => m.type === "SESSION_ROSTER";
 const isState = (m) => m.type === "STATE";
 const seat = (r, pid) => r.members.find((m) => m.playerId === pid);
+const isDiscardReq = (m) => m.type === "CHOICE_REQUEST" && m.kind === "CHOOSE_TARGET";
 
 async function main() {
   console.log(`▶ 創傷跨章 e2e 連線 ${WS}`);
@@ -96,6 +97,14 @@ async function main() {
   section("② 連續硬吃直到被擊敗(個別淘汰)");
   let eliminated = null;
   for (let round = 1; round <= 6 && !eliminated; round++) {
+    // 整備超限 → 先回覆棄牌(B6:欠棄者不能行動)
+    try {
+      const dq = await A.waitFor(isDiscardReq, "棄牌請求", 700);
+      A.send({ type: "CHOICE_RESPONSE", requestId: dq.requestId,
+        choice: { targetIds: dq.options.candidates.slice(0, dq.options.min).map((x) => x.id) } });
+      st = await A.waitFor((m) => isState(m) && m.view.round === round && m.view.you.hand.length <= 8,
+        `R${round} 棄牌後 STATE`);
+    } catch { /* 本輪沒超限 */ }
     while (!eliminated && st.view.you.actionsRemaining > 0) {   // 照剩餘行動數抽(R1 移動花掉 1)
       A.send({ type: "INTENT", action: "DRAW", payload: {} });
       st = await A.waitFor(isState, `R${round} 抽牌後 STATE`);
@@ -107,7 +116,7 @@ async function main() {
     // 等「下一輪開始(行動重置)或已淘汰」的 STATE —— 跳過屏障中間態
     st = await A.waitFor(
       (m) => isState(m) && (m.view.you.elimination
-        || (m.view.phase === "INVESTIGATION" && m.view.you.actionsRemaining === 3)),
+        || (m.view.round === round + 1 && m.view.phase === "INVESTIGATION" && m.view.you.actionsRemaining === 3)),
       `R${round} 回合結算後 STATE`);
     if (st.view.you.elimination) eliminated = st.view.you.elimination;
   }

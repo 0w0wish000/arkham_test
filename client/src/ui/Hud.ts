@@ -1,6 +1,6 @@
 import type {
   GameStateView, EnemyView, HandCard, LocationView,
-  SkillType, SkillIcon, IntentAction, CommitCardsOptions,
+  SkillType, SkillIcon, IntentAction, CommitCardsOptions, ChooseTargetOptions,
 } from "../protocol";
 
 /**
@@ -66,11 +66,14 @@ export class Hud {
   onIntent?: (action: IntentAction, payload?: Record<string, unknown>) => void;
   /** 回應技能檢定投入(CHOICE_RESPONSE)。 */
   onCommit?: (requestId: string, committedCardIds: string[]) => void;
+  /** 回應超限棄牌(CHOICE_RESPONSE.targetIds;B6)。 */
+  onDiscard?: (requestId: string, targetIds: string[]) => void;
   /** 按下「保存並離開」。 */
   onSave?: () => void;
 
   private view?: GameStateView;
   private commit?: CommitState;
+  private discardReq?: { requestId: string; need: number; sel: Set<string> };   // B6 超限棄牌
   private guideCollapsed = false;
 
   private $ = (id: string) => document.getElementById(id)!;
@@ -90,7 +93,10 @@ export class Hud {
     };
     this.$("act-advance").onclick = () => this.onIntent?.("ADVANCE_ACT");
     this.$("btn-save").onclick = () => this.onSave?.();
-    this.$("commit-go").onclick = () => this.submitCommit([...(this.commit?.sel ?? [])]);
+    this.$("commit-go").onclick = () => {
+      if (this.discardReq) { this.submitDiscard(); return; }
+      this.submitCommit([...(this.commit?.sel ?? [])]);
+    };
     this.$("commit-none").onclick = () => this.submitCommit([]);
     // 回合進度小卡:收合/展開
     this.$("tg-toggle").onclick = () => {
@@ -274,6 +280,9 @@ export class Hud {
   // 技能檢定投入面板(多人同步屏障的客戶端 UI)
   // ------------------------------------------------------------------
   showCommit(requestId: string, opts: CommitCardsOptions) {
+    this.discardReq = undefined;
+    (this.$("commit-none") as HTMLButtonElement).hidden = false;
+    (this.$("commit-go") as HTMLButtonElement).disabled = false;
     this.commit = { requestId, opts, sel: new Set() };
     this.$("commit-title").textContent =
       `技能檢定 · ${SKILL_ZH[opts.skill]}(${ICON[opts.skill].ch})`;
@@ -333,5 +342,45 @@ export class Hud {
     this.$("commit-backdrop").hidden = true;
     this.onCommit?.(requestId, cardIds);
     this.log(cardIds.length ? `已投入 ${cardIds.length} 張,等待其他玩家…` : "已送出「不投入」,等待其他玩家…");
+  }
+
+  // ------------------------------------------------------------------
+  // B6:整備超限棄牌面板(CHOOSE_TARGET;沿用投入面板外框)
+  // ------------------------------------------------------------------
+  showDiscard(requestId: string, opts: ChooseTargetOptions) {
+    this.discardReq = { requestId, need: opts.min, sel: new Set() };
+    this.commit = undefined;
+    this.$("commit-title").textContent = `🃏 手牌超過上限 — 請棄 ${opts.min} 張`;
+    this.$("commit-sub").textContent = `整備後手牌上限 8:點選要棄掉的 ${opts.min} 張(棄完才能行動)。`;
+    (this.$("commit-none") as HTMLButtonElement).hidden = true;   // 棄牌不可跳過
+    const cards = this.$("commit-cards");
+    cards.replaceChildren();
+    for (const c of opts.candidates) {
+      const chip = el("div", "card");
+      chip.appendChild(el("span", "c-name", c.label));
+      chip.onclick = () => {
+        const { sel, need } = this.discardReq!;
+        if (sel.has(c.id)) { sel.delete(c.id); chip.classList.remove("sel"); }
+        else if (sel.size < need) { sel.add(c.id); chip.classList.add("sel"); }
+        this.$("commit-preview").textContent = `已選 ${sel.size}/${need} 張`;
+        (this.$("commit-go") as HTMLButtonElement).disabled = sel.size !== need;
+      };
+      cards.appendChild(chip);
+    }
+    this.$("commit-none-hint").textContent = "";
+    this.$("commit-preview").textContent = `已選 0/${opts.min} 張`;
+    (this.$("commit-go") as HTMLButtonElement).disabled = opts.min > 0;
+    this.$("commit-backdrop").hidden = false;
+  }
+
+  private submitDiscard() {
+    if (!this.discardReq) return;
+    const { requestId, sel } = this.discardReq;
+    this.discardReq = undefined;
+    this.$("commit-backdrop").hidden = true;
+    (this.$("commit-none") as HTMLButtonElement).hidden = false;   // 還原投入面板用法
+    (this.$("commit-go") as HTMLButtonElement).disabled = false;
+    this.onDiscard?.(requestId, [...sel]);
+    this.log(`已棄 ${sel.size} 張,手牌回到上限內。`);
   }
 }

@@ -45,6 +45,7 @@ public final class GameSession {
     private Barrier barrier; // non-null while a commit barrier is open
     private SaveVote saveVote; // non-null while a save-vote is open
     private String optionRequestId; // 反應能力 CHOOSE_OPTION 的請求 id(等擁有者回答)
+    private final Map<String, String> discardRequests = new ConcurrentHashMap<>(); // requestId → invId(B6 超限棄牌)
     private final List<GameEvent> eventLog = new java.util.ArrayList<>(); // 累積出牌/事件(供存檔;有上限)
     private int lastCheckpointRound = 1;
 
@@ -150,6 +151,12 @@ public final class GameSession {
         if (clients.containsKey(investigatorId)) return;   // 已接手 → 保留「重打那一動」
         try {
             skipCommitter(investigatorId, "⏱ " + investigatorId + " 逾時未歸隊,本次檢定視為不投入。");
+            // 欠棄未回 → 後備自動棄最舊,解除封鎖
+            if (engine.pendingDiscardsView().containsKey(investigatorId)) {
+                discardRequests.values().remove(investigatorId);
+                broadcastEvents(engine.autoDiscardIfPending(investigatorId));
+                broadcastState();
+            }
             // 卡在他的反應能力詢問 → 視為略過,解開對局
             if (engine.hasPendingOption()
                     && engine.pendingOptionInfo().investigatorId().equals(investigatorId)) {
@@ -192,6 +199,13 @@ public final class GameSession {
             }
         }
         // 卡在自己反應能力的詢問 → 補發同一個決策(重打掉線那一動)
+        if (engine.pendingDiscardsView().containsKey(investigatorId)) {   // 補發超限棄牌請求(B6)
+            discardRequests.values().remove(investigatorId);
+            String reqId = UUID.randomUUID().toString();
+            discardRequests.put(reqId, investigatorId);
+            send(ws, new ServerMessage.ChoiceRequest(reqId, ChoiceKind.CHOOSE_TARGET,
+                    engine.discardOptionsFor(investigatorId)));
+        }
         if (engine.hasPendingOption() && investigatorId.equals(engine.pendingOptionInfo().investigatorId())) {
             if (optionRequestId == null) {
                 optionRequestId = UUID.randomUUID().toString();
@@ -220,6 +234,7 @@ public final class GameSession {
         } else {
             broadcastState();
             maybeOpenOption();   // 反應能力(如 Joe 成功調查後抽牌)→ 問擁有者
+            maybeOpenDiscards(); // B6:整備超限 → 問各超限者要棄哪幾張
         }
         // 每回合結算:回合數增加時,伺服器端自動存檔(docs/08 §6.5)
         int r = engine.state().getRound();
@@ -315,6 +330,46 @@ public final class GameSession {
         broadcastEvents(events);
         broadcastState();
         maybeOpenOption();   // 佇列中還有下一個反應就接著問
+    }
+
+    // ------------------------------------------------------------------
+    // B6/E3:整備超限自選棄牌(CHOOSE_TARGET)
+    // ------------------------------------------------------------------
+
+    /** 對每位「欠棄且未在問」的超限者發 CHOOSE_TARGET(斷線者直接自動棄最舊)。 */
+    private void maybeOpenDiscards() throws IOException {
+        for (Map.Entry<String, Integer> e : engine.pendingDiscardsView().entrySet()) {
+            String invId = e.getKey();
+            if (discardRequests.containsValue(invId)) continue;   // 已在問
+            WebSocketSession ws = clients.get(invId);
+            if (ws == null) {
+                broadcastEvents(engine.autoDiscardIfPending(invId));   // 缺席 → 後備自動棄
+                broadcastState();
+                continue;
+            }
+            String requestId = UUID.randomUUID().toString();
+            discardRequests.put(requestId, invId);
+            send(ws, new ServerMessage.ChoiceRequest(requestId, ChoiceKind.CHOOSE_TARGET,
+                    engine.discardOptionsFor(invId)));
+        }
+    }
+
+    /** 玩家回覆要棄哪幾張(CHOICE_RESPONSE.targetIds)。張數不對 → 重新發問。 */
+    public synchronized void submitDiscard(String requestId, List<String> targetIds) throws IOException {
+        String invId = discardRequests.remove(requestId);
+        if (invId == null) {
+            return;   // 過期/非預期
+        }
+        List<GameEvent> events;
+        try {
+            events = engine.resolveDiscard(invId, targetIds);
+        } catch (RuntimeException ex) {
+            sendTo(invId, new ServerMessage.Error(ex.getMessage()));
+            maybeOpenDiscards();   // 重新發問(新 requestId)
+            return;
+        }
+        broadcastEvents(events);
+        broadcastState();
     }
 
     // ------------------------------------------------------------------
