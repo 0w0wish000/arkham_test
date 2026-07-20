@@ -318,8 +318,8 @@ public final class ScenarioFactory {
         inv.getHand().add(CardInstance.event(prefix + "-x" + (n++), "First Aid", 1));
         inv.getHand().add(CardInstance.asset(prefix + "-x" + (n++), "Magnifying Glass", 1, SkillIcon.INTELLECT));
         inv.getHand().add(CardInstance.asset(prefix + "-x" + (n++), "Machete", 3, SkillIcon.COMBAT));
+        inv.getHand().add(CardInstance.asset(prefix + "-x" + (n++), "Field Toolkit", 1));   // C2:啟動 → +2 資源(每輪一次)
         inv.getHand().add(CardInstance.skill(prefix + "-x" + (n++), "Deduction", SkillIcon.INTELLECT));
-        inv.getHand().add(CardInstance.skill(prefix + "-x" + (n++), "Vicious Blow", SkillIcon.COMBAT));
         inv.getHand().add(CardInstance.skill(prefix + "-x" + (n++), "Unexpected Courage", SkillIcon.WILD, SkillIcon.WILD));
     }
 

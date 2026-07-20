@@ -102,6 +102,8 @@ public final class CardCatalog {
         asset("Lucky Cigarette Case", 3, A);
         asset("Fire Axe", 1, C);
 
+        asset("Field Toolkit", 1);          // 沙盒測試卡:啟動(C2)→ +2 資源(每輪一次)
+
         // ---- 招牌弱點(抽到卡手上;不可打出、無圖示不可投入)----
         weakness("Dead Ends");
         weakness("Wounded");
@@ -129,6 +131,29 @@ public final class CardCatalog {
     public static List<com.arkham.engine.effect.EffectAtom> onPlayEffects(String name) {
         List<com.arkham.engine.effect.EffectAtom> ext = EXTERNAL_ON_PLAY.get(name);
         return ext != null ? ext : ON_PLAY.getOrDefault(name, List.of());
+    }
+
+    // ------------------------------------------------------------------
+    // C2 啟動能力(ACTIVATE):檯面卡的主動效果,同樣是 DSL 原子資料
+    // ------------------------------------------------------------------
+
+    /** 啟動能力定義:atoms = 效果原子;oncePerRound = 每輪限一次。 */
+    public record Activated(List<com.arkham.engine.effect.EffectAtom> atoms,
+                            boolean oncePerRound, String note) {}
+
+    private static final Map<String, Activated> ACTIVATED = Map.of(
+            "Field Toolkit", new Activated(
+                    List.of(new com.arkham.engine.effect.EffectAtom.GainResources(2)), true, "+2 資源"));
+
+    private static final Map<String, Activated> EXTERNAL_ACTIVATED =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static void registerActivated(String name, Activated def) { EXTERNAL_ACTIVATED.put(name, def); }
+
+    /** 這張卡的啟動能力(無 → null = 不能 ACTIVATE)。 */
+    public static Activated activatedFor(String name) {
+        Activated ext = EXTERNAL_ACTIVATED.get(name);
+        return ext != null ? ext : ACTIVATED.get(name);
     }
 
     // ------------------------------------------------------------------

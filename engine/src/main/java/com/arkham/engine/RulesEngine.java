@@ -378,8 +378,7 @@ public final class RulesEngine {
             case END_TURN -> endTurn(inv, bool(p, "force"), events);
             case ADVANCE_ACT -> advanceAct(inv, events);
             case PLAY_CARD -> playCard(inv, str(p, "cardId"), events);
-            case ACTIVATE ->
-                    throw new IllegalArgumentException("ACTIVATE is not implemented in this scaffold");
+            case ACTIVATE -> activate(inv, str(p, "cardId"), events);
         }
         return events;
     }
@@ -562,6 +561,39 @@ public final class RulesEngine {
             inv.playToArea(card);   // 支援 → 檯面(持續)
         } else {
             inv.discard(card);      // 事件 → 棄牌堆
+        }
+        inv.spendAction();
+    }
+
+    /** C2 啟動行動:檯面卡的主動能力(DSL 原子;每輪限一次者記在 usedAbilities;會引發趁隙攻擊)。 */
+    private void activate(Investigator inv, String cardId, List<GameEvent> events) {
+        requireInvestigationTurn(inv);
+        CardInstance card = inv.getPlayArea().stream()
+                .filter(c -> c.cardId().equals(cardId)).findFirst().orElse(null);
+        if (card == null) {
+            throw new IllegalArgumentException("這張卡不在你的檯面上");
+        }
+        CardCatalog.Activated def = CardCatalog.activatedFor(card.name());
+        if (def == null) {
+            throw new IllegalArgumentException("「" + card.name() + "」沒有可啟動的能力");
+        }
+        String marker = "activate:" + card.cardId();
+        if (def.oncePerRound() && inv.hasUsedAbility(marker)) {
+            throw new IllegalArgumentException("「" + card.name() + "」本輪已啟動過");
+        }
+        attackOfOpportunity(inv, "啟動", events);   // 官方 p22:啟動不在豁免之列
+        if (state.isGameOver() || inv.isEliminated()) {
+            return;
+        }
+        if (def.oncePerRound()) {
+            inv.markAbilityUsed(marker);
+        }
+        events.add(GameEvent.of("ACTIVATE", inv.getName() + " 啟動「" + card.name() + "」:" + def.note() + "。"));
+        for (com.arkham.engine.effect.EffectAtom atom : def.atoms()) {
+            applyAtom(inv, atom, events);
+            if (state.isGameOver()) {
+                return;
+            }
         }
         inv.spendAction();
     }

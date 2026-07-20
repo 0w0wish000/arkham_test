@@ -109,6 +109,20 @@ async function main() {
   check(s3.view.you.cluesHeld === cluesBefore + 1, "線索 +1(免檢定)", `clues ${cluesBefore}→${s3.view.you.cluesHeld}`);
   check(s3.view.you.resources === 15, "資源 17 → 15(費用 2)", `res=${s3.view.you.resources}`);
 
+  section("⑤ 工具箱:打出 → 啟動(C2)→ +2 資源、每輪一次");
+  A.send({ type: "INTENT", action: "END_TURN", payload: { force: true } });   // 行動用完 → 先過回合
+  const s4 = await A.waitFor((m) => m.type === "STATE" && m.view.round === 2 && m.view.you.actionsRemaining === 3, "第 2 輪 STATE");
+  A.send({ type: "INTENT", action: "PLAY_CARD", payload: { cardId: cardId(s4.view, "Field Toolkit") } });
+  const s5 = await A.waitFor((m) => m.type === "STATE" && inPlay(m.view, "Field Toolkit"), "工具箱進檯面 STATE");
+  const kitId = s5.view.you.playArea.find((c) => c.name === "Field Toolkit").cardId;
+  A.send({ type: "INTENT", action: "ACTIVATE", payload: { cardId: kitId } });
+  const s6 = await A.waitFor((m) => m.type === "STATE" && m.view.you.resources === s5.view.you.resources + 2, "啟動後 STATE");
+  check(s6.view.you.resources === s5.view.you.resources + 2, "啟動工具箱 → +2 資源", `res=${s6.view.you.resources}`);
+  check(s6.view.you.actionsRemaining === 1, "打出+啟動共花 2 行動(3→1)");
+  A.send({ type: "INTENT", action: "ACTIVATE", payload: { cardId: kitId } });
+  const actErr = await A.waitFor((m) => m.type === "ERROR", "重複啟動 ERROR");
+  check(/已啟動過/.test(actErr.message), "每輪限一次(同輪再啟動被擋)", actErr.message);
+
   A.close();
 }
 

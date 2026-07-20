@@ -259,7 +259,13 @@ export class Hud {
     const box = this.$("play-area");
     box.replaceChildren();
     (this.$("play-title") as HTMLElement).hidden = playArea.length === 0;
-    for (const c of playArea) box.appendChild(cardChip(c));
+    for (const c of playArea) {
+      const chip = cardChip(c);
+      chip.title = "點擊啟動這張卡的能力(⚡ 花 1 行動;沒有啟動能力伺服器會告訴你)";
+      chip.style.cursor = "pointer";
+      chip.onclick = () => this.onIntent?.("ACTIVATE", { cardId: c.cardId });   // C2 啟動
+      box.appendChild(chip);
+    }
   }
 
   private updateActionButtons(view: GameStateView, canAct: boolean) {
