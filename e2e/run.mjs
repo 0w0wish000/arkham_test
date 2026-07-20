@@ -116,7 +116,9 @@ async function startServer() {
     shell: isWin,
     detached: !isWin, // POSIX:自成行程群組,連 fork 出的 JVM 一起收掉
     // 縮短「接手寬限」讓 stability-e2e 能在秒級驗證屏障逾時逃生(正式啟動維持預設 60s)
-    env: { ...process.env, ARKHAM_TAKEOVER_GRACE_MS: process.env.ARKHAM_TAKEOVER_GRACE_MS || "3000" },
+    env: { ...process.env,
+      ARKHAM_TAKEOVER_GRACE_MS: process.env.ARKHAM_TAKEOVER_GRACE_MS || "3000",
+      ARKHAM_PHASE_PUSH_MS: process.env.ARKHAM_PHASE_PUSH_MS || "0" },   // 測試不停頓
   });
   server.on("error", (e) => console.error(`啟動伺服器失敗:${e.message}`));
 

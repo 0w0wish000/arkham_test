@@ -171,7 +171,7 @@ async function main() {
   joe.send({ type: "RESUME", state: jSnap.state });
   const jResumeEvt = await joe.waitFor((m) => m.type === "EVENT" && m.event === "resume", "resume 事件");
   check(!!jResumeEvt, "收到 resume 事件", jResumeEvt?.message);
-  const js4 = await joe.waitFor(isState, "重建後 STATE");
+  const js4 = await joe.waitFor((m) => isState(m) && m.view.round === 2, "重建後 STATE(第 2 輪)");
   check(js4.view.round === 2, "續玩後回到第 2 輪", `round=${js4.view.round}`);
   check(js4.view.you.locationId === "dormitories", "續玩還原了移動後位置(非重置回 friends_room)", js4.view.you.locationId);
   const dorm2 = js4.view.locations.find((l) => l.id === "dormitories");

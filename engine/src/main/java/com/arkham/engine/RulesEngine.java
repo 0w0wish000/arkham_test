@@ -258,6 +258,28 @@ public final class RulesEngine {
      * @throws IllegalStateException    if the game is over or a barrier is already open
      * @throws IllegalArgumentException if the intent is illegal in the current state
      */
+    /**
+     * E2-lite 逐階段推送(docs/11 §E2):回合結算時,敵人/整備/神話各階段一結算完
+     * 就回呼,讓伺服器逐段廣播事件+STATE(玩家看得到階段推進,而非一次跳到底)。
+     * 已推送的事件會自 applyIntent 的回傳清單移除,避免重複廣播。
+     */
+    public interface PhaseListener {
+        void onPhaseSettled(Phase phase, List<GameEvent> settled);
+    }
+
+    private PhaseListener phaseListener;   // null = 關閉(單元測試不受影響)
+
+    public void setPhaseListener(PhaseListener listener) { this.phaseListener = listener; }
+
+    private void flushPhase(List<GameEvent> events) {
+        if (phaseListener == null || events.isEmpty()) {
+            return;
+        }
+        List<GameEvent> chunk = new ArrayList<>(events);
+        events.clear();
+        phaseListener.onPhaseSettled(state.getPhase(), chunk);
+    }
+
     public List<GameEvent> applyIntent(String investigatorId, IntentAction action, Map<String, Object> payload) {
         if (state.isGameOver()) {
             throw new IllegalStateException("Game is over");
@@ -757,6 +779,7 @@ public final class RulesEngine {
         if (state.isGameOver()) {
             return;
         }
+        flushPhase(events);   // E2-lite:敵人階段結算完 → 先推給玩家看
 
         // --- Upkeep phase ---
         state.setPhase(Phase.UPKEEP);
@@ -786,6 +809,8 @@ public final class RulesEngine {
             }
         }
 
+        flushPhase(events);   // E2-lite:整備階段結算完 → 推送
+
         // --- Next round: Mythos (round ≥ 2) then Investigation ---
         state.incrementRound();
         events.add(GameEvent.of("ROUND", "—— 第 " + state.getRound() + " 輪 ——"));
@@ -794,6 +819,8 @@ public final class RulesEngine {
             if (state.isGameOver()) {
                 return;
             }
+            // 神話結果不單獨推送:與「回到調查階段」併在最終廣播(round 已 +1,
+            // 單獨推會讓「等第 N 輪 STATE」的客戶端/測試撿到 actions=0 的中間態)
         }
         state.setPhase(Phase.INVESTIGATION);
         for (Investigator inv : state.orderedInvestigators()) {

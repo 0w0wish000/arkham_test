@@ -131,9 +131,13 @@ async function main() {
     "存檔記錄創傷(跨章保留)", JSON.stringify(sm));
 
   section("④ 第 2 章開打:創傷 = 開局傷害/恐懼");
+  A.q.length = 0;   // 清掉第 1 章殘留 STATE(waitFor 會撿佇列裡的舊件)
+  B.q.length = 0;
   A.send({ type: "READY_DECK", ready: true });
   B.send({ type: "READY_DECK", ready: true });
-  const st2 = await A.waitFor((m) => isState(m) && m.view.you.elimination === null, "第 2 章 STATE");
+  const st2 = await A.waitFor(
+    (m) => isState(m) && m.view.round === 1 && m.view.phase === "INVESTIGATION" && m.view.you.elimination === null,
+    "第 2 章 STATE");
   check(st2.view.you.damage === expectPhysical && st2.view.you.horror === expectMental,
     `Joe 開局帶創傷(傷${expectPhysical}/懼${expectMental})`,
     `damage=${st2.view.you.damage} horror=${st2.view.you.horror}`);

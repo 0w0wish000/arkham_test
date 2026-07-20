@@ -57,6 +57,7 @@ public final class GameSession {
         // Deterministic per-room seed so a session is reproducible/replayable.
         this.seed = sessionId.hashCode();
         this.engine = ScenarioFactory.newEngine(seed);
+        wirePhasePush();
     }
 
     /**
@@ -69,6 +70,7 @@ public final class GameSession {
         this.seed = seed;
         this.engine = engine;
         this.autoPersist = false;   // campaign 內嵌:存檔由 CampaignSession 負責
+        wirePhasePush();
     }
 
     public String sessionId() {
@@ -406,6 +408,7 @@ public final class GameSession {
                     SAVE_MAPPER.convertValue(stateNode, com.arkham.engine.model.GameState.class);
             engine = new RulesEngine(st,
                     new com.arkham.engine.rng.SeededRng(reloadSeed(seed, st.getRound())));
+            wirePhasePush();
             eventLog.clear();
             lastCheckpointRound = st.getRound();
             broadcast(new ServerMessage.Event("resume", "已載入存檔:第 " + st.getRound() + " 輪,對局重建。"));
@@ -448,6 +451,38 @@ public final class GameSession {
         for (Map.Entry<String, WebSocketSession> e : clients.entrySet()) {
             send(e.getValue(), new ServerMessage.State(engine.viewFor(e.getKey())));
         }
+    }
+
+    /** 各階段推送之間的停頓(毫秒;讓玩家看得到階段推進)。e2e 用環境變數設 0 加速。 */
+    private static final long PHASE_PUSH_MS = phasePushMs();
+
+    private static long phasePushMs() {
+        try {
+            String v = System.getenv("ARKHAM_PHASE_PUSH_MS");
+            if (v != null) return Long.parseLong(v.trim());
+        } catch (Exception ignored) { /* 用預設 */ }
+        return 600;
+    }
+
+    /**
+     * E2-lite:回合結算逐階段推送 —— 敵人/整備/神話各階段一結算完,先把該段事件
+     * 廣播出去 + 推 STATE(客戶端回合小卡跟著亮到對應階段),再停頓一拍讓人看見。
+     * 引擎重建(resume/fromSnapshot)後都要重新掛上。
+     */
+    private void wirePhasePush() {
+        engine.setPhaseListener((phase, settled) -> {
+            try {
+                broadcastEvents(settled);
+                broadcastState();
+                if (PHASE_PUSH_MS > 0) {
+                    Thread.sleep(PHASE_PUSH_MS);
+                }
+            } catch (IOException ignored) {
+                // 廣播失敗(有人剛斷線)不中斷結算
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+            }
+        });
     }
 
     private void broadcastEvents(List<GameEvent> events) throws IOException {
