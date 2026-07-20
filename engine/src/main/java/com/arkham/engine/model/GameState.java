@@ -27,8 +27,11 @@ public final class GameState {
     private final Map<String, EnemyDef> enemyDefs;
 
     private final ChaosBag chaosBag;
-    private final Act act;
-    private final Agenda agenda;
+    private Act act;        // 目前這張幕(A4:推進時換下一張)
+    private Agenda agenda;  // 目前這張密謀
+    /** A4 幕/密謀牌組:剩餘的牌(空 = 單張劇本,推進即結局)。舊存檔缺欄位 → 空。 */
+    private final java.util.List<Act> actQueue = new java.util.ArrayList<>();
+    private final java.util.List<Agenda> agendaQueue = new java.util.ArrayList<>();
 
     private final List<EncounterCard> encounterDeck;
     private int encounterPointer;
@@ -69,6 +72,23 @@ public final class GameState {
     public ChaosBag getChaosBag() { return chaosBag; }
     public Act getAct() { return act; }
     public Agenda getAgenda() { return agenda; }
+
+    public java.util.List<Act> getActQueue() { return actQueue; }
+    public java.util.List<Agenda> getAgendaQueue() { return agendaQueue; }
+
+    /** 推進到下一張幕;沒有下一張 → null(= 最後一幕,推進即勝利結局)。 */
+    public Act advanceActCard() {
+        if (actQueue.isEmpty()) return null;
+        act = actQueue.remove(0);
+        return act;
+    }
+
+    /** 推進到下一張密謀;沒有下一張 → null(= 最後一張,達門檻即敗北結局)。 */
+    public Agenda advanceAgendaCard() {
+        if (agendaQueue.isEmpty()) return null;
+        agenda = agendaQueue.remove(0);
+        return agenda;
+    }
 
     public List<EncounterCard> getEncounterDeck() { return encounterDeck; }
 

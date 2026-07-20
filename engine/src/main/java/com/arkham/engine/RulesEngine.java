@@ -573,8 +573,14 @@ public final class RulesEngine {
             }
         }
         state.getAct().spendClues(need);
-        state.endGame(true, "你湊齊線索、推進了幕 —— 揭開了友人失蹤的真相!");
         events.add(GameEvent.of("ADVANCE_ACT", "推進幕:花費 " + need + " 線索。"));
+        Act next = state.advanceActCard();          // A4:還有下一幕 → 換牌續玩;最後一幕 → 勝利結局
+        if (next != null) {
+            events.add(GameEvent.of("ADVANCE_ACT",
+                    "📖 進入下一幕「" + next.getName() + "」(需 " + next.getThreshold() + " 線索)。"));
+            return;
+        }
+        state.endGame(true, "你湊齊線索、推進了幕 —— 揭開了友人失蹤的真相!");
         events.add(GameEvent.of("GAME_OVER", state.getOutcomeMessage()));
     }
 
@@ -945,9 +951,9 @@ public final class RulesEngine {
         events.add(GameEvent.of("MYTHOS",
                 "🕯️ 場上毀滅:" + doomInPlay + "/" + agenda.getThreshold() + "(官方:計入所有卡上的毀滅)。"));
         if (doomInPlay >= agenda.getThreshold()) {
-            state.endGame(false, "密謀推進 —— 黑暗吞噬了阿卡姆大學。");
-            events.add(GameEvent.of("GAME_OVER", state.getOutcomeMessage()));
-            return;
+            if (!advanceAgendaOrLose(events)) {
+                return;   // 最後一張密謀 → 敗北結局
+            }
         }
 
         for (Investigator inv : state.investigatorsInPlay()) {
@@ -959,6 +965,28 @@ public final class RulesEngine {
                 return;
             }
         }
+    }
+
+    /**
+     * A4 密謀推進:還有下一張 → 換牌、移除場上所有毀滅(官方:密謀推進時移除所有毀滅),
+     * 回傳 true 續玩;最後一張 → 敗北結局,回傳 false。
+     */
+    private boolean advanceAgendaOrLose(List<GameEvent> events) {
+        Agenda next = state.advanceAgendaCard();
+        if (next == null) {
+            state.endGame(false, "密謀推進 —— 黑暗吞噬了阿卡姆大學。");
+            events.add(GameEvent.of("GAME_OVER", state.getOutcomeMessage()));
+            return false;
+        }
+        for (EnemyCard e : state.getEnemies().values()) {
+            e.clearDoom();
+        }
+        for (LocationCard l : state.getLocations().values()) {
+            l.clearDoom();
+        }
+        events.add(GameEvent.of("MYTHOS", "🕯️ 密謀推進:「" + next.getName()
+                + "」(門檻 " + next.getThreshold() + ")—— 場上毀滅全數移除,黑暗又逼近一步。"));
+        return true;
     }
 
     private void resolveEncounter(Investigator inv, EncounterCard card, List<GameEvent> events) {
@@ -987,8 +1015,7 @@ public final class RulesEngine {
                         "密謀 +" + card.amount() + " 毀滅(" + state.getAgenda().getDoom()
                                 + "/" + state.getAgenda().getThreshold() + ")。"));
                 if (state.getAgenda().atThreshold()) {
-                    state.endGame(false, "密謀推進 —— 黑暗吞噬了阿卡姆大學。");
-                    events.add(GameEvent.of("GAME_OVER", state.getOutcomeMessage()));
+                    advanceAgendaOrLose(events);
                 }
             }
             case NOTHING -> events.add(GameEvent.of("TREACHERY", "(無事發生。)"));

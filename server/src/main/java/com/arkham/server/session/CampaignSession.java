@@ -332,7 +332,7 @@ public final class CampaignSession {
         }
 
         // "sandbox" → 測試沙盒;難度 → 混沌袋組成;牌組 → 洗牌 + 開局抽 5(C-lite)
-        RulesEngine engine = ScenarioFactory.newEngine(seed, ids, campaignKey, difficulty, decks);
+        RulesEngine engine = ScenarioFactory.newEngine(seed, ids, campaignKey, currentChapter, difficulty, decks);   // D1-lite:優先載本章劇本檔
         game = new GameSession(campaignId, mapper, engine, seed);
         stage = "IN_SCENARIO";
         broadcast(new ServerMessage.Event("scenario",

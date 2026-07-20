@@ -63,8 +63,16 @@ public final class ScenarioFactory {
      */
     public static RulesEngine newEngine(long seed, List<String> investigatorIds, String scenarioKey,
                                         String difficulty, Map<String, List<String>> decksByInvestigator) {
+        return newEngine(seed, investigatorIds, scenarioKey, 1, difficulty, decksByInvestigator);
+    }
+
+    /** 同上,含章節(D1-lite:優先載 scenarios/<key>_ch<n>.json)。 */
+    public static RulesEngine newEngine(long seed, List<String> investigatorIds, String scenarioKey,
+                                        int chapter, String difficulty, Map<String, List<String>> decksByInvestigator) {
         SeededRng rng = new SeededRng(seed);
-        GameState state = createState(investigatorIds, scenarioKey, difficulty);
+        GameState state = "sandbox".equals(scenarioKey)
+                ? createSandbox(investigatorIds, difficulty)
+                : createFromData(dataFor(scenarioKey, chapter), investigatorIds, difficulty);
         if (!"sandbox".equals(scenarioKey)) {
             for (Investigator inv : state.orderedInvestigators()) {
                 List<String> names = decksByInvestigator == null ? null : decksByInvestigator.get(inv.getId());
@@ -99,6 +107,18 @@ public final class ScenarioFactory {
         return ScenarioRepository.find(scenarioKey).orElseGet(ScenarioFactory::coreData);
     }
 
+    /**
+     * D1-lite 章節感知:優先找「戰役鍵_ch章數」的劇本檔(scenarios/&lt;key&gt;_ch&lt;n&gt;.json),
+     * 查無 → 戰役鍵本體 → core。之後逐章補劇本資料即可自動生效,不用改程式。
+     */
+    private static ScenarioData dataFor(String scenarioKey, int chapter) {
+        if (chapter > 0) {
+            var byChapter = ScenarioRepository.find(scenarioKey + "_ch" + chapter);
+            if (byChapter.isPresent()) return byChapter.get();
+        }
+        return dataFor(scenarioKey);
+    }
+
     private static ScenarioData coreData() {
         return ScenarioRepository.find("core").orElseThrow(
                 () -> new IllegalStateException("內建場景資料 scenarios/core.json 遺失"));
@@ -129,11 +149,21 @@ public final class ScenarioFactory {
             }
         }
 
+        List<ScenarioData.ActData> acts = (d.acts() != null && !d.acts().isEmpty())
+                ? d.acts() : List.of(d.act());
+        List<ScenarioData.AgendaData> agendas = (d.agendas() != null && !d.agendas().isEmpty())
+                ? d.agendas() : List.of(d.agenda());
         GameState state = new GameState(
                 ChaosBag.forDifficulty(difficulty),
-                new Act(d.act().name(), d.act().threshold()),
-                new Agenda(d.agenda().name(), d.agenda().threshold()),
+                new Act(acts.get(0).name(), acts.get(0).threshold()),
+                new Agenda(agendas.get(0).name(), agendas.get(0).threshold()),
                 defs, encounters);
+        for (int i = 1; i < acts.size(); i++) {          // A4:其餘幕/密謀入佇列,逐張推進
+            state.getActQueue().add(new Act(acts.get(i).name(), acts.get(i).threshold()));
+        }
+        for (int i = 1; i < agendas.size(); i++) {
+            state.getAgendaQueue().add(new Agenda(agendas.get(i).name(), agendas.get(i).threshold()));
+        }
         for (ScenarioData.LocationData l : d.locations()) {
             state.addLocation(new LocationCard(l.id(), l.name(), l.shroud(), l.clueValue(),
                     l.revealed(), l.connections(), l.victory(), l.spawnDefKey()));

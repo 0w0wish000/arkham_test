@@ -17,8 +17,10 @@ import java.util.List;
 public record ScenarioData(
         String key,                      // 劇本鍵(= 大廳 campaignKey;檔名同)
         String name,
-        ActData act,
+        ActData act,                     // 單張劇本用(與 acts 擇一;acts 優先)
         AgendaData agenda,
+        List<ActData> acts,              // A4:幕牌組(依序推進,最後一張推進=勝利結局)
+        List<AgendaData> agendas,        // A4:密謀牌組(最後一張達門檻=敗北結局)
         String startLocationId,          // 全員起始地點(開場已揭示、放 clueValue × 人數)
         List<LocationData> locations,
         List<EnemyDefData> enemies,
