@@ -12,5 +12,7 @@ public record RosterMember(
         String investigatorId,
         boolean ready,
         String status,
-        boolean connected) {
+        boolean connected,
+        int physicalTrauma,
+        int mentalTrauma) {
 }

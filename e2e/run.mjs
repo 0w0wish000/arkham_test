@@ -8,7 +8,9 @@
 //
 //  用法:  node e2e/run.mjs
 //  環境變數:
-//    E2E_NO_SERVER=1    跳過啟動/關閉伺服器(沿用已在跑的 :8080)
+//    ARKHAM_E2E_PORT    e2e 伺服器埠(預設 18080 —— 專用埠,避免誤殺開發者
+//                       其他專案佔用的 8080;正式遊玩仍走 8080)
+//    E2E_NO_SERVER=1    跳過啟動/關閉伺服器(沿用已在跑的 e2e 埠)
 //    E2E_SKIP_CLIENT=1  跳過前端建置(只跑協定 e2e,迭代較快)
 //    E2E_SKIP_PROTOCOL=1 跳過協定 e2e(只做前端建置)
 //
@@ -26,7 +28,9 @@ const isWin = process.platform === "win32";
 const gradlew = isWin ? "gradlew.bat" : "./gradlew";
 const npm = isWin ? "npm.cmd" : "npm";
 const node = process.execPath;
-const WS_URL = "ws://localhost:8080/ws/game";
+const PORT = Number(process.env.ARKHAM_E2E_PORT || 18080);   // e2e 專用埠(勿與日常開發的 8080 打架)
+const BASE = `ws://localhost:${PORT}`;
+const WS_URL = `${BASE}/ws/game`;
 
 const NO_SERVER = process.env.E2E_NO_SERVER === "1";
 const SKIP_CLIENT = process.env.E2E_SKIP_CLIENT === "1";
@@ -37,7 +41,7 @@ const hr = () => log("─".repeat(64));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /** TCP 連得上就 true(判斷「埠是否被佔用」用)。 */
-function portOccupied(port = 8080, host = "127.0.0.1", timeoutMs = 700) {
+function portOccupied(port = PORT, host = "127.0.0.1", timeoutMs = 700) {
   return new Promise((resolve) => {
     const sock = net.connect({ port, host });
     const done = (v) => { sock.destroy(); resolve(v); };
@@ -71,18 +75,18 @@ async function waitForWsReady(timeoutMs) {
   return false;
 }
 
-/** 硬殺佔用 8080 的行程(跨平台;收殘留 / 半死伺服器用)。 */
+/** 硬殺佔用 e2e 埠的行程(跨平台;收殘留 / 半死伺服器用 —— 專用埠上只會是我們自己)。 */
 function killPort8080() {
   try {
     if (isWin) {
-      const out = spawnSync("cmd", ["/c", "netstat -ano | findstr :8080"], { encoding: "utf8" }).stdout || "";
+      const out = spawnSync("cmd", ["/c", `netstat -ano | findstr :${PORT}`], { encoding: "utf8" }).stdout || "";
       const pids = new Set(out.split(/\r?\n/)
         .filter((l) => /LISTENING|ESTABLISHED/.test(l))
         .map((l) => l.trim().split(/\s+/).pop())
         .filter((p) => /^\d+$/.test(p)));
       for (const pid of pids) spawnSync("taskkill", ["/F", "/T", "/PID", pid]);
     } else {
-      const out = spawnSync("bash", ["-lc", "lsof -ti tcp:8080 2>/dev/null || true"], { encoding: "utf8" }).stdout || "";
+      const out = spawnSync("bash", ["-lc", `lsof -ti tcp:${PORT} 2>/dev/null || true`], { encoding: "utf8" }).stdout || "";
       const pids = out.split(/\s+/).filter(Boolean);
       if (pids.length) spawnSync("kill", ["-9", ...pids]);
     }
@@ -92,21 +96,21 @@ function killPort8080() {
 let server = null;
 
 async function startServer() {
-  hr(); log("▶ 1/3  建置並啟動 Java 伺服器(:8080)…");
+  hr(); log(`▶ 1/3  建置並啟動 Java 伺服器(:${PORT},e2e 專用埠)…`);
 
   // 已有健康的伺服器 → 直接沿用
   if (await wsHandshakeOk(900)) {
-    log("  (偵測到 8080 有健康的伺服器 —— 直接沿用。)");
+    log(`  (偵測到 :${PORT} 有健康的伺服器 —— 直接沿用。)`);
     return "reused";
   }
   // 埠被佔用但握手失敗 = 半死/殘留伺服器 → 先清掉再重啟
   if (await portOccupied()) {
-    log("  ⚠ 8080 被佔用但 WebSocket 握手失敗(殘留/半死伺服器),先清除…");
+    log(`  ⚠ :${PORT} 被佔用但 WebSocket 握手失敗(殘留/半死伺服器),先清除…`);
     killPort8080();
     await sleep(1500);
   }
 
-  server = spawn(gradlew, [":server:bootRun", "--console=plain", "--no-daemon"], {
+  server = spawn(gradlew, [":server:bootRun", "--console=plain", "--no-daemon", `--args=--server.port=${PORT}`], {
     cwd: ROOT,
     stdio: ["ignore", "inherit", "inherit"],
     shell: isWin,
@@ -132,7 +136,7 @@ async function stopServer() {
   }
   // 等埠真的釋放;還在就硬殺(避免殘留佔用 8080 害下次測試)
   for (let i = 0; i < 12; i++) {
-    if (!(await portOccupied(8080, "127.0.0.1", 400))) return;
+    if (!(await portOccupied(PORT, "127.0.0.1", 400))) return;
     await sleep(500);
   }
   killPort8080();
@@ -158,19 +162,20 @@ async function main() {
     hr(); log("▶ 2/3  協定 e2e:大廳交握 + 遊戲流程(兩客戶端)…");
     // node 是 .exe:不要用 shell(Windows 上 node.exe 路徑含空白會被 shell 拆開)。
     // gradlew.bat / npm.cmd 才需要 shell(見 run() 預設 shell:isWin)。
-    const lobbyCode = await run(node, [path.join("e2e", "lobby-e2e.mjs"), "ws://localhost:8080"], { shell: false });
-    const deckCode = await run(node, [path.join("e2e", "deckbuild-e2e.mjs"), "ws://localhost:8080"], { shell: false });
-    const saveCode = await run(node, [path.join("e2e", "save-reload-e2e.mjs"), "ws://localhost:8080"], { shell: false });
-    const rosterCode = await run(node, [path.join("e2e", "dynamic-roster-e2e.mjs"), "ws://localhost:8080"], { shell: false });
-    const voteCode = await run(node, [path.join("e2e", "char-vote-e2e.mjs"), "ws://localhost:8080"], { shell: false });
-    const claimCode = await run(node, [path.join("e2e", "seat-claim-e2e.mjs"), "ws://localhost:8080"], { shell: false });
-    const sandboxCode = await run(node, [path.join("e2e", "sandbox-e2e.mjs"), "ws://localhost:8080"], { shell: false });
-    const stabilityCode = await run(node, [path.join("e2e", "stability-e2e.mjs"), "ws://localhost:8080"], { shell: false });
-    const gameplayCode = await run(node, [path.join("e2e", "gameplay-e2e.mjs"), "ws://localhost:8080"], { shell: false });
-    const abilityCode = await run(node, [path.join("e2e", "ability-e2e.mjs"), "ws://localhost:8080"], { shell: false });
-    const chapterCode = await run(node, [path.join("e2e", "chapter-e2e.mjs"), "ws://localhost:8080"], { shell: false });
-    const flowCode = await run(node, [path.join("e2e", "protocol-e2e.mjs"), "ws://localhost:8080"], { shell: false });
-    protocolCode = lobbyCode || deckCode || saveCode || rosterCode || voteCode || claimCode || sandboxCode || stabilityCode || gameplayCode || abilityCode || chapterCode || flowCode;   // 任一失敗即失敗
+    const lobbyCode = await run(node, [path.join("e2e", "lobby-e2e.mjs"), BASE], { shell: false });
+    const deckCode = await run(node, [path.join("e2e", "deckbuild-e2e.mjs"), BASE], { shell: false });
+    const saveCode = await run(node, [path.join("e2e", "save-reload-e2e.mjs"), BASE], { shell: false });
+    const rosterCode = await run(node, [path.join("e2e", "dynamic-roster-e2e.mjs"), BASE], { shell: false });
+    const voteCode = await run(node, [path.join("e2e", "char-vote-e2e.mjs"), BASE], { shell: false });
+    const claimCode = await run(node, [path.join("e2e", "seat-claim-e2e.mjs"), BASE], { shell: false });
+    const sandboxCode = await run(node, [path.join("e2e", "sandbox-e2e.mjs"), BASE], { shell: false });
+    const stabilityCode = await run(node, [path.join("e2e", "stability-e2e.mjs"), BASE], { shell: false });
+    const gameplayCode = await run(node, [path.join("e2e", "gameplay-e2e.mjs"), BASE], { shell: false });
+    const abilityCode = await run(node, [path.join("e2e", "ability-e2e.mjs"), BASE], { shell: false });
+    const chapterCode = await run(node, [path.join("e2e", "chapter-e2e.mjs"), BASE], { shell: false });
+    const traumaCode = await run(node, [path.join("e2e", "trauma-e2e.mjs"), BASE], { shell: false });
+    const flowCode = await run(node, [path.join("e2e", "protocol-e2e.mjs"), BASE], { shell: false });
+    protocolCode = lobbyCode || deckCode || saveCode || rosterCode || voteCode || claimCode || sandboxCode || stabilityCode || gameplayCode || abilityCode || chapterCode || traumaCode || flowCode;   // 任一失敗即失敗
   } else log("(E2E_SKIP_PROTOCOL=1:跳過協定 e2e)");
 
   if (!SKIP_CLIENT) {

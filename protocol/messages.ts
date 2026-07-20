@@ -32,12 +32,15 @@ export interface RosterMember {
   ready: boolean;
   status: MemberStatus;
   connected: boolean;              // 此席位目前是否在線(P6 席位認領的依據)
+  physicalTrauma: number;          // 肉體創傷(每點=下章開局 1 傷害;達生命上限→陣亡退役)
+  mentalTrauma: number;            // 精神創傷(每點=下章開局 1 恐懼;達理智上限→失常退役)
 }
 
 /** 全戰役存檔(docs/09 §5):複製到各玩家本機、可 OFFER_SAVE 載回。 */
 export interface SavedMember {
   playerId: string; displayName: string; investigatorId: string | null;
   deck: string[]; xp: number; status: MemberStatus;
+  physicalTrauma: number; mentalTrauma: number;   // 創傷跨章保留(docs/09 §9;官方 p20)
 }
 export interface CampaignSave {
   campaignId: string; name: string; campaignKey: string; difficulty: Difficulty;

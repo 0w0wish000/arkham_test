@@ -111,6 +111,8 @@ public final class CampaignSession {
         if (game == null || !game.isOver()) return;
         boolean won = game.isWon();
         int earned = (won ? 2 : 1) + game.victoryPoints();   // lite 公式:參與1/勝利2 + 勝利地點
+        Map<String, String> causes = game.eliminationCauses();       // D4:淘汰原因 → 創傷
+        Map<String, int[]> vitals = game.investigatorVitals();       // [生命, 理智] 上限
         game = null;
         stage = "DECKBUILDING";
         currentChapter++;
@@ -119,11 +121,46 @@ public final class CampaignSession {
             m.ready = false;
             if ("ACTIVE".equals(m.status) && m.investigatorId != null) m.xp += earned;
         }
+        settleTrauma(causes, vitals);                         // D4:被擊敗 → 創傷;達上限 → 退役
         broadcast(new ServerMessage.Event("chapter",
                 (won ? "🎉 章節完成!" : "🕯️ 章節失利…") + "每位參戰調查員獲得 " + earned
                 + " 經驗;回到牌組大廳,準備第 " + currentChapter + " 章。"));
         broadcastRoster();
         commitSave();   // 新存檔版本(跨章 checkpoint)複製到各本機
+    }
+
+    /**
+     * D4 創傷結算(官方 p20-22):傷害被擊敗 → +1 肉體創傷;恐懼被擊敗 → +1 精神創傷
+     * (撤退 RESIGNED 無創傷)。創傷達生命上限 → 陣亡、達理智上限 → 精神失常 ——
+     * 角色永久退役(deadInvestigators),該玩家下章需改帶新角色(創傷歸零;XP 依 P5 慣例保留)。
+     */
+    private void settleTrauma(Map<String, String> causes, Map<String, int[]> vitals) throws IOException {
+        for (Member m : roster.values()) {
+            if (m.investigatorId == null) continue;
+            String cause = causes.get(m.investigatorId);
+            if ("DAMAGE".equals(cause)) {
+                m.physicalTrauma++;
+                broadcast(new ServerMessage.Event("trauma", "🩸 " + m.displayName + " 的「" + m.investigatorId
+                        + "」傷重被擊敗 → 肉體創傷 +1(共 " + m.physicalTrauma + ";下章開局帶等量傷害)。"));
+            } else if ("HORROR".equals(cause)) {
+                m.mentalTrauma++;
+                broadcast(new ServerMessage.Event("trauma", "🧠 " + m.displayName + " 的「" + m.investigatorId
+                        + "」精神崩潰 → 精神創傷 +1(共 " + m.mentalTrauma + ";下章開局帶等量恐懼)。"));
+            }
+            int[] v = vitals.get(m.investigatorId);
+            if (v == null) continue;
+            boolean killed = m.physicalTrauma >= v[0];
+            boolean insane = m.mentalTrauma >= v[1];
+            if (killed || insane) {
+                deadInvestigators.add(m.investigatorId);
+                broadcast(new ServerMessage.Event("trauma", "☠️ 「" + m.investigatorId + "」創傷達"
+                        + (killed ? "生命上限,永久陣亡" : "理智上限,永久精神失常")
+                        + " —— 此存檔封鎖該角色;" + m.displayName + " 需改帶新角色。"));
+                m.investigatorId = null;
+                m.physicalTrauma = 0;
+                m.mentalTrauma = 0;
+            }
+        }
     }
 
     /** 接手寬限計時器:掉線者逾時未歸隊 → 檢定視為不投入(解開卡住的屏障)。daemon,不擋 JVM 結束。 */
@@ -296,6 +333,13 @@ public final class CampaignSession {
         broadcast(new ServerMessage.Event("scenario",
                 "隊伍準備完畢 —— 踏入戰役,共 " + ids.size() + " 位調查員。"));
         for (Member m : playing) {
+            if (m.physicalTrauma > 0 || m.mentalTrauma > 0) {   // D4:每點創傷 = 開局 1 傷害/恐懼(官方 p20)
+                game.applyStartingTrauma(m.investigatorId, m.physicalTrauma, m.mentalTrauma);
+                broadcast(new ServerMessage.Event("trauma", "🩹 " + m.displayName + " 的「" + m.investigatorId
+                        + "」帶著創傷上陣:開局 " + m.physicalTrauma + " 傷害 / " + m.mentalTrauma + " 恐懼。"));
+            }
+        }
+        for (Member m : playing) {
             WebSocketSession ws = clients.get(m.playerId);
             if (ws != null) game.join(m.investigatorId, ws);   // 送初始 STATE → client 切到戰役板
         }
@@ -430,6 +474,8 @@ public final class CampaignSession {
         claimer.deck = new ArrayList<>(target.deck);
         claimer.xp = target.xp;
         claimer.status = target.status;
+        claimer.physicalTrauma = target.physicalTrauma;   // 創傷跟著席位走
+        claimer.mentalTrauma = target.mentalTrauma;
         claimer.ready = false;
         roster.remove(v.targetPlayerId);
         broadcast(new ServerMessage.Event("claim", "✅ " + claimer.displayName + " 認領了 "
@@ -457,6 +503,8 @@ public final class CampaignSession {
                 m.deck = sm.deck() == null ? new ArrayList<>() : new ArrayList<>(sm.deck());
                 m.xp = sm.xp();
                 m.status = sm.status() == null ? "ACTIVE" : sm.status();
+                m.physicalTrauma = Math.max(0, sm.physicalTrauma());
+                m.mentalTrauma = Math.max(0, sm.mentalTrauma());
                 m.ready = false;                       // 重載後需重新 ready
                 cs.roster.put(sm.playerId(), m);
             }
@@ -510,7 +558,7 @@ public final class CampaignSession {
         List<CampaignSave.SavedMember> sm = new ArrayList<>();
         for (Member m : roster.values()) {
             sm.add(new CampaignSave.SavedMember(m.playerId, m.displayName, m.investigatorId,
-                    List.copyOf(m.deck), m.xp, m.status));
+                    List.copyOf(m.deck), m.xp, m.status, m.physicalTrauma, m.mentalTrauma));
         }
         boolean inScenario = game != null;
         Object snapshot = inScenario ? game.snapshotStateNode() : null;
@@ -576,7 +624,7 @@ public final class CampaignSession {
         List<RosterMember> members = new ArrayList<>();
         for (Member m : roster.values()) {
             members.add(new RosterMember(m.playerId, m.displayName, m.investigatorId, m.ready, m.status,
-                    clients.containsKey(m.playerId)));
+                    clients.containsKey(m.playerId), m.physicalTrauma, m.mentalTrauma));
         }
         // 牌組/載入階段任何人都能強制越過屏障(熟人內網信任;docs/09 §8.3)。
         boolean canForce = "DECKBUILDING".equals(stage) || "LOADING".equals(stage);
@@ -612,6 +660,8 @@ public final class CampaignSession {
         String status = "ACTIVE";
         List<String> deck = new ArrayList<>();   // 牌組(卡名清單;紀錄用)
         int xp = 0;
+        int physicalTrauma = 0;   // 創傷跨章保留(docs/09 §9;官方 p20)
+        int mentalTrauma = 0;
         Member(String playerId, String displayName) {
             this.playerId = playerId;
             this.displayName = displayName;

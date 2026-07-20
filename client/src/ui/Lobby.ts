@@ -275,7 +275,9 @@ export class Lobby {
     else if (m.status === "SITTING_OUT") dot.style.background = "#93a4b3";
     row.appendChild(dot);
     row.appendChild(el("span", "m-name", m.displayName));
-    const role = (m.investigatorId ?? "尚未選角")
+    const trauma = (m.physicalTrauma > 0 ? ` 🩸創傷${m.physicalTrauma}` : "")
+      + (m.mentalTrauma > 0 ? ` 🧠創傷${m.mentalTrauma}` : "");
+    const role = (m.investigatorId ?? "尚未選角") + trauma
       + (STATUS_ZH[m.status] ? " " + STATUS_ZH[m.status] : "")
       + (m.connected === false ? "(離線)" : "");
     row.appendChild(el("span", "m-role", role));

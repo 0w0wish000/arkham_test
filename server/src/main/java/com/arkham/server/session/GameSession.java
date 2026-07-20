@@ -105,6 +105,36 @@ public final class GameSession {
         return clients.isEmpty();
     }
 
+    /** D4 結算用:各調查員的淘汰原因(DAMAGE/HORROR/RESIGNED;未淘汰者不在 map)。 */
+    public synchronized java.util.Map<String, String> eliminationCauses() {
+        java.util.Map<String, String> out = new java.util.LinkedHashMap<>();
+        for (com.arkham.engine.model.Investigator inv : engine.state().orderedInvestigators()) {
+            if (inv.isEliminated()) {
+                out.put(inv.getId(), inv.getElimination().name());
+            }
+        }
+        return out;
+    }
+
+    /** D4 結算用:各調查員的 [生命, 理智] 上限(創傷達上限 → 退役判定)。 */
+    public synchronized java.util.Map<String, int[]> investigatorVitals() {
+        java.util.Map<String, int[]> out = new java.util.LinkedHashMap<>();
+        for (com.arkham.engine.model.Investigator inv : engine.state().orderedInvestigators()) {
+            out.put(inv.getId(), new int[]{inv.getHealth(), inv.getSanity()});
+        }
+        return out;
+    }
+
+    /** D4:開局套用跨章創傷(每點 = 1 傷害 / 1 恐懼,官方 p20);夾在上限-1 內(達上限者已於結算退役)。 */
+    public synchronized void applyStartingTrauma(String investigatorId, int physical, int mental) {
+        com.arkham.engine.model.Investigator inv = engine.state().investigator(investigatorId);
+        if (inv == null) {
+            return;
+        }
+        inv.takeDamage(Math.min(Math.max(0, physical), inv.getHealth() - 1));
+        inv.takeHorror(Math.min(Math.max(0, mental), inv.getSanity() - 1));
+    }
+
     /** campaign 掉線:只移除連線,保留屏障等待接手(docs/09 §9 重打掉線那一動)。 */
     public synchronized void detach(String investigatorId) {
         clients.remove(investigatorId);

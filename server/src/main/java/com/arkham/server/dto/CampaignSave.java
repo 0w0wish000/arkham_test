@@ -37,6 +37,8 @@ public record CampaignSave(
             String investigatorId,
             List<String> deck,
             int xp,
-            String status) {
+            String status,
+            int physicalTrauma,     // 創傷跨章保留(docs/09 §9;官方 p20);舊存檔缺欄位 → 0
+            int mentalTrauma) {
     }
 }
