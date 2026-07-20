@@ -88,10 +88,68 @@ public final class ScenarioFactory {
         return createState(investigatorIds, scenarioKey, "STANDARD");
     }
 
-    /** 同上,並依難度組混沌袋(docs/09 §12)。 */
+    /** 同上,並依難度組混沌袋(docs/09 §12)。非沙盒 → 場景資料(查無此鍵後備 core)。 */
     public static GameState createState(List<String> investigatorIds, String scenarioKey, String difficulty) {
         if ("sandbox".equals(scenarioKey)) return createSandbox(investigatorIds, difficulty);
-        return createCoreState(investigatorIds, difficulty);
+        return createFromData(dataFor(scenarioKey), investigatorIds, difficulty);
+    }
+
+    /** 依 key 取場景資料;查無 → core(所有戰役目前皆以 core lite 代打)。 */
+    private static ScenarioData dataFor(String scenarioKey) {
+        return ScenarioRepository.find(scenarioKey).orElseGet(ScenarioFactory::coreData);
+    }
+
+    private static ScenarioData coreData() {
+        return ScenarioRepository.find("core").orElseThrow(
+                () -> new IllegalStateException("內建場景資料 scenarios/core.json 遺失"));
+    }
+
+    /**
+     * A2:由宣告式場景資料建 {@link GameState} —— 地點圖 / 幕 / 密謀 / 敵人數值 /
+     * 遭遇牌堆全資料驅動;調查員仍出自登記表(F2 之後也改資料)。
+     */
+    public static GameState createFromData(ScenarioData d, List<String> investigatorIds, String difficulty) {
+        List<String> roster = (investigatorIds == null || investigatorIds.isEmpty())
+                ? DEFAULT_ROSTER : investigatorIds;
+
+        Map<String, EnemyDef> defs = new LinkedHashMap<>();
+        for (ScenarioData.EnemyDefData e : d.enemies()) {
+            List<Keyword> kws = e.keywords() == null ? List.of()
+                    : e.keywords().stream().map(Keyword::valueOf).toList();
+            defs.put(e.defKey(), new EnemyDef(e.defKey(), e.name(),
+                    e.fight(), e.health(), e.evade(), e.damage(), e.horror(), kws));
+        }
+        List<EncounterCard> encounters = new java.util.ArrayList<>();
+        for (ScenarioData.EncounterData en : d.encounterDeck()) {
+            if ("ENEMY".equals(en.type())) {
+                encounters.add(EncounterCard.enemy(en.defKey()));
+            } else {
+                encounters.add(EncounterCard.treachery(en.name(),
+                        EncounterCard.Effect.valueOf(en.effect()), en.amount()));
+            }
+        }
+
+        GameState state = new GameState(
+                ChaosBag.forDifficulty(difficulty),
+                new Act(d.act().name(), d.act().threshold()),
+                new Agenda(d.agenda().name(), d.agenda().threshold()),
+                defs, encounters);
+        for (ScenarioData.LocationData l : d.locations()) {
+            state.addLocation(new LocationCard(l.id(), l.name(), l.shroud(), l.clueValue(),
+                    l.revealed(), l.connections(), l.victory(), l.spawnDefKey()));
+        }
+        for (String id : roster) {
+            Investigator inv = buildInvestigator(id);
+            inv.setLocationId(d.startLocationId());
+            inv.setActionsRemaining(3);   // 第 1 輪跳過神話(docs/05 §1);每人 3 行動
+            state.addInvestigator(inv);
+        }
+        state.setActiveInvestigatorId(roster.get(0));
+
+        state.lockPlayerCount();   // 撤退不減縮放(官方 p14)
+        LocationCard start = state.location(d.startLocationId());
+        start.setClues(start.getClueValue() * state.getPlayerCount());
+        return state;
     }
 
     /** Fisher–Yates(用引擎中央 RNG,可重現)。 */
@@ -116,43 +174,9 @@ public final class ScenarioFactory {
         return createCoreState(investigatorIds, "STANDARD");
     }
 
+    /** Spreading Flames lite —— A2 之後改由場景資料建(resources/scenarios/core.json)。 */
     private static GameState createCoreState(List<String> investigatorIds, String difficulty) {
-        List<String> roster = (investigatorIds == null || investigatorIds.isEmpty())
-                ? DEFAULT_ROSTER : investigatorIds;
-
-        GameState state = new GameState(
-                ChaosBag.forDifficulty(difficulty),
-                new Act("Where There's Smoke…", 2),
-                new Agenda("Past Curfew", 5),
-                enemyDefs(),
-                encounterDeck());
-
-        // --- Locations (prototype LOCATIONS) ---
-        state.addLocation(new LocationCard("friends_room", "Your Friend's Room", 2, 2,
-                true, List.of("dormitories"), false, null));
-        state.addLocation(new LocationCard("dormitories", "Dormitories", 2, 1,
-                false, List.of("friends_room", "quad"), false, "servant")); // reveal spawns the Servant
-        state.addLocation(new LocationCard("quad", "Miskatonic Quad", 1, 1,
-                false, List.of("dormitories", "science", "library"), false, null));
-        state.addLocation(new LocationCard("science", "Science Building", 3, 2,
-                false, List.of("quad"), false, null));
-        state.addLocation(new LocationCard("library", "Orne Library", 4, 2,
-                false, List.of("quad"), true, null)); // victory location
-
-        // --- Investigators (from roster) ---
-        for (String id : roster) {
-            Investigator inv = buildInvestigator(id);
-            inv.setActionsRemaining(3);   // round 1 skips Mythos (docs/05 §1); 3 actions each
-            state.addInvestigator(inv);
-        }
-        state.setActiveInvestigatorId(roster.get(0));
-
-        // Starting location is revealed at setup: place clueValue × players.
-        state.lockPlayerCount();   // 撤退不減縮放(官方 p14)
-        LocationCard start = state.location("friends_room");
-        start.setClues(start.getClueValue() * state.getPlayerCount());
-
-        return state;
+        return createFromData(coreData(), investigatorIds, difficulty);
     }
 
     /**
@@ -275,26 +299,5 @@ public final class ScenarioFactory {
         return defs;
     }
 
-    /** Enemy definitions (prototype ENEMY_DEF). */
-    private static Map<String, EnemyDef> enemyDefs() {
-        Map<String, EnemyDef> defs = new LinkedHashMap<>();
-        defs.put("servant", new EnemyDef("servant", "Servant of Flame",
-                4, 5, 2, 1, 1, List.of(Keyword.HUNTER, Keyword.RETALIATE)));
-        defs.put("acolyte", new EnemyDef("acolyte", "Acolyte",
-                1, 1, 2, 1, 0, List.of(Keyword.HUNTER)));
-        defs.put("wraith", new EnemyDef("wraith", "Fire Vampire",
-                3, 3, 3, 0, 2, List.of(Keyword.HUNTER, Keyword.ALERT)));
-        return defs;
-    }
 
-    /** Encounter deck (prototype encounterDeck), drawn one per investigator each Mythos. */
-    private static List<EncounterCard> encounterDeck() {
-        return List.of(
-                EncounterCard.enemy("acolyte"),
-                EncounterCard.treachery("Frozen in Fear", EncounterCard.Effect.HORROR, 1),
-                EncounterCard.enemy("wraith"),
-                EncounterCard.treachery("Cosmic Evils", EncounterCard.Effect.DOOM, 1),
-                EncounterCard.enemy("acolyte"),
-                EncounterCard.treachery("Quiet Halls", EncounterCard.Effect.NOTHING, 0));
-    }
 }

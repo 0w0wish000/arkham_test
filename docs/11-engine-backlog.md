@@ -13,8 +13,8 @@
 
 | # | 任務 | 規模 | 相依 | 現況 |
 |---|---|---|---|---|
-| A1 | 劇本定義 schema(設置、幕/密謀牌組、遭遇組、混沌袋×難度、地點圖、結局分支) | M | — | ☐ |
-| A2 | 從資料建 `GameState`(取代 `ScenarioFactory` 硬編) | M | A1 | ◐ 有參數化雛形 |
+| A1 | 劇本定義 schema(設置、幕/密謀牌組、遭遇組、混沌袋×難度、地點圖、結局分支) | M | — | ◐ **`ScenarioData` schema 已落地**(地點圖/幕/密謀/敵人數值/遭遇組成 + 起點;`resources/scenarios/<key>.json`);多張幕密謀(A4)/混沌袋覆寫(A5)/結局分支(D2)欄位待擴充 |
+| A2 | 從資料建 `GameState`(取代 `ScenarioFactory` 硬編) | M | A1 | ◐ **已實作**:`ScenarioRepository`(classpath 載入+快取)+ `ScenarioFactory.createFromData`;core 劇本已搬進 `scenarios/core.json`、硬編地點/敵表/遭遇刪除;campaignKey 查無資料 → 後備 core(`ScenarioDataTest` 3 測試)。調查員仍出自登記表(F2) |
 | A3 | 遭遇牌堆由「遭遇組(encounter sets)」組成 + 洗牌 | S | A1 | ☐ |
 | A4 | **幕/密謀改為「牌組」**(多張、逐張推進),非現在的單張 | M | A1 | ◐ 單張 |
 | A5 | 混沌袋依「劇本 + 難度」組成;符號標記效果由劇本定義 | M | A1、B | ◐ 標準 16 袋 |
