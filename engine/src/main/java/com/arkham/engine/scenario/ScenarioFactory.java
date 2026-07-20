@@ -73,6 +73,7 @@ public final class ScenarioFactory {
         GameState state = "sandbox".equals(scenarioKey)
                 ? createSandbox(investigatorIds, difficulty)
                 : createFromData(dataFor(scenarioKey, chapter), investigatorIds, difficulty);
+        rng.shuffle(state.getEncounterDeck());   // A3-lite:遭遇牌堆開局洗牌(種子可重現;循環抽用洗後順序)
         if (!"sandbox".equals(scenarioKey)) {
             for (Investigator inv : state.orderedInvestigators()) {
                 List<String> names = decksByInvestigator == null ? null : decksByInvestigator.get(inv.getId());
