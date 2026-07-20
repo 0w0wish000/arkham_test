@@ -35,6 +35,7 @@ import java.util.Map;
         @JsonSubTypes.Type(value = ClientMessage.SitOut.class, name = "SIT_OUT"),
         @JsonSubTypes.Type(value = ClientMessage.ProposeNewCharacter.class, name = "PROPOSE_NEW_CHARACTER"),
         @JsonSubTypes.Type(value = ClientMessage.ClaimSeat.class, name = "CLAIM_SEAT"),
+        @JsonSubTypes.Type(value = ClientMessage.ApplyLog.class, name = "APPLY_LOG"),
         @JsonSubTypes.Type(value = ClientMessage.Vote.class, name = "VOTE")
 })
 public sealed interface ClientMessage
@@ -43,7 +44,7 @@ public sealed interface ClientMessage
                 ClientMessage.Hello, ClientMessage.CreateCampaign, ClientMessage.JoinSession, ClientMessage.LeaveSession,
                 ClientMessage.PickInvestigator, ClientMessage.SetDeck, ClientMessage.ReadyDeck, ClientMessage.ForceStart,
                 ClientMessage.OfferSave, ClientMessage.ReadyLoad, ClientMessage.SitOut,
-                ClientMessage.ProposeNewCharacter, ClientMessage.ClaimSeat, ClientMessage.Vote {
+                ClientMessage.ProposeNewCharacter, ClientMessage.ClaimSeat, ClientMessage.ApplyLog, ClientMessage.Vote {
 
     /** {@code { type:"JOIN", sessionId, investigatorId }} */
     record Join(String sessionId, String investigatorId) implements ClientMessage {}
@@ -104,6 +105,10 @@ public sealed interface ClientMessage
 
     /** {@code { type:"CLAIM_SEAT", targetPlayerId }} — 認領離線席位(docs/09 P6;換裝置回歸) */
     record ClaimSeat(String targetPlayerId) implements ClientMessage {}
+
+    /** {@code { type:"APPLY_LOG", action, … }} — 套用劇本指示(docs/09 §11.5 混合制,D7) */
+    record ApplyLog(String action, String targetPlayerId, String cardName,
+                    Integer physicalDelta, Integer mentalDelta, String text) implements ClientMessage {}
 
     /** {@code { type:"VOTE", requestId, yes }} — 換角 / 席位認領投票 */
     record Vote(String requestId, boolean yes) implements ClientMessage {}

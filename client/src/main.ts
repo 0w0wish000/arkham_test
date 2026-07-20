@@ -67,6 +67,7 @@ async function main() {
     },
     // 死亡換角投票(docs/09 §10)
     onVotePrompt: (msg) => { conn.vote(msg.requestId, confirm("🗳️ " + msg.reason)); },
+    onCampaignLog: (msg) => lobby.renderLog(msg.entries),   // 戰役日誌(D6)
     onSaveSnapshot: (msg) => { board?.hud.log(`💾 已存檔:第 ${msg.round} 輪(${msg.scenario})。`); },
     // 存檔複製到本機(docs/09 §7):寫入本機存檔庫,供主選單「加載續玩」
     onCampaignSnapshot: (msg) => {
@@ -112,6 +113,7 @@ async function main() {
   lobby.onSitOut = (sitOut) => conn.sitOut(sitOut);       // 本章中離/歸隊(docs/09 §9)
   lobby.onProposeNewChar = (playerId) => conn.proposeNewCharacter(playerId);   // 死亡換角(§10)
   lobby.onClaimSeat = (targetPlayerId) => conn.claimSeat(targetPlayerId);       // 席位認領(P6)
+  lobby.onApplyLog = (req) => conn.applyLog(req);                               // 劇本指示(D7)
 
   // 完整選卡器(P2-2):開 iframe 構築;「完成牌組」→ 送回 PICK + SET_DECK + READY
   lobby.onOpenDeckbuilder = () => {

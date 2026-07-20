@@ -1,6 +1,6 @@
 import type {
   ClientMessage, ServerMessage, ChoiceRequestMsg, SavePromptMsg, SaveSnapshotMsg,
-  LobbyMsg, SessionRosterMsg, CampaignSnapshotMsg, LogHistoryMsg, VotePromptMsg,
+  LobbyMsg, SessionRosterMsg, CampaignSnapshotMsg, LogHistoryMsg, VotePromptMsg, CampaignLogMsg,
   GameStateView, IntentAction, ChoiceResponse, Difficulty, CampaignSave,
 } from "../protocol";
 
@@ -10,7 +10,8 @@ interface Handlers {
   onSessionRoster?: (msg: SessionRosterMsg) => void;
   onCampaignSnapshot?: (msg: CampaignSnapshotMsg) => void;   // 存檔複製到本機
   onLogHistory?: (msg: LogHistoryMsg) => void;               // 載入後 log 回放
-  onVotePrompt?: (msg: VotePromptMsg) => void;               // 死亡換角投票彈窗
+  onVotePrompt?: (msg: VotePromptMsg) => void;               // 死亡換角/席位認領投票彈窗
+  onCampaignLog?: (msg: CampaignLogMsg) => void;             // 戰役日誌同步(D6)
   // 戰役板
   onState?: (view: GameStateView) => void;
   onEvent?: (message: string) => void;
@@ -48,6 +49,7 @@ export class Connection {
       case "CAMPAIGN_SNAPSHOT": this.handlers.onCampaignSnapshot?.(msg); break;
       case "LOG_HISTORY": this.handlers.onLogHistory?.(msg); break;
       case "VOTE_PROMPT": this.handlers.onVotePrompt?.(msg); break;
+      case "CAMPAIGN_LOG": this.handlers.onCampaignLog?.(msg); break;
       case "STATE": this.handlers.onState?.(msg.view); break;
       case "EVENT": this.handlers.onEvent?.(msg.message); break;
       case "CHOICE_REQUEST": this.handlers.onChoiceRequest?.(msg); break;
@@ -79,6 +81,7 @@ export class Connection {
   // 死亡換角投票(docs/09 §10)
   proposeNewCharacter(playerId: string) { this.send({ type: "PROPOSE_NEW_CHARACTER", playerId }); }
   claimSeat(targetPlayerId: string) { this.send({ type: "CLAIM_SEAT", targetPlayerId }); }   // 席位認領(P6)
+  applyLog(req: Omit<import("../protocol").ApplyLogMsg, "type">) { this.send({ type: "APPLY_LOG", ...req }); }   // 劇本指示(D7)
   vote(requestId: string, yes: boolean) { this.send({ type: "VOTE", requestId, yes }); }
 
   // ---- 戰役板 ----

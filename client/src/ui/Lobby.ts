@@ -1,4 +1,5 @@
-import type { SessionSummary, RosterMember, SessionRosterMsg, Difficulty, CampaignSave } from "../protocol";
+import type {
+  CampaignLogEntry, ApplyLogAction, SessionSummary, RosterMember, SessionRosterMsg, Difficulty, CampaignSave } from "../protocol";
 import campaignsData from "../../../content/reference/campaigns.json";
 
 /**
@@ -56,6 +57,8 @@ export class Lobby {
   onSitOut?: (sitOut: boolean) => void;   // 中離/歸隊(docs/09 §9)
   onProposeNewChar?: (playerId: string) => void;   // 死亡換角投票(docs/09 §10)
   onClaimSeat?: (targetPlayerId: string) => void;  // 席位認領(docs/09 P6:換裝置回歸)
+  onApplyLog?: (req: { action: ApplyLogAction; targetPlayerId?: string; cardName?: string;
+    physicalDelta?: number; mentalDelta?: number; text?: string }) => void;   // 劇本指示(D7)
 
   private currentName = "";
   private myPlayerId = "";
@@ -105,6 +108,36 @@ export class Lobby {
       sel.appendChild(o);
     }
     if (sel.options.length > 1) sel.selectedIndex = 1;   // 預設最新戰役(2026 修訂核心)
+
+    // ── 戰役日誌 / 套用劇本指示(D6/D7)──
+    const applyAction = this.select("apply-action");
+    const refreshApplyRows = () => {
+      const a = applyAction.value;
+      (this.$("apply-target") as HTMLElement).hidden = a === "RECORD";
+      (this.$("apply-card-row") as HTMLElement).hidden = !(a === "ADD_CARD" || a === "REMOVE_CARD");
+      (this.$("apply-trauma-row") as HTMLElement).hidden = a !== "ADJUST_TRAUMA";
+      (this.$("apply-text-row") as HTMLElement).hidden = a !== "RECORD";
+    };
+    applyAction.onchange = refreshApplyRows;
+    refreshApplyRows();
+    this.$("apply-go").onclick = () => {
+      const action = applyAction.value as ApplyLogAction;
+      const target = this.select("apply-target").value || undefined;
+      const cardName = this.input("apply-card").value.trim() || undefined;
+      const text = this.input("apply-text").value.trim() || undefined;
+      const physicalDelta = Number(this.select("apply-phys").value) || 0;
+      const mentalDelta = Number(this.select("apply-ment").value) || 0;
+      const desc = action === "RECORD" ? `記事:「${text ?? ""}」`
+        : action === "ADD_CARD" ? `把「${cardName ?? ""}」加進所選隊員牌組`
+        : action === "REMOVE_CARD" ? `從所選隊員牌組移除「${cardName ?? ""}」`
+        : `調整所選隊員創傷(🩸${physicalDelta >= 0 ? "+" : ""}${physicalDelta} / 🧠${mentalDelta >= 0 ? "+" : ""}${mentalDelta})`;
+      if (!confirm(`套用劇本指示 —— ${desc}?\n(全隊同步、寫入戰役日誌並自動存檔)`)) return;
+      this.onApplyLog?.({ action, targetPlayerId: target, cardName, physicalDelta, mentalDelta, text });
+      this.input("apply-card").value = "";
+      this.input("apply-text").value = "";
+      this.select("apply-phys").value = "0";
+      this.select("apply-ment").value = "0";
+    };
 
     // ── 名冊 / 牌組大廳 ──
     this.$("roster-leave").onclick = () => this.onLeave?.();
@@ -225,6 +258,16 @@ export class Lobby {
 
     const list = this.$("roster-list");
     list.replaceChildren();
+    const targetSel = this.select("apply-target");
+    const prevTarget = targetSel.value;
+    targetSel.replaceChildren();
+    for (const m of msg.members) {
+      const o = document.createElement("option");
+      o.value = m.playerId;
+      o.textContent = `${m.displayName}${m.investigatorId ? "(" + m.investigatorId + ")" : ""}`;
+      targetSel.appendChild(o);
+    }
+    if ([...targetSel.options].some((o) => o.value === prevTarget)) targetSel.value = prevTarget;
     const meNow = msg.members.find((x) => x.playerId === this.myPlayerId);
     // 我尚未有角色時,可對「離線且已選角」的席位發起認領(換裝置回歸的自己)
     const canClaim = !!meNow && !meNow.investigatorId;
@@ -301,6 +344,25 @@ export class Lobby {
       row.appendChild(b);
     }
     return row;
+  }
+
+  /** 戰役日誌全量渲染(D6:CAMPAIGN_LOG)。 */
+  renderLog(entries: CampaignLogEntry[]) {
+    const box = this.$("camp-log");
+    box.replaceChildren();
+    box.classList.toggle("empty", entries.length === 0);
+    if (entries.length === 0) {
+      box.textContent = "尚無日誌 —— 劇本要你加卡/移卡/調創傷/記旗標時,在這裡套用,全隊同步並自動存檔。";
+      return;
+    }
+    for (const e of entries) {
+      const row = el("div", "cl");
+      row.appendChild(el("span", "cl-ch", `第${e.chapter}章`));
+      row.appendChild(document.createTextNode(e.text));
+      row.appendChild(el("span", "cl-by", `— ${e.by}`));
+      box.appendChild(row);
+    }
+    box.scrollTop = box.scrollHeight;
   }
 
   /** 大廳旁白事件(加入/脫離等)。 */

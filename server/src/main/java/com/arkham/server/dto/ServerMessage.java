@@ -25,13 +25,15 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         @JsonSubTypes.Type(value = ServerMessage.SessionRoster.class, name = "SESSION_ROSTER"),
         @JsonSubTypes.Type(value = ServerMessage.CampaignSnapshot.class, name = "CAMPAIGN_SNAPSHOT"),
         @JsonSubTypes.Type(value = ServerMessage.LogHistory.class, name = "LOG_HISTORY"),
-        @JsonSubTypes.Type(value = ServerMessage.VotePrompt.class, name = "VOTE_PROMPT")
+        @JsonSubTypes.Type(value = ServerMessage.VotePrompt.class, name = "VOTE_PROMPT"),
+        @JsonSubTypes.Type(value = ServerMessage.CampaignLog.class, name = "CAMPAIGN_LOG")
 })
 public sealed interface ServerMessage
         permits ServerMessage.State, ServerMessage.Event, ServerMessage.ChoiceRequest,
                 ServerMessage.Error, ServerMessage.SavePrompt, ServerMessage.SaveSnapshot, ServerMessage.Pong,
                 ServerMessage.Lobby, ServerMessage.SessionRoster,
-                ServerMessage.CampaignSnapshot, ServerMessage.LogHistory, ServerMessage.VotePrompt {
+                ServerMessage.CampaignSnapshot, ServerMessage.LogHistory, ServerMessage.VotePrompt,
+                ServerMessage.CampaignLog {
 
     /** {@code { type:"STATE", view }} — the recipient's filtered snapshot. */
     record State(GameStateView view) implements ServerMessage {}
@@ -72,4 +74,7 @@ public sealed interface ServerMessage
 
     /** {@code { type:"VOTE_PROMPT", requestId, subject, reason }} — 換角投票彈窗(docs/09 §10)。 */
     record VotePrompt(String requestId, String subject, String reason) implements ServerMessage {}
+
+    /** {@code { type:"CAMPAIGN_LOG", entries }} — 戰役日誌全量同步(D6;入桌與變更時)。 */
+    record CampaignLog(java.util.List<CampaignSave.LogEntry> entries) implements ServerMessage {}
 }

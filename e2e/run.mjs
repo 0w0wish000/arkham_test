@@ -176,8 +176,9 @@ async function main() {
     const abilityCode = await run(node, [path.join("e2e", "ability-e2e.mjs"), BASE], { shell: false });
     const chapterCode = await run(node, [path.join("e2e", "chapter-e2e.mjs"), BASE], { shell: false });
     const traumaCode = await run(node, [path.join("e2e", "trauma-e2e.mjs"), BASE], { shell: false });
+    const clogCode = await run(node, [path.join("e2e", "campaign-log-e2e.mjs"), BASE], { shell: false });
     const flowCode = await run(node, [path.join("e2e", "protocol-e2e.mjs"), BASE], { shell: false });
-    protocolCode = lobbyCode || deckCode || saveCode || rosterCode || voteCode || claimCode || sandboxCode || stabilityCode || gameplayCode || abilityCode || chapterCode || traumaCode || flowCode;   // 任一失敗即失敗
+    protocolCode = lobbyCode || deckCode || saveCode || rosterCode || voteCode || claimCode || sandboxCode || stabilityCode || gameplayCode || abilityCode || chapterCode || traumaCode || clogCode || flowCode;   // 任一失敗即失敗
   } else log("(E2E_SKIP_PROTOCOL=1:跳過協定 e2e)");
 
   if (!SKIP_CLIENT) {

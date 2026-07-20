@@ -79,6 +79,13 @@
     #lobby-log{margin-top:12px;max-height:120px;overflow:auto;font-size:12px;
       background:#0d141d;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
     #lobby-log div{color:var(--dim);padding:1px 0}
+    #camp-log{max-height:130px;overflow:auto;font-size:12px;background:#0d141d;
+      border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:8px}
+    #camp-log .cl{padding:2px 0;color:var(--ink)}
+    #camp-log .cl .cl-ch{color:var(--gold);margin-right:6px}
+    #camp-log .cl .cl-by{color:var(--dim);margin-left:6px;font-size:11px}
+    #apply-form .field{margin-bottom:8px}
+    #apply-form select,#apply-form input{flex:1}
     .row-end{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
 
     /* ═══════════ 遊戲板(P2+ 進戰役才顯示)═══════════ */
@@ -227,7 +234,29 @@
 
       <div class="section-title">隊伍</div>
       <div id="roster-list"></div>
-      <div class="roster-hint">全員選好角色並按「準備完成」即自動開打(下一階段換成完整選卡器)。</div>
+
+      <div class="section-title">📜 戰役日誌 / 套用劇本指示(語音商量好再按)</div>
+      <div id="camp-log" class="empty">尚無日誌 —— 劇本要你加卡/移卡/調創傷/記旗標時,在這裡套用,全隊同步並自動存檔。</div>
+      <div id="apply-form">
+        <div class="field">
+          <select id="apply-action">
+            <option value="RECORD">✍️ 記事/旗標</option>
+            <option value="ADD_CARD">➕ 加卡到牌組</option>
+            <option value="REMOVE_CARD">➖ 從牌組移卡</option>
+            <option value="ADJUST_TRAUMA">🩸 調整創傷</option>
+          </select>
+          <select id="apply-target" hidden></select>
+        </div>
+        <div class="field" id="apply-card-row" hidden><input id="apply-card" placeholder="卡名(照劇本指示輸入)" /></div>
+        <div class="field" id="apply-trauma-row" hidden>
+          <select id="apply-phys"><option value="0">🩸 肉體 ±0</option><option value="1">🩸 +1</option><option value="2">🩸 +2</option><option value="-1">🩸 −1</option></select>
+          <select id="apply-ment"><option value="0">🧠 精神 ±0</option><option value="1">🧠 +1</option><option value="2">🧠 +2</option><option value="-1">🧠 −1</option></select>
+        </div>
+        <div class="field" id="apply-text-row"><input id="apply-text" placeholder="例:取得旗標「牧師還活著」/ 密語 XYZ" /></div>
+        <div class="row-end" style="margin-top:4px"><button id="apply-go">📜 套用並記錄</button></div>
+      </div>
+
+      <div class="roster-hint">全員選好角色並按「準備完成」即自動開打。</div>
       <div id="lobby-log"></div>
       <div class="row-end"><button id="roster-leave">離開桌次</button></div>
     </div>

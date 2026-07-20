@@ -28,7 +28,8 @@ public record CampaignSave(
         Object snapshot,            // 引擎狀態樹(IN_SCENARIO 才有,否則 null)
         List<GameEvent> eventLog,
         int round,
-        int currentChapter) {
+        int currentChapter,
+        List<LogEntry> campaignLog) {   // 戰役日誌(D6;舊存檔缺欄位 → null 視為空)
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record SavedMember(
@@ -40,5 +41,10 @@ public record CampaignSave(
             String status,
             int physicalTrauma,     // 創傷跨章保留(docs/09 §9;官方 p20);舊存檔缺欄位 → 0
             int mentalTrauma) {
+    }
+
+    /** 戰役日誌一則(D6/D7):系統記帳「誰在第幾章套用了什麼」。 */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record LogEntry(int chapter, String by, String action, String text) {
     }
 }

@@ -5,6 +5,7 @@ import com.arkham.engine.event.GameEvent;
 import com.arkham.engine.rng.SeededRng;
 import com.arkham.engine.scenario.ScenarioFactory;
 import com.arkham.server.dto.CampaignSave;
+import com.arkham.server.dto.ClientMessage;
 import com.arkham.server.dto.RosterMember;
 import com.arkham.server.dto.ServerMessage;
 import com.arkham.server.dto.SessionSummary;
@@ -53,6 +54,7 @@ public final class CampaignSession {
     private int currentChapter = 1;                       // 跨章推進(docs/09 §9;campaigns.json 章節序)
     private CharVote charVote;                            // 換角投票進行中
     private ClaimVote claimVote;                          // 席位認領投票進行中(docs/09 P6)
+    private final List<CampaignSave.LogEntry> campaignLog = new ArrayList<>();   // 戰役日誌(D6;跨章保留)
 
     public CampaignSession(String campaignId, String name, String campaignKey,
                            String difficulty, ObjectMapper mapper) {
@@ -101,6 +103,9 @@ public final class CampaignSession {
 
         if (isNew) broadcast(new ServerMessage.Event("roster", displayName + " 加入了調查。"));
         broadcastRoster();
+        if (!campaignLog.isEmpty()) {
+            send(ws, new ServerMessage.CampaignLog(List.copyOf(campaignLog)));   // 入桌同步日誌(D6)
+        }
     }
 
     /**
@@ -489,6 +494,83 @@ public final class CampaignSession {
     }
 
     // ------------------------------------------------------------------
+    // 戰役日誌 + 套用劇本指示(docs/09 §11.5 混合制;D6/D7)
+    // ------------------------------------------------------------------
+
+    /**
+     * 套用劇本指示:人(語音共識)決定、系統記帳+同步。限章節之間(牌組大廳);
+     * 每次套用都寫入戰役日誌、廣播、立即出新存檔版本。
+     * ADD_CARD / REMOVE_CARD 不做構築驗證 —— 劇本給的卡(如故事資產/弱點)本就可超出構築規則。
+     */
+    public synchronized void applyLog(String byPlayerId, ClientMessage.ApplyLog req) throws IOException {
+        Member by = roster.get(byPlayerId);
+        if (by == null) return;
+        if (!"DECKBUILDING".equals(stage)) {
+            sendTo(byPlayerId, new ServerMessage.Error("劇本指示請於章節之間(牌組大廳)套用。"));
+            return;
+        }
+        String action = req.action() == null ? "" : req.action();
+        Member target = req.targetPlayerId() == null ? null : roster.get(req.targetPlayerId());
+        String text;
+        switch (action) {
+            case "ADD_CARD" -> {
+                if (target == null || blank(req.cardName())) { sendTo(byPlayerId, new ServerMessage.Error("請指定對象與卡名。")); return; }
+                target.deck.add(req.cardName().trim());
+                text = target.displayName + " 的牌組加入「" + req.cardName().trim() + "」";
+            }
+            case "REMOVE_CARD" -> {
+                if (target == null || blank(req.cardName())) { sendTo(byPlayerId, new ServerMessage.Error("請指定對象與卡名。")); return; }
+                if (!target.deck.remove(req.cardName().trim())) {
+                    sendTo(byPlayerId, new ServerMessage.Error("「" + req.cardName().trim() + "」不在 " + target.displayName + " 的牌組。"));
+                    return;
+                }
+                text = target.displayName + " 的牌組移除「" + req.cardName().trim() + "」";
+            }
+            case "ADJUST_TRAUMA" -> {
+                if (target == null) { sendTo(byPlayerId, new ServerMessage.Error("請指定對象。")); return; }
+                int dp = req.physicalDelta() == null ? 0 : req.physicalDelta();
+                int dm = req.mentalDelta() == null ? 0 : req.mentalDelta();
+                if (dp == 0 && dm == 0) return;
+                target.physicalTrauma = Math.max(0, target.physicalTrauma + dp);
+                target.mentalTrauma = Math.max(0, target.mentalTrauma + dm);
+                text = target.displayName + " 創傷調整為 🩸" + target.physicalTrauma + " / 🧠" + target.mentalTrauma;
+                maybeRetireByTrauma(target);
+            }
+            case "RECORD" -> {
+                if (blank(req.text())) { sendTo(byPlayerId, new ServerMessage.Error("記事內容不可為空。")); return; }
+                text = req.text().trim();
+            }
+            default -> { sendTo(byPlayerId, new ServerMessage.Error("未知的指示類型:" + action)); return; }
+        }
+        campaignLog.add(new CampaignSave.LogEntry(currentChapter, by.displayName, action, text));
+        broadcast(new ServerMessage.Event("log", "📜 " + by.displayName + " 套用劇本指示:" + text + "。"));
+        broadcast(new ServerMessage.CampaignLog(List.copyOf(campaignLog)));
+        broadcastRoster();
+        commitSave();   // 指示套用 = 戰役狀態變更 → 立即出新存檔版本
+    }
+
+    private static boolean blank(String v) { return v == null || v.isBlank(); }
+
+    /** 創傷達登記表上限 → 永久退役(與章節結算同規則;APPLY_LOG 調創傷後檢查)。 */
+    private void maybeRetireByTrauma(Member m) throws IOException {
+        if (m.investigatorId == null) return;
+        com.arkham.engine.model.Investigator reg =
+                com.arkham.engine.scenario.ScenarioFactory.buildInvestigator(m.investigatorId);
+        boolean killed = m.physicalTrauma >= reg.getHealth();
+        boolean insane = m.mentalTrauma >= reg.getSanity();
+        if (killed || insane) {
+            deadInvestigators.add(m.investigatorId);
+            broadcast(new ServerMessage.Event("trauma", "☠️ 「" + m.investigatorId + "」創傷達"
+                    + (killed ? "生命上限,永久陣亡" : "理智上限,永久精神失常")
+                    + " —— 此存檔封鎖該角色;" + m.displayName + " 需改帶新角色。"));
+            m.investigatorId = null;
+            m.physicalTrauma = 0;
+            m.mentalTrauma = 0;
+            m.ready = false;
+        }
+    }
+
+    // ------------------------------------------------------------------
     // 存檔(戰役級)+ 載入(docs/09 §7)
     // ------------------------------------------------------------------
 
@@ -510,6 +592,7 @@ public final class CampaignSession {
             }
         }
         if (save.deadInvestigators() != null) cs.deadInvestigators.addAll(save.deadInvestigators());
+        if (save.campaignLog() != null) cs.campaignLog.addAll(save.campaignLog());
         if (save.maxXp() > 0) cs.maxXp = save.maxXp();
         if (save.currentChapter() > 0) cs.currentChapter = save.currentChapter();
         if ("IN_SCENARIO".equals(save.stage())) {
@@ -566,7 +649,8 @@ public final class CampaignSession {
         int round = inScenario ? game.round() : 0;
         String stg = inScenario ? "IN_SCENARIO" : "DECKBUILDING";
         return new CampaignSave(campaignId, name, campaignKey, difficulty, stg, sm,
-                List.copyOf(deadInvestigators), maxXp, snapshot, log, round, currentChapter);
+                List.copyOf(deadInvestigators), maxXp, snapshot, log, round, currentChapter,
+                List.copyOf(campaignLog));
     }
 
     private void persistSave(CampaignSave save) {

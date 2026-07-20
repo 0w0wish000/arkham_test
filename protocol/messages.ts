@@ -52,6 +52,15 @@ export interface CampaignSave {
   eventLog: unknown[];
   round: number;
   currentChapter: number;
+  campaignLog: CampaignLogEntry[];     // 戰役日誌(D6:旗標/劇本指示套用紀錄;跨章保留)
+}
+
+/** 戰役日誌一則(D6/D7):系統記帳「誰在第幾章套用了什麼」。 */
+export interface CampaignLogEntry {
+  chapter: number;
+  by: string;              // displayName
+  action: ApplyLogAction;
+  text: string;            // 人可讀敘述(如「Alice 的牌組加入 Ancient Stone」/自由記事)
 }
 /** 「進行中桌次」清單的一列(取代 room:大家點同一桌就湊在一起)。 */
 export interface SessionSummary {
@@ -89,12 +98,23 @@ export interface SitOutMsg           { type: "SIT_OUT"; sitOut: boolean; }   // 
 export interface ProposeNewCharacterMsg { type: "PROPOSE_NEW_CHARACTER"; playerId: string; }  // 死亡換角(§10)
 // 席位認領(docs/09 P6):換裝置(新 playerId)認回離線席位,繼承角色/牌組/XP;需其餘在線者表決
 export interface ClaimSeatMsg        { type: "CLAIM_SEAT"; targetPlayerId: string; }
+// 套用劇本指示(docs/09 §11.5 混合制,D7):人(語音共識)決定、系統記帳+同步。限章節之間。
+export type ApplyLogAction = "ADD_CARD" | "REMOVE_CARD" | "ADJUST_TRAUMA" | "RECORD";
+export interface ApplyLogMsg {
+  type: "APPLY_LOG";
+  action: ApplyLogAction;
+  targetPlayerId?: string;   // ADD_CARD / REMOVE_CARD / ADJUST_TRAUMA 的對象
+  cardName?: string;         // ADD_CARD / REMOVE_CARD
+  physicalDelta?: number;    // ADJUST_TRAUMA(可負;下限 0;達上限自動退役)
+  mentalDelta?: number;
+  text?: string;             // RECORD 自由記事(旗標/密語/劇情抉擇)
+}
 export interface VoteMsg             { type: "VOTE"; requestId: string; yes: boolean; }
 export type ClientMessage =
   | JoinMsg | IntentMsg | ChoiceResponseMsg | SaveRequestMsg | SaveVoteMsg | ResumeMsg | PingMsg
   | HelloMsg | CreateCampaignMsg | JoinSessionMsg | LeaveSessionMsg
   | PickInvestigatorMsg | SetDeckMsg | ReadyDeckMsg | ForceStartMsg
-  | OfferSaveMsg | ReadyLoadMsg | SitOutMsg | ProposeNewCharacterMsg | ClaimSeatMsg | VoteMsg;
+  | OfferSaveMsg | ReadyLoadMsg | SitOutMsg | ProposeNewCharacterMsg | ClaimSeatMsg | ApplyLogMsg | VoteMsg;
 
 export type ChoiceResponse =
   | { committedCardIds: string[] }   // COMMIT_CARDS
@@ -119,9 +139,11 @@ export interface CampaignSnapshotMsg { type: "CAMPAIGN_SNAPSHOT"; save: Campaign
 export interface LogHistoryMsg       { type: "LOG_HISTORY"; entries: { event: string; message: string }[]; }
 // 死亡換角投票(docs/09 §10)
 export interface VotePromptMsg       { type: "VOTE_PROMPT"; requestId: string; subject: string; reason: string; }
+// 戰役日誌(D6):入桌與變更時全量同步
+export interface CampaignLogMsg      { type: "CAMPAIGN_LOG"; entries: CampaignLogEntry[]; }
 export type ServerMessage =
   | StateMsg | EventMsg | ChoiceRequestMsg | ErrorMsg | SavePromptMsg | SaveSnapshotMsg | PongMsg
-  | LobbyMsg | SessionRosterMsg | CampaignSnapshotMsg | LogHistoryMsg | VotePromptMsg;
+  | LobbyMsg | SessionRosterMsg | CampaignSnapshotMsg | LogHistoryMsg | VotePromptMsg | CampaignLogMsg;
 
 export interface CommitCardsOptions {
   skill: SkillType; base: number; difficulty: number;
