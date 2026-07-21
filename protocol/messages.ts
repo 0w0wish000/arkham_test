@@ -10,7 +10,8 @@ export type SkillType = "WILLPOWER" | "INTELLECT" | "COMBAT" | "AGILITY";
 export type SkillIcon = SkillType | "WILD";
 export type Keyword =
   | "HUNTER" | "RETALIATE" | "ALERT" | "ALOOF" | "MASSIVE"
-  | "ELUSIVE" | "PATROL" | "PREY" | "PERIL" | "FAST";
+  | "ELUSIVE" | "PATROL" | "PREY" | "PERIL" | "FAST"
+  | "SWARMING" | "SURGE" | "HIDDEN";
 
 export type IntentAction =
   | "DRAW" | "GAIN_RESOURCE" | "PLAY_CARD" | "ACTIVATE"
@@ -58,10 +59,12 @@ export interface CampaignSave {
 /** 戰役日誌一則(D6/D7):系統記帳「誰在第幾章套用了什麼」。 */
 export interface CampaignLogEntry {
   chapter: number;
-  by: string;              // displayName
-  action: ApplyLogAction;
+  by: string;              // displayName（系統寫入的結局/旗標條目 by="系統"）
+  action: LogAction;
   text: string;            // 人可讀敘述(如「Alice 的牌組加入 Ancient Stone」/自由記事)
 }
+// 日誌條目的動作:玩家經 APPLY_LOG 送的 + 系統於章末結局寫入的(RESOLUTION 選定、FLAG 設置分支旗標)
+export type LogAction = ApplyLogAction | "RESOLUTION" | "FLAG";
 /** 「進行中桌次」清單的一列(取代 room:大家點同一桌就湊在一起)。 */
 export interface SessionSummary {
   campaignId: string;
@@ -110,11 +113,14 @@ export interface ApplyLogMsg {
   text?: string;             // RECORD 自由記事(旗標/密語/劇情抉擇)
 }
 export interface VoteMsg             { type: "VOTE"; requestId: string; yes: boolean; }
+// D2 章末結局投票:選定本章到達的結局(每人一票,最高票套用)
+export interface ResolveChapterMsg   { type: "RESOLVE_CHAPTER"; resolutionId: string; }
 export type ClientMessage =
   | JoinMsg | IntentMsg | ChoiceResponseMsg | SaveRequestMsg | SaveVoteMsg | ResumeMsg | PingMsg
   | HelloMsg | CreateCampaignMsg | JoinSessionMsg | LeaveSessionMsg
   | PickInvestigatorMsg | SetDeckMsg | ReadyDeckMsg | ForceStartMsg
-  | OfferSaveMsg | ReadyLoadMsg | SitOutMsg | ProposeNewCharacterMsg | ClaimSeatMsg | ApplyLogMsg | VoteMsg;
+  | OfferSaveMsg | ReadyLoadMsg | SitOutMsg | ProposeNewCharacterMsg | ClaimSeatMsg | ApplyLogMsg | VoteMsg
+  | ResolveChapterMsg;
 
 export type ChoiceResponse =
   | { committedCardIds: string[] }   // COMMIT_CARDS
@@ -132,7 +138,7 @@ export interface PongMsg    { type: "PONG"; }
 // 大廳(docs/09):桌次清單 + 名冊/屏障進度
 export interface LobbyMsg         { type: "LOBBY"; activeSessions: SessionSummary[]; }
 export interface SessionRosterMsg { type: "SESSION_ROSTER"; campaignId: string; name: string; campaignKey: string;
-  stage: SessionStage | "LOADING"; difficulty: Difficulty; members: RosterMember[]; canForce: boolean;
+  stage: SessionStage | "LOADING" | "RESOLUTION"; difficulty: Difficulty; members: RosterMember[]; canForce: boolean;
   deadInvestigators: string[]; currentChapter: number; }
 // 加載存檔(docs/09 §7):全戰役存檔複製到本機;載入後 log 回放
 export interface CampaignSnapshotMsg { type: "CAMPAIGN_SNAPSHOT"; save: CampaignSave; }
@@ -141,9 +147,13 @@ export interface LogHistoryMsg       { type: "LOG_HISTORY"; entries: { event: st
 export interface VotePromptMsg       { type: "VOTE_PROMPT"; requestId: string; subject: string; reason: string; }
 // 戰役日誌(D6):入桌與變更時全量同步
 export interface CampaignLogMsg      { type: "CAMPAIGN_LOG"; entries: CampaignLogEntry[]; }
+// D2 章末結局投票:對局結束後,系統依實際勝負列出本章可選結局,全員各投一票
+export interface ResolutionOption { id: string; label: string; win: boolean; }
+export interface ResolutionPromptMsg { type: "RESOLUTION_PROMPT"; requestId: string; chapter: number; options: ResolutionOption[]; }
 export type ServerMessage =
   | StateMsg | EventMsg | ChoiceRequestMsg | ErrorMsg | SavePromptMsg | SaveSnapshotMsg | PongMsg
-  | LobbyMsg | SessionRosterMsg | CampaignSnapshotMsg | LogHistoryMsg | VotePromptMsg | CampaignLogMsg;
+  | LobbyMsg | SessionRosterMsg | CampaignSnapshotMsg | LogHistoryMsg | VotePromptMsg | CampaignLogMsg
+  | ResolutionPromptMsg;
 
 export interface CommitCardsOptions {
   skill: SkillType; base: number; difficulty: number;

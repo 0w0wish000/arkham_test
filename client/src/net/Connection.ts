@@ -1,6 +1,7 @@
 import type {
   ClientMessage, ServerMessage, ChoiceRequestMsg, SavePromptMsg, SaveSnapshotMsg,
   LobbyMsg, SessionRosterMsg, CampaignSnapshotMsg, LogHistoryMsg, VotePromptMsg, CampaignLogMsg,
+  ResolutionPromptMsg,
   GameStateView, IntentAction, ChoiceResponse, Difficulty, CampaignSave,
 } from "../protocol";
 
@@ -12,6 +13,7 @@ interface Handlers {
   onLogHistory?: (msg: LogHistoryMsg) => void;               // 載入後 log 回放
   onVotePrompt?: (msg: VotePromptMsg) => void;               // 死亡換角/席位認領投票彈窗
   onCampaignLog?: (msg: CampaignLogMsg) => void;             // 戰役日誌同步(D6)
+  onResolutionPrompt?: (msg: ResolutionPromptMsg) => void;   // 章末結局投票(D2)
   // 戰役板
   onState?: (view: GameStateView) => void;
   onEvent?: (message: string) => void;
@@ -50,6 +52,7 @@ export class Connection {
       case "LOG_HISTORY": this.handlers.onLogHistory?.(msg); break;
       case "VOTE_PROMPT": this.handlers.onVotePrompt?.(msg); break;
       case "CAMPAIGN_LOG": this.handlers.onCampaignLog?.(msg); break;
+      case "RESOLUTION_PROMPT": this.handlers.onResolutionPrompt?.(msg); break;
       case "STATE": this.handlers.onState?.(msg.view); break;
       case "EVENT": this.handlers.onEvent?.(msg.message); break;
       case "CHOICE_REQUEST": this.handlers.onChoiceRequest?.(msg); break;
@@ -83,6 +86,7 @@ export class Connection {
   claimSeat(targetPlayerId: string) { this.send({ type: "CLAIM_SEAT", targetPlayerId }); }   // 席位認領(P6)
   applyLog(req: Omit<import("../protocol").ApplyLogMsg, "type">) { this.send({ type: "APPLY_LOG", ...req }); }   // 劇本指示(D7)
   vote(requestId: string, yes: boolean) { this.send({ type: "VOTE", requestId, yes }); }
+  resolveChapter(resolutionId: string) { this.send({ type: "RESOLVE_CHAPTER", resolutionId }); }   // 章末結局投票(D2)
 
   // ---- 戰役板 ----
   join(sessionId: string, investigatorId: string) { this.send({ type: "JOIN", sessionId, investigatorId }); }

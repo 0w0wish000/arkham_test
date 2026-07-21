@@ -1,5 +1,6 @@
 import type {
-  CampaignLogEntry, ApplyLogAction, SessionSummary, RosterMember, SessionRosterMsg, Difficulty, CampaignSave } from "../protocol";
+  CampaignLogEntry, ApplyLogAction, SessionSummary, RosterMember, SessionRosterMsg, Difficulty, CampaignSave,
+  ResolutionPromptMsg } from "../protocol";
 import campaignsData from "../../../content/reference/campaigns.json";
 
 /**
@@ -23,7 +24,7 @@ const DIFF_ZH: Record<string, string> = {
   EASY: "簡單", STANDARD: "標準", HARD: "困難", EXPERT: "專家",
 };
 const STAGE_ZH: Record<string, string> = {
-  DECKBUILDING: "牌組編輯", IN_SCENARIO: "戰役中", LOADING: "載入中",
+  DECKBUILDING: "牌組編輯", IN_SCENARIO: "戰役中", LOADING: "載入中", RESOLUTION: "結局結算",
 };
 const STATUS_ZH: Record<string, string> = {
   ACTIVE: "", SITTING_OUT: "· 暫離", DEAD: "· 已陣亡",
@@ -59,6 +60,7 @@ export class Lobby {
   onClaimSeat?: (targetPlayerId: string) => void;  // 席位認領(docs/09 P6:換裝置回歸)
   onApplyLog?: (req: { action: ApplyLogAction; targetPlayerId?: string; cardName?: string;
     physicalDelta?: number; mentalDelta?: number; text?: string }) => void;   // 劇本指示(D7)
+  onResolveChapter?: (resolutionId: string) => void;   // 章末結局投票(D2)
 
   private currentName = "";
   private myPlayerId = "";
@@ -245,6 +247,7 @@ export class Lobby {
   /** 名冊 waiting 畫面(SESSION_ROSTER):牌組大廳(DECKBUILDING)或載入等待(LOADING)。 */
   renderRoster(msg: SessionRosterMsg) {
     this.curStage = msg.stage;
+    if (msg.stage !== "RESOLUTION") this.dismissResolution();   // 章節已推進 → 收掉結局 modal
     const loading = msg.stage === "LOADING";
     this.$("roster-name").textContent = msg.name;
     const readyCount = msg.members.filter((m) => m.ready).length;
@@ -363,6 +366,49 @@ export class Lobby {
       box.appendChild(row);
     }
     box.scrollTop = box.scrollHeight;
+  }
+
+  /**
+   * 章末結局投票(D2:RESOLUTION_PROMPT)。動態疊一層 modal(不依賴既有 HTML),
+   * 列出本章可選結局;點選即送 RESOLVE_CHAPTER(每人一票,伺服器以最高票套用)。
+   * 面板保持顯示直到伺服器推出下一則 SESSION_ROSTER(章節推進 → dismissResolution)。
+   */
+  showResolutionPrompt(msg: ResolutionPromptMsg) {
+    this.dismissResolution();
+    const overlay = el("div", "resolution-overlay");
+    overlay.id = "resolution-overlay";
+    Object.assign(overlay.style, {
+      position: "fixed", inset: "0", background: "rgba(6,10,16,.82)", zIndex: "9999",
+      display: "flex", alignItems: "center", justifyContent: "center",
+    } as CSSStyleDeclaration);
+    const card = el("div", "resolution-card");
+    Object.assign(card.style, {
+      background: "#141b24", color: "#e6edf3", border: "1px solid #2b3947", borderRadius: "10px",
+      padding: "20px 22px", maxWidth: "440px", width: "90%", boxShadow: "0 8px 40px rgba(0,0,0,.5)",
+    } as CSSStyleDeclaration);
+    card.appendChild(el("div", "resolution-title", `🕯️ 第 ${msg.chapter} 章結局 —— 你們到達了哪個結局?`));
+    (card.lastChild as HTMLElement).style.cssText = "font-size:16px;font-weight:600;margin-bottom:6px;";
+    const hint = el("div", undefined, "全員各投一票,最高票的結局將自動結算(XP/創傷/日誌旗標),並影響下一章設置。");
+    hint.style.cssText = "font-size:12px;color:#93a4b3;margin-bottom:14px;";
+    card.appendChild(hint);
+    for (const o of msg.options) {
+      const b = el("button", "resolution-opt", `${o.win ? "🎉" : "🕯️"} ${o.label}`);
+      b.style.cssText = "display:block;width:100%;text-align:left;margin:6px 0;padding:10px 12px;"
+        + "background:#1d2733;color:#e6edf3;border:1px solid #33465a;border-radius:6px;cursor:pointer;font-size:14px;";
+      b.onclick = () => {
+        this.onResolveChapter?.(o.id);
+        [...card.querySelectorAll("button")].forEach((x) => ((x as HTMLButtonElement).disabled = true));
+        hint.textContent = "已投票,等待其他隊友…(全員投完即結算)";
+      };
+      card.appendChild(b);
+    }
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+  }
+
+  /** 收掉結局 modal(章節推進、離桌時)。 */
+  dismissResolution() {
+    document.getElementById("resolution-overlay")?.remove();
   }
 
   /** 大廳旁白事件(加入/脫離等)。 */

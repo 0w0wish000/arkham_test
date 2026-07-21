@@ -1,0 +1,94 @@
+{
+  "_comment": "核心戰役『狂熱之夜』第 2 章〈午夜假面 / The Midnight Masks〉—— 機制結構,自家 ScenarioData schema、純遊戲數值,不含 FFG 敘事文本(手冊見本機 src-tauri/story/)。數值取自 content/cards/generated/core.json(01121-01141、pentagram/nightgaunts/locked_doors 遭遇組)。地點連線由手冊〈參考擺放位置〉3×3 表推正交鄰接。D1-lite:campaignKey=core + chapter=2 自動載入。lite 簡化:兩張商業區/南區各取一(01130/01126);人數縮放、房屋燒毀分支待 D2。",
+  "key": "core_ch2",
+  "name": "午夜假面",
+  "startLocationId": "your_house",
+  "acts": [
+    { "name": "揭發陰謀 (Uncovering the Conspiracy)", "threshold": 3 }
+  ],
+  "agendas": [
+    { "name": "獵人或獵物? (Predator or Prey?)", "threshold": 6 },
+    { "name": "時間所剩無幾 (Time Is Running Short)", "threshold": 8 }
+  ],
+  "locations": [
+    { "id": "northside",  "name": "北區 (Northside)",            "shroud": 3, "clueValue": 2,
+      "revealed": true, "connections": ["downtown", "miskatonic"], "victory": false, "spawnDefKey": null },
+    { "id": "downtown",   "name": "商業區 (Downtown)",           "shroud": 3, "clueValue": 1,
+      "revealed": true, "connections": ["northside", "easttown", "rivertown"], "victory": false, "spawnDefKey": null },
+    { "id": "easttown",   "name": "東城區 (Easttown)",           "shroud": 2, "clueValue": 1,
+      "revealed": true, "connections": ["downtown", "graveyard"], "victory": false, "spawnDefKey": null },
+    { "id": "miskatonic", "name": "米斯卡塔尼克大學 (Miskatonic University)", "shroud": 4, "clueValue": 2,
+      "revealed": true, "connections": ["northside", "rivertown", "st_marys"], "victory": false, "spawnDefKey": null },
+    { "id": "rivertown",  "name": "河岸城 (Rivertown)",          "shroud": 1, "clueValue": 1,
+      "revealed": true, "connections": ["downtown", "miskatonic", "graveyard", "southside"], "victory": false, "spawnDefKey": null },
+    { "id": "graveyard",  "name": "墓地 (Graveyard)",            "shroud": 1, "clueValue": 2,
+      "revealed": true, "connections": ["easttown", "rivertown", "your_house"], "victory": false, "spawnDefKey": null },
+    { "id": "st_marys",   "name": "聖瑪麗醫院 (St. Mary's Hospital)", "shroud": 2, "clueValue": 1,
+      "revealed": true, "connections": ["miskatonic", "southside"], "victory": false, "spawnDefKey": null },
+    { "id": "southside",  "name": "南區 (Southside)",            "shroud": 3, "clueValue": 1,
+      "revealed": true, "connections": ["rivertown", "st_marys", "your_house"], "victory": false, "spawnDefKey": null },
+    { "id": "your_house", "name": "你的房子 (Your House)",        "shroud": 2, "clueValue": 1,
+      "revealed": true, "connections": ["graveyard", "southside"], "victory": false, "spawnDefKey": null }
+  ],
+  "enemies": [
+    { "defKey": "masked_hunter",     "name": "假面獵手 (The Masked Hunter)", "fight": 4, "health": 4, "evade": 2,
+      "damage": 2, "horror": 1, "keywords": ["HUNTER"] },
+    { "defKey": "acolyte",           "name": "雜嘍囉 (Acolyte)",       "fight": 3, "health": 1, "evade": 2,
+      "damage": 1, "horror": 0, "keywords": [] },
+    { "defKey": "wizard_of_order",   "name": "教團術士 (Wizard of the Order)", "fight": 4, "health": 2, "evade": 2,
+      "damage": 1, "horror": 0, "keywords": ["RETALIATE"] },
+    { "defKey": "hunting_nightgaunt","name": "獵夜魔 (Hunting Nightgaunt)", "fight": 3, "health": 4, "evade": 1,
+      "damage": 1, "horror": 1, "keywords": ["HUNTER"] },
+    { "defKey": "wolfman_drew",      "name": "狼人德魯 (\"Wolf-Man\" Drew)", "fight": 4, "health": 4, "evade": 2,
+      "damage": 2, "horror": 0, "keywords": [] },
+    { "defKey": "herman_collins",    "name": "赫曼·柯林斯 (Herman Collins)", "fight": 3, "health": 4, "evade": 4,
+      "damage": 1, "horror": 1, "keywords": [] },
+    { "defKey": "peter_warren",      "name": "彼得·華倫 (Peter Warren)", "fight": 2, "health": 3, "evade": 3,
+      "damage": 1, "horror": 0, "keywords": [] },
+    { "defKey": "victoria_devereux", "name": "維多利亞·德弗羅 (Victoria Devereux)", "fight": 3, "health": 3, "evade": 2,
+      "damage": 1, "horror": 0, "keywords": [] },
+    { "defKey": "ruth_turner",       "name": "露絲·透納 (Ruth Turner)", "fight": 2, "health": 4, "evade": 5,
+      "damage": 1, "horror": 0, "keywords": [] }
+  ],
+  "encounterDeck": [
+    { "type": "ENEMY", "defKey": "acolyte" },
+    { "type": "ENEMY", "defKey": "acolyte" },
+    { "type": "ENEMY", "defKey": "acolyte" },
+    { "type": "ENEMY", "defKey": "wizard_of_order" },
+    { "type": "ENEMY", "defKey": "hunting_nightgaunt" },
+    { "type": "ENEMY", "defKey": "hunting_nightgaunt" },
+    { "type": "ENEMY", "defKey": "wolfman_drew" },
+    { "type": "ENEMY", "defKey": "herman_collins" },
+    { "type": "ENEMY", "defKey": "peter_warren" },
+    { "type": "ENEMY", "defKey": "victoria_devereux" },
+    { "type": "ENEMY", "defKey": "ruth_turner" },
+    { "type": "TREACHERY", "name": "神祕詠唱 (Mysterious Chanting)",   "effect": "DOOM",    "amount": 1 },
+    { "type": "TREACHERY", "name": "神祕詠唱 (Mysterious Chanting)",   "effect": "DOOM",    "amount": 1 },
+    { "type": "TREACHERY", "name": "黑暗之翼 (On Wings of Darkness)",  "effect": "NOTHING", "amount": 0 },
+    { "type": "TREACHERY", "name": "黑暗之翼 (On Wings of Darkness)",  "effect": "NOTHING", "amount": 0 },
+    { "type": "TREACHERY", "name": "上鎖的門 (Locked Door)",          "effect": "NOTHING", "amount": 0 },
+    { "type": "TREACHERY", "name": "上鎖的門 (Locked Door)",          "effect": "NOTHING", "amount": 0 },
+    { "type": "TREACHERY", "name": "遠古惡魔 (Ancient Evils)",        "effect": "DOOM",    "amount": 1 },
+    { "type": "TREACHERY", "name": "遠古惡魔 (Ancient Evils)",        "effect": "DOOM",    "amount": 1 },
+    { "type": "TREACHERY", "name": "腐爛殘軀 (Rotting Remains)",      "effect": "HORROR",  "amount": 1 },
+    { "type": "TREACHERY", "name": "恐懼纏身 (Frozen in Fear)",       "effect": "HORROR",  "amount": 1 },
+    { "type": "TREACHERY", "name": "地窖寒意 (Crypt Chill)",          "effect": "NOTHING", "amount": 0 },
+    { "type": "TREACHERY", "name": "遮蔽濃霧 (Obscuring Fog)",        "effect": "NOTHING", "amount": 0 }
+  ],
+  "startOverrides": [
+    { "requiresFlag": "house_burned", "locationId": "rivertown" }
+  ],
+  "removals": [
+    { "requiresFlag": "house_burned", "locationId": "your_house" }
+  ],
+  "resolutions": [
+    { "id": "r1", "label": "結局1:成功盤問異教徒", "win": true,
+      "outcome": { "xpBonus": 0, "physicalTrauma": 0, "mentalTrauma": 0,
+        "record": ["masks_done"],
+        "note": "在冒險日誌記錄勝利區/牌堆中的異教徒名字(盤問過的、逃跑的)—— 請以 APPLY_LOG 記事。若食屍鬼祭司在勝利區,劃掉『ghoul_priest_alive』。" } },
+    { "id": "r2", "label": "結局2:午夜已至(時間耗盡)", "win": false,
+      "outcome": { "xpBonus": 0, "physicalTrauma": 0, "mentalTrauma": 0,
+        "record": ["masks_done", "midnight"],
+        "note": "午夜已至(第 3 章每人隨機棄 2 張起手牌);記錄逃跑的異教徒 —— 請以 APPLY_LOG 記事。" } }
+  ]
+}

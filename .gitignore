@@ -23,6 +23,10 @@ prototype/cardimg/*
 client/public/cardimg/
 client/public/deckbuilder.html   # 由 prototype/ 同步(單一來源)
 
+# 劇本敘事全文(FFG 版權手冊逐頁轉寫,不入版控;docs/11 §116、docs/09 §11.5 混合制)
+# —— 僅作本機作者參考;可 commit 的是從中抽出的「機制數值」→ engine/.../scenarios/<key>_ch<n>.json
+src-tauri/story/
+
 # Claude Code 本機工作區(worktree / launch.json,不入版控)
 .claude/
 

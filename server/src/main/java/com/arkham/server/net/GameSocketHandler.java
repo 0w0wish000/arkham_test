@@ -211,6 +211,10 @@ public class GameSocketHandler extends TextWebSocketHandler {
                 CampaignSession cs = currentCampaign(ws);
                 if (cs != null) cs.vote(v.requestId(), playerId(ws), v.yes());
             }
+            case ClientMessage.ResolveChapter rc -> {
+                CampaignSession cs = currentCampaign(ws);
+                if (cs != null) cs.resolveChapter(playerId(ws), rc.resolutionId());
+            }
             case ClientMessage.Ping ignored -> send(ws, new ServerMessage.Pong());
         }
     }

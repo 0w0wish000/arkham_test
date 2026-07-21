@@ -69,10 +69,17 @@ public final class ScenarioFactory {
     /** 同上,含章節(D1-lite:優先載 scenarios/<key>_ch<n>.json)。 */
     public static RulesEngine newEngine(long seed, List<String> investigatorIds, String scenarioKey,
                                         int chapter, String difficulty, Map<String, List<String>> decksByInvestigator) {
+        return newEngine(seed, investigatorIds, scenarioKey, chapter, difficulty, decksByInvestigator, java.util.Set.of());
+    }
+
+    /** 同上,含 D2 戰役旗標(前一章結局寫入的旗標;驅動本章設置分支:起點覆寫 / 地點移除)。 */
+    public static RulesEngine newEngine(long seed, List<String> investigatorIds, String scenarioKey,
+                                        int chapter, String difficulty, Map<String, List<String>> decksByInvestigator,
+                                        java.util.Set<String> flags) {
         SeededRng rng = new SeededRng(seed);
         GameState state = "sandbox".equals(scenarioKey)
                 ? createSandbox(investigatorIds, difficulty)
-                : createFromData(dataFor(scenarioKey, chapter), investigatorIds, difficulty);
+                : createFromData(dataFor(scenarioKey, chapter), investigatorIds, difficulty, flags);
         rng.shuffle(state.getEncounterDeck());   // A3-lite:遭遇牌堆開局洗牌(種子可重現;循環抽用洗後順序)
         if (!"sandbox".equals(scenarioKey)) {
             for (Investigator inv : state.orderedInvestigators()) {
@@ -130,8 +137,36 @@ public final class ScenarioFactory {
      * 遭遇牌堆全資料驅動;調查員仍出自登記表(F2 之後也改資料)。
      */
     public static GameState createFromData(ScenarioData d, List<String> investigatorIds, String difficulty) {
+        return createFromData(d, investigatorIds, difficulty, java.util.Set.of());
+    }
+
+    /**
+     * A2 + D2 設置分支:依戰役旗標調整起點(startOverrides)與在場地點(removals)。
+     * flags 來自前一章結局寫入的日誌旗標;無旗標(空集合)= 與原 A2 行為完全相同。
+     */
+    public static GameState createFromData(ScenarioData d, List<String> investigatorIds, String difficulty,
+                                           java.util.Set<String> flags) {
+        java.util.Set<String> active = flags == null ? java.util.Set.of() : flags;
         List<String> roster = (investigatorIds == null || investigatorIds.isEmpty())
                 ? DEFAULT_ROSTER : investigatorIds;
+
+        // D2 設置分支:算出被移除的地點 + 有效起點
+        java.util.Set<String> removed = new java.util.HashSet<>();
+        if (d.removals() != null) {
+            for (ScenarioData.LocationRemoval r : d.removals()) {
+                if (r != null && active.contains(r.requiresFlag())) removed.add(r.locationId());
+            }
+        }
+        String startId = d.startLocationId();
+        if (d.startOverrides() != null) {
+            for (ScenarioData.StartOverride o : d.startOverrides()) {
+                if (o != null && active.contains(o.requiresFlag()) && !removed.contains(o.locationId())) {
+                    startId = o.locationId();   // 取第一個成立且未被移除者
+                    break;
+                }
+            }
+        }
+        if (removed.contains(startId)) startId = d.startLocationId();   // 安全:起點不可被移除
 
         Map<String, EnemyDef> defs = new LinkedHashMap<>();
         for (ScenarioData.EnemyDefData e : d.enemies()) {
@@ -166,19 +201,24 @@ public final class ScenarioFactory {
             state.getAgendaQueue().add(new Agenda(agendas.get(i).name(), agendas.get(i).threshold()));
         }
         for (ScenarioData.LocationData l : d.locations()) {
+            if (removed.contains(l.id())) continue;   // D2:被旗標移除的地點不入場
+            List<String> conns = l.connections();
+            if (!removed.isEmpty() && conns != null) {   // 自連線清除已移除的鄰居
+                conns = conns.stream().filter(c -> !removed.contains(c)).toList();
+            }
             state.addLocation(new LocationCard(l.id(), l.name(), l.shroud(), l.clueValue(),
-                    l.revealed(), l.connections(), l.victory(), l.spawnDefKey()));
+                    l.revealed(), conns, l.victory(), l.spawnDefKey()));
         }
         for (String id : roster) {
             Investigator inv = buildInvestigator(id);
-            inv.setLocationId(d.startLocationId());
+            inv.setLocationId(startId);
             inv.setActionsRemaining(3);   // 第 1 輪跳過神話(docs/05 §1);每人 3 行動
             state.addInvestigator(inv);
         }
         state.setActiveInvestigatorId(roster.get(0));
 
         state.lockPlayerCount();   // 撤退不減縮放(官方 p14)
-        LocationCard start = state.location(d.startLocationId());
+        LocationCard start = state.location(startId);
         start.setClues(start.getClueValue() * state.getPlayerCount());
         return state;
     }

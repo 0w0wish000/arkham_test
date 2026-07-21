@@ -3,7 +3,9 @@ package com.arkham.server.session;
 import com.arkham.engine.RulesEngine;
 import com.arkham.engine.event.GameEvent;
 import com.arkham.engine.rng.SeededRng;
+import com.arkham.engine.scenario.ScenarioData;
 import com.arkham.engine.scenario.ScenarioFactory;
+import com.arkham.engine.scenario.ScenarioRepository;
 import com.arkham.server.dto.CampaignSave;
 import com.arkham.server.dto.ClientMessage;
 import com.arkham.server.dto.RosterMember;
@@ -55,6 +57,8 @@ public final class CampaignSession {
     private CharVote charVote;                            // 換角投票進行中
     private ClaimVote claimVote;                          // 席位認領投票進行中(docs/09 P6)
     private final List<CampaignSave.LogEntry> campaignLog = new ArrayList<>();   // 戰役日誌(D6;跨章保留)
+    private ResolutionVote resolutionVote;               // 章末結局投票進行中(D2)
+    private PendingSettlement pendingSettlement;         // 結局選定前暫存的結算資料(D2)
 
     public CampaignSession(String campaignId, String name, String campaignKey,
                            String difficulty, ObjectMapper mapper) {
@@ -115,21 +119,121 @@ public final class CampaignSession {
     public synchronized void settleChapterIfOver() throws IOException {
         if (game == null || !game.isOver()) return;
         boolean won = game.isWon();
-        int earned = (won ? 2 : 1) + game.victoryPoints();   // lite 公式:參與1/勝利2 + 勝利地點
+        int base = (won ? 2 : 1) + game.victoryPoints();             // lite 公式:參與1/勝利2 + 勝利地點
         Map<String, String> causes = game.eliminationCauses();       // D4:淘汰原因 → 創傷
         Map<String, int[]> vitals = game.investigatorVitals();       // [生命, 理智] 上限
         game = null;
+
+        // D2:本章有結局資料 → 進 RESOLUTION 階段,全員投票選定結局;否則沿用舊自動結算路徑。
+        List<ScenarioData.ResolutionData> options = resolutionOptionsFor(won);
+        if (options != null && !options.isEmpty()) {
+            pendingSettlement = new PendingSettlement(won, base, causes, vitals);
+            stage = "RESOLUTION";
+            String reqId = UUID.randomUUID().toString();
+            resolutionVote = new ResolutionVote(reqId, options, new HashSet<>(clients.keySet()));
+            broadcast(new ServerMessage.Event("chapter",
+                    (won ? "🎉 章節完成!" : "🕯️ 章節失利…") + " 請全員投票選定本章到達的結局。"));
+            broadcast(resolutionPrompt(reqId, options));
+            broadcastRoster();
+            if (resolutionVote.outstanding.isEmpty()) tallyResolution();   // 無人在線 → 逕取首選項
+            return;
+        }
+        advanceChapter(won, base, causes, vitals, 0, 0, 0, List.of(), null, null);
+    }
+
+    /** 本章(campaignKey_ch<currentChapter>)可選結局,依實際勝負過濾;無此劇本檔/無結局 → null。 */
+    private List<ScenarioData.ResolutionData> resolutionOptionsFor(boolean won) {
+        ScenarioData d = ScenarioRepository.find(campaignKey + "_ch" + currentChapter).orElse(null);
+        if (d == null || d.resolutions() == null || d.resolutions().isEmpty()) return null;
+        List<ScenarioData.ResolutionData> matching = new ArrayList<>();
+        for (ScenarioData.ResolutionData r : d.resolutions()) {
+            if (r != null && r.win() == won) matching.add(r);
+        }
+        return matching.isEmpty() ? d.resolutions() : matching;   // 無對應勝負者 → 全列(容錯)
+    }
+
+    private ServerMessage.ResolutionPrompt resolutionPrompt(String reqId, List<ScenarioData.ResolutionData> options) {
+        List<ServerMessage.ResolutionPrompt.Option> opts = new ArrayList<>();
+        for (ScenarioData.ResolutionData r : options) {
+            opts.add(new ServerMessage.ResolutionPrompt.Option(r.id(), r.label(), r.win()));
+        }
+        return new ServerMessage.ResolutionPrompt(reqId, currentChapter, opts);   // currentChapter = 剛結束的章
+    }
+
+    /** D2 章末結局投票:每位在線玩家投一票;全員投完(或掉線)→ 最高票套用(平手取宣告序在前者)。 */
+    public synchronized void resolveChapter(String playerId, String resolutionId) throws IOException {
+        if (!"RESOLUTION".equals(stage) || resolutionVote == null) return;
+        boolean valid = resolutionVote.options.stream().anyMatch(o -> o.id().equals(resolutionId));
+        if (!valid) { sendTo(playerId, new ServerMessage.Error("未知的結局選項:" + resolutionId)); return; }
+        if (!resolutionVote.outstanding.remove(playerId)) return;   // 不在名單 / 已投過
+        resolutionVote.tally.merge(resolutionId, 1, Integer::sum);
+        Member m = roster.get(playerId);
+        broadcast(new ServerMessage.Event("resolution",
+                (m != null ? m.displayName : playerId) + " 投給了「" + labelOf(resolutionId) + "」。"));
+        if (resolutionVote.outstanding.isEmpty()) tallyResolution();
+    }
+
+    private String labelOf(String resolutionId) {
+        if (resolutionVote == null) return resolutionId;
+        return resolutionVote.options.stream().filter(o -> o.id().equals(resolutionId))
+                .map(ScenarioData.ResolutionData::label).findFirst().orElse(resolutionId);
+    }
+
+    /** 結算票數:依宣告序取最高票(平手 → 先宣告者),套用其結果並推進章節。 */
+    private void tallyResolution() throws IOException {
+        ScenarioData.ResolutionData chosen = resolutionVote.options.get(0);
+        int best = -1;
+        for (ScenarioData.ResolutionData o : resolutionVote.options) {   // 宣告序遍歷 → 平手保留先者
+            int v = resolutionVote.tally.getOrDefault(o.id(), 0);
+            if (v > best) { best = v; chosen = o; }
+        }
+        PendingSettlement ps = pendingSettlement;
+        ScenarioData.ResolutionOutcome o = chosen.outcome();
+        resolutionVote = null;
+        pendingSettlement = null;
+        advanceChapter(ps.won(), ps.base(), ps.causes(), ps.vitals(),
+                o == null ? 0 : o.xpBonus(), o == null ? 0 : o.physicalTrauma(), o == null ? 0 : o.mentalTrauma(),
+                (o == null || o.record() == null) ? List.of() : o.record(), o == null ? null : o.note(), chosen);
+    }
+
+    /**
+     * 章節推進結算(D2/D5 合流):XP(基礎+結局加成)、結局全體創傷、日誌旗標(FLAG 驅動下一章設置分支)、
+     * 淘汰創傷/退役,回牌組大廳、章數+1、ready 重置、自動存檔。chosen=null 即無結局的舊自動路徑。
+     */
+    private void advanceChapter(boolean won, int base, Map<String, String> causes, Map<String, int[]> vitals,
+                                int xpBonus, int resPhysical, int resMental, List<String> flags, String note,
+                                ScenarioData.ResolutionData chosen) throws IOException {
+        int endedChapter = currentChapter;
+        int earned = base + xpBonus;
         stage = "DECKBUILDING";
         currentChapter++;
         maxXp += earned;                                      // docs/09 §11:路線可得經驗累加
         for (Member m : roster.values()) {
             m.ready = false;
-            if ("ACTIVE".equals(m.status) && m.investigatorId != null) m.xp += earned;
+            if ("ACTIVE".equals(m.status) && m.investigatorId != null) {
+                m.xp += earned;
+                m.physicalTrauma = Math.max(0, m.physicalTrauma + resPhysical);   // 結局「全體」創傷
+                m.mentalTrauma = Math.max(0, m.mentalTrauma + resMental);
+            }
         }
-        settleTrauma(causes, vitals);                         // D4:被擊敗 → 創傷;達上限 → 退役
+        if (chosen != null) {
+            campaignLog.add(new CampaignSave.LogEntry(endedChapter, "系統", "RESOLUTION",
+                    "第 " + endedChapter + " 章結局:" + chosen.label()));
+        }
+        for (String f : flags) {   // 旗標 → 下一章 ScenarioFactory 設置分支讀取
+            if (f != null && !f.isBlank()) {
+                campaignLog.add(new CampaignSave.LogEntry(endedChapter, "系統", "FLAG", f.trim()));
+            }
+        }
+        if (note != null && !note.isBlank()) {   // 給玩家的提醒(通常需人工 APPLY_LOG 的敘事指示)
+            campaignLog.add(new CampaignSave.LogEntry(endedChapter, "系統", "RECORD", note.trim()));
+        }
+        settleTrauma(causes, vitals);                         // D4:被擊敗 → 創傷;達上限 → 退役(含上面全體創傷)
         broadcast(new ServerMessage.Event("chapter",
-                (won ? "🎉 章節完成!" : "🕯️ 章節失利…") + "每位參戰調查員獲得 " + earned
-                + " 經驗;回到牌組大廳,準備第 " + currentChapter + " 章。"));
+                (won ? "🎉 章節完成!" : "🕯️ 章節失利…") + "每位參戰調查員獲得 " + earned + " 經驗"
+                + (xpBonus > 0 ? "(含結局加成 " + xpBonus + ")" : "")
+                + ";回到牌組大廳,準備第 " + currentChapter + " 章。"));
+        if (chosen != null) broadcast(new ServerMessage.CampaignLog(List.copyOf(campaignLog)));
         broadcastRoster();
         commitSave();   // 新存檔版本(跨章 checkpoint)複製到各本機
     }
@@ -199,6 +303,10 @@ public final class CampaignSession {
         }
         if (claimVote != null && claimVote.outstanding.remove(playerId) && claimVote.outstanding.isEmpty()) {
             resolveClaimVote();
+        }
+        if (resolutionVote != null && resolutionVote.outstanding.remove(playerId)
+                && resolutionVote.outstanding.isEmpty()) {
+            tallyResolution();   // 掉線者不擋章末結局投票
         }
 
         if (game != null) {
@@ -331,8 +439,8 @@ public final class CampaignSession {
             if (!m.deck.isEmpty()) decks.put(m.investigatorId, List.copyOf(m.deck));
         }
 
-        // "sandbox" → 測試沙盒;難度 → 混沌袋組成;牌組 → 洗牌 + 開局抽 5(C-lite)
-        RulesEngine engine = ScenarioFactory.newEngine(seed, ids, campaignKey, currentChapter, difficulty, decks);   // D1-lite:優先載本章劇本檔
+        // "sandbox" → 測試沙盒;難度 → 混沌袋組成;牌組 → 洗牌 + 開局抽 5(C-lite);flags → D2 設置分支
+        RulesEngine engine = ScenarioFactory.newEngine(seed, ids, campaignKey, currentChapter, difficulty, decks, activeFlags());
         game = new GameSession(campaignId, mapper, engine, seed);
         stage = "IN_SCENARIO";
         broadcast(new ServerMessage.Event("scenario",
@@ -550,6 +658,15 @@ public final class CampaignSession {
     }
 
     private static boolean blank(String v) { return v == null || v.isBlank(); }
+
+    /** D2:目前生效的戰役旗標 —— 取自日誌中 action="FLAG" 的條目(前一章結局寫入),驅動設置分支。 */
+    private java.util.Set<String> activeFlags() {
+        java.util.Set<String> f = new HashSet<>();
+        for (CampaignSave.LogEntry e : campaignLog) {
+            if ("FLAG".equals(e.action()) && e.text() != null && !e.text().isBlank()) f.add(e.text().trim());
+        }
+        return f;
+    }
 
     /** 創傷達登記表上限 → 永久退役(與章節結算同規則;APPLY_LOG 調創傷後檢查)。 */
     private void maybeRetireByTrauma(Member m) throws IOException {
@@ -780,6 +897,23 @@ public final class CampaignSession {
             this.requestId = requestId;
             this.claimerId = claimerId;
             this.targetPlayerId = targetPlayerId;
+            this.outstanding = outstanding;
+        }
+    }
+
+    /** D2:章末結算暫存(結局選定前保留的勝負/基礎XP/淘汰資料)。 */
+    private record PendingSettlement(boolean won, int base,
+                                     Map<String, String> causes, Map<String, int[]> vitals) {}
+
+    /** D2:一場章末結局投票(多選項;每人一票,宣告序 tie-break)。 */
+    private static final class ResolutionVote {
+        final String requestId;
+        final List<ScenarioData.ResolutionData> options;          // 宣告序(平手取先者)
+        final java.util.Set<String> outstanding;                  // 尚未投票的在線玩家
+        final Map<String, Integer> tally = new LinkedHashMap<>();  // resolutionId → 票數
+        ResolutionVote(String requestId, List<ScenarioData.ResolutionData> options, java.util.Set<String> outstanding) {
+            this.requestId = requestId;
+            this.options = options;
             this.outstanding = outstanding;
         }
     }

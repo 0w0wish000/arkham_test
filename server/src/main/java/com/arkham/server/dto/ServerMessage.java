@@ -26,14 +26,15 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         @JsonSubTypes.Type(value = ServerMessage.CampaignSnapshot.class, name = "CAMPAIGN_SNAPSHOT"),
         @JsonSubTypes.Type(value = ServerMessage.LogHistory.class, name = "LOG_HISTORY"),
         @JsonSubTypes.Type(value = ServerMessage.VotePrompt.class, name = "VOTE_PROMPT"),
-        @JsonSubTypes.Type(value = ServerMessage.CampaignLog.class, name = "CAMPAIGN_LOG")
+        @JsonSubTypes.Type(value = ServerMessage.CampaignLog.class, name = "CAMPAIGN_LOG"),
+        @JsonSubTypes.Type(value = ServerMessage.ResolutionPrompt.class, name = "RESOLUTION_PROMPT")
 })
 public sealed interface ServerMessage
         permits ServerMessage.State, ServerMessage.Event, ServerMessage.ChoiceRequest,
                 ServerMessage.Error, ServerMessage.SavePrompt, ServerMessage.SaveSnapshot, ServerMessage.Pong,
                 ServerMessage.Lobby, ServerMessage.SessionRoster,
                 ServerMessage.CampaignSnapshot, ServerMessage.LogHistory, ServerMessage.VotePrompt,
-                ServerMessage.CampaignLog {
+                ServerMessage.CampaignLog, ServerMessage.ResolutionPrompt {
 
     /** {@code { type:"STATE", view }} — the recipient's filtered snapshot. */
     record State(GameStateView view) implements ServerMessage {}
@@ -77,4 +78,13 @@ public sealed interface ServerMessage
 
     /** {@code { type:"CAMPAIGN_LOG", entries }} — 戰役日誌全量同步(D6;入桌與變更時)。 */
     record CampaignLog(java.util.List<CampaignSave.LogEntry> entries) implements ServerMessage {}
+
+    /**
+     * {@code { type:"RESOLUTION_PROMPT", requestId, chapter, options }} — D2 章末結局投票:
+     * 對局結束後,系統依實際勝負列出本章可選結局,全員各投一票(RESOLVE_CHAPTER),最高票套用。
+     */
+    record ResolutionPrompt(String requestId, int chapter,
+                            java.util.List<Option> options) implements ServerMessage {
+        public record Option(String id, String label, boolean win) {}
+    }
 }

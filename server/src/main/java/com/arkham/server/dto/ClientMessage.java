@@ -36,7 +36,8 @@ import java.util.Map;
         @JsonSubTypes.Type(value = ClientMessage.ProposeNewCharacter.class, name = "PROPOSE_NEW_CHARACTER"),
         @JsonSubTypes.Type(value = ClientMessage.ClaimSeat.class, name = "CLAIM_SEAT"),
         @JsonSubTypes.Type(value = ClientMessage.ApplyLog.class, name = "APPLY_LOG"),
-        @JsonSubTypes.Type(value = ClientMessage.Vote.class, name = "VOTE")
+        @JsonSubTypes.Type(value = ClientMessage.Vote.class, name = "VOTE"),
+        @JsonSubTypes.Type(value = ClientMessage.ResolveChapter.class, name = "RESOLVE_CHAPTER")
 })
 public sealed interface ClientMessage
         permits ClientMessage.Join, ClientMessage.Intent, ClientMessage.ChoiceResponse,
@@ -44,7 +45,8 @@ public sealed interface ClientMessage
                 ClientMessage.Hello, ClientMessage.CreateCampaign, ClientMessage.JoinSession, ClientMessage.LeaveSession,
                 ClientMessage.PickInvestigator, ClientMessage.SetDeck, ClientMessage.ReadyDeck, ClientMessage.ForceStart,
                 ClientMessage.OfferSave, ClientMessage.ReadyLoad, ClientMessage.SitOut,
-                ClientMessage.ProposeNewCharacter, ClientMessage.ClaimSeat, ClientMessage.ApplyLog, ClientMessage.Vote {
+                ClientMessage.ProposeNewCharacter, ClientMessage.ClaimSeat, ClientMessage.ApplyLog, ClientMessage.Vote,
+                ClientMessage.ResolveChapter {
 
     /** {@code { type:"JOIN", sessionId, investigatorId }} */
     record Join(String sessionId, String investigatorId) implements ClientMessage {}
@@ -112,6 +114,9 @@ public sealed interface ClientMessage
 
     /** {@code { type:"VOTE", requestId, yes }} — 換角 / 席位認領投票 */
     record Vote(String requestId, boolean yes) implements ClientMessage {}
+
+    /** {@code { type:"RESOLVE_CHAPTER", resolutionId }} — D2 章末結局投票:選定本章到達的結局 */
+    record ResolveChapter(String resolutionId) implements ClientMessage {}
 
     /**
      * The {@code choice} union in protocol/messages.ts. All fields optional; only the

@@ -22,6 +22,8 @@ class EncounterShuffleTest {
     void shuffleIsSeededAndReproducible() {
         assertEquals(orderFor(42L), orderFor(42L), "同種子 → 同順序(存檔續玩可重現)");
         assertNotEquals(orderFor(42L), orderFor(1337L), "不同種子 → 不同順序(不再固定牌序)");
-        assertEquals(6, orderFor(42L).size(), "牌堆內容不變,只換順序");
+        // 洗牌只換順序、不改內容:不同種子是「同一副牌」的重排(排序後多重集相等)。
+        assertEquals(orderFor(42L).stream().sorted().toList(), orderFor(1337L).stream().sorted().toList(),
+                "牌堆內容不變,只換順序");
     }
 }

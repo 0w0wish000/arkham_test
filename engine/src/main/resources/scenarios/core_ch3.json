@@ -1,0 +1,82 @@
+{
+  "_comment": "核心戰役『狂熱之夜』第 3 章〈地底噬魔 / The Devourer Below〉—— 機制結構,自家 ScenarioData schema、純遊戲數值,不含 FFG 敘事文本(手冊見本機 src-tauri/story/)。數值取自 content/cards/generated/core.json(01143-01158、ghouls/pentagram/agents_of_shub 遭遇組)。lite 簡化:6 張阿卡姆密林固定取前 4 張(可重現);隨機使徒組固定選『莎布·尼古拉絲的使徒』;逃跑異教徒起始毀滅、午夜棄手牌等日誌分支待 D2。儀式場所開場未揭示,揭示即現烏默爾多斯。D1-lite:campaignKey=core + chapter=3 自動載入。",
+  "key": "core_ch3",
+  "name": "地底噬魔",
+  "startLocationId": "main_path",
+  "acts": [
+    { "name": "追查蹤跡 (Investigating the Trail)", "threshold": 3 },
+    { "name": "潛入黑暗 (Into the Darkness)", "threshold": 2 },
+    { "name": "阻止儀式 (Disrupting the Ritual)", "threshold": 2 }
+  ],
+  "agendas": [
+    { "name": "阿卡姆密林 (The Arkham Woods)", "threshold": 4 },
+    { "name": "儀式開始 (The Ritual Begins)", "threshold": 5 }
+  ],
+  "locations": [
+    { "id": "main_path",    "name": "主道路 (Main Path)",      "shroud": 2, "clueValue": 0,
+      "revealed": true,  "connections": ["woods1", "woods2", "woods3", "woods4"], "victory": false, "spawnDefKey": null },
+    { "id": "woods1", "name": "阿卡姆密林·幽徑 (Arkham Woods)", "shroud": 4, "clueValue": 1,
+      "revealed": false, "connections": ["main_path", "ritual_site"], "victory": false, "spawnDefKey": "swarm_of_rats" },
+    { "id": "woods2", "name": "阿卡姆密林·河灣 (Arkham Woods)", "shroud": 3, "clueValue": 1,
+      "revealed": false, "connections": ["main_path", "ritual_site"], "victory": false, "spawnDefKey": null },
+    { "id": "woods3", "name": "阿卡姆密林·斷崖 (Arkham Woods)", "shroud": 2, "clueValue": 1,
+      "revealed": false, "connections": ["main_path", "ritual_site"], "victory": false, "spawnDefKey": "ghoul_minion" },
+    { "id": "woods4", "name": "阿卡姆密林·巨石陣 (Arkham Woods)", "shroud": 2, "clueValue": 1,
+      "revealed": false, "connections": ["main_path", "ritual_site"], "victory": false, "spawnDefKey": null },
+    { "id": "ritual_site",  "name": "儀式場所 (Ritual Site)",   "shroud": 3, "clueValue": 2,
+      "revealed": false, "connections": ["woods1", "woods2", "woods3", "woods4"], "victory": true, "spawnDefKey": "umordhoth" }
+  ],
+  "enemies": [
+    { "defKey": "umordhoth",       "name": "烏默爾多斯 (Umôrdhoth)", "fight": 5, "health": 6, "evade": 6,
+      "damage": 3, "horror": 3, "keywords": ["HUNTER", "MASSIVE"] },
+    { "defKey": "ghoul_minion",    "name": "食屍鬼嘍囉 (Ghoul Minion)", "fight": 2, "health": 2, "evade": 2,
+      "damage": 1, "horror": 1, "keywords": [] },
+    { "defKey": "ravenous_ghoul",  "name": "貪食食屍鬼 (Ravenous Ghoul)", "fight": 3, "health": 3, "evade": 3,
+      "damage": 1, "horror": 1, "keywords": ["PREY"] },
+    { "defKey": "swarm_of_rats",   "name": "鼠群 (Swarm of Rats)",   "fight": 1, "health": 1, "evade": 3,
+      "damage": 1, "horror": 0, "keywords": ["HUNTER"] },
+    { "defKey": "acolyte",         "name": "雜嘍囉 (Acolyte)",       "fight": 3, "health": 1, "evade": 2,
+      "damage": 1, "horror": 0, "keywords": [] },
+    { "defKey": "goat_spawn",      "name": "山羊之子 (Goat Spawn)",  "fight": 3, "health": 3, "evade": 2,
+      "damage": 1, "horror": 0, "keywords": ["HUNTER", "RETALIATE"] },
+    { "defKey": "dark_young",      "name": "無情黑山羊之子 (Relentless Dark Young)", "fight": 4, "health": 5, "evade": 2,
+      "damage": 2, "horror": 1, "keywords": ["PREY"] }
+  ],
+  "encounterDeck": [
+    { "type": "ENEMY", "defKey": "ghoul_minion" },
+    { "type": "ENEMY", "defKey": "ghoul_minion" },
+    { "type": "ENEMY", "defKey": "ravenous_ghoul" },
+    { "type": "ENEMY", "defKey": "ravenous_ghoul" },
+    { "type": "ENEMY", "defKey": "acolyte" },
+    { "type": "ENEMY", "defKey": "acolyte" },
+    { "type": "ENEMY", "defKey": "goat_spawn" },
+    { "type": "ENEMY", "defKey": "goat_spawn" },
+    { "type": "ENEMY", "defKey": "dark_young" },
+    { "type": "TREACHERY", "name": "烏默爾多斯之怒 (Umôrdhoth's Wrath)", "effect": "HORROR", "amount": 2 },
+    { "type": "TREACHERY", "name": "烏默爾多斯之怒 (Umôrdhoth's Wrath)", "effect": "HORROR", "amount": 2 },
+    { "type": "TREACHERY", "name": "遠古惡魔 (Ancient Evils)",        "effect": "DOOM",    "amount": 1 },
+    { "type": "TREACHERY", "name": "遠古惡魔 (Ancient Evils)",        "effect": "DOOM",    "amount": 1 },
+    { "type": "TREACHERY", "name": "遠古惡魔 (Ancient Evils)",        "effect": "DOOM",    "amount": 1 },
+    { "type": "TREACHERY", "name": "腐爛殘軀 (Rotting Remains)",      "effect": "HORROR",  "amount": 1 },
+    { "type": "TREACHERY", "name": "腐爛殘軀 (Rotting Remains)",      "effect": "HORROR",  "amount": 1 },
+    { "type": "TREACHERY", "name": "恐懼纏身 (Frozen in Fear)",       "effect": "HORROR",  "amount": 1 },
+    { "type": "TREACHERY", "name": "神祕詠唱 (Mysterious Chanting)",   "effect": "DOOM",    "amount": 1 },
+    { "type": "TREACHERY", "name": "攫抓之手 (Grasping Hands)",        "effect": "NOTHING", "amount": 0 },
+    { "type": "TREACHERY", "name": "攫抓之手 (Grasping Hands)",        "effect": "NOTHING", "amount": 0 }
+  ],
+  "resolutions": [
+    { "id": "r1", "label": "結局1:阻止儀式(召喚中止)", "win": true,
+      "outcome": { "xpBonus": 5, "physicalTrauma": 0, "mentalTrauma": 2,
+        "record": ["ritual_stopped"], "note": "調查成功!劇本完結。" } },
+    { "id": "r2", "label": "結局2:擊退烏默爾多斯", "win": true,
+      "outcome": { "xpBonus": 10, "physicalTrauma": 2, "mentalTrauma": 2,
+        "record": ["umordhoth_repelled"], "note": "調查員勝利!劇本完結。" } },
+    { "id": "r3", "label": "結局3:向烏默爾多斯獻祭麗塔", "win": true,
+      "outcome": { "xpBonus": 0, "physicalTrauma": 2, "mentalTrauma": 2,
+        "record": ["rita_sacrificed"],
+        "note": "每位調查員從收藏隨機抽一張瘋狂弱點卡加入牌組 —— 請以 APPLY_LOG ADD_CARD 套用。" } },
+    { "id": "r0", "label": "未達成結局:阿卡姆被吞噬", "win": false,
+      "outcome": { "xpBonus": 0, "physicalTrauma": 0, "mentalTrauma": 0,
+        "record": ["arkham_devoured"], "note": "所有存活調查員陣亡,調查失敗。劇本完結。" } }
+  ]
+}

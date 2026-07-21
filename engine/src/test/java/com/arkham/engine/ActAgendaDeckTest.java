@@ -28,7 +28,8 @@ class ActAgendaDeckTest {
                 "loc",
                 List.of(new ScenarioData.LocationData("loc", "測試地點", 1, 2, true, List.of(), false, null)),
                 List.of(),   // 無敵人
-                List.of());  // 空遭遇
+                List.of(),   // 空遭遇
+                null, null, null);  // D2:無結局/設置分支
     }
 
     @Test
