@@ -75,6 +75,28 @@ def skill_icons(c):
 def traits(c):
     return [t.strip() for t in re.split(r"[.。]", c.get("traits") or "") if t.strip()]
 
+# 卡面關鍵字(docs/05 §5)。從 text 解析 —— ArkhamDB 不給結構化欄位,關鍵字以
+# 「Keyword.」token 印在文字開頭(部分帶值:Swarming 2. / Patrol (…). / Prey - …)。
+_KEYWORD_PATTERNS = [
+    ("HUNTER",    r"\bHunter\."),
+    ("RETALIATE", r"\bRetaliate\."),
+    ("ALERT",     r"\bAlert\."),
+    ("ALOOF",     r"\bAloof\."),
+    ("MASSIVE",   r"\bMassive\."),
+    ("ELUSIVE",   r"\bElusive\."),
+    ("PATROL",    r"\bPatrol\s*\("),
+    ("PREY",      r"\bPrey\b\s*[-–—]"),
+    ("PERIL",     r"\bPeril\."),
+    ("FAST",      r"\bFast\."),
+    ("SWARMING",  r"\bSwarming\s+\d"),
+    ("SURGE",     r"\bSurge\."),
+    ("HIDDEN",    r"\bHidden\."),
+]
+
+def keywords(c):
+    text = re.sub(r"<[^>]+>", "", c.get("text") or "")  # 去 HTML 標記後比對
+    return [name for name, pat in _KEYWORD_PATTERNS if re.search(pat, text)]
+
 def slots(c):
     raw = c.get("real_slot") or c.get("slot") or ""
     out = []
@@ -123,11 +145,13 @@ def transform(c):
     if traits(c):               d["traits"] = traits(c)
     if skill_icons(c):          d["skillIcons"] = skill_icons(c)
     if slots(c):                d["slots"] = slots(c)
-    d["keywords"] = []          # TODO:之後從 text 解析 Hunter/Retaliate…(docs/05 §5)
+    d["keywords"] = keywords(c)  # 從 text 解析 Hunter/Retaliate…(docs/05 §5)
     if stats(c, typ):           d["stats"] = stats(c, typ)
     if c.get("text"):           d["text"] = c["text"]
     if c.get("flavor"):         d["flavor"] = c["flavor"]
     if c.get("encounter_code"): d["encounterSet"] = c["encounter_code"]
+    if c.get("encounter_position") is not None: d["encounterPosition"] = c["encounter_position"]
+    if c.get("victory") is not None: d["victory"] = c["victory"]
     if typ == "investigator":
         req = {}
         dr = c.get("deck_requirements")

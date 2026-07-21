@@ -80,11 +80,13 @@ content/
 | `asset` | `cost`,`slots`,(可有 `health`/`sanity`) |
 | `event` | `cost` |
 | `skill` | (僅 `skillIcons`) |
-| `enemy` | `fight`,`enemyHealth`,`evade`,`enemyDamage`,`enemyHorror`,`keywords` |
+| `enemy` | `fight`,`enemyHealth`,`evade`,`enemyDamage`,`enemyHorror` |
 | `location` | `shroud`,`clueValue`,`connections` |
 | `agenda` | `doomThreshold` |
 | `act` | `clueThreshold` |
 | `treachery` | (規則文字為主) |
+
+> 遭遇卡(`enemy`/`treachery`/`location`/`act`/`agenda`)另有**頂層欄位**(不在 `stats` 內):`keywords`、`encounterSet`、`encounterPosition`,以及有勝利點者的 `victory`(見 §6)。
 
 ---
 
@@ -106,7 +108,7 @@ content/
   "traits": ["Detective"],
   "skillIcons": ["INTELLECT", "WILD"],   // 技能圖示:WILLPOWER/INTELLECT/COMBAT/AGILITY/WILD
   "slots": [],                           // 佔用欄位:hand/arcane/ally/body/accessory/tarot
-  "keywords": [],                        // HUNTER/RETALIATE/ALERT/ALOOF/... (§ docs/05 §5)
+  "keywords": [],                        // HUNTER/RETALIATE/ALERT/ALOOF/MASSIVE/ELUSIVE/PATROL/PREY/PERIL/FAST/SWARMING/SURGE/HIDDEN (§ docs/05 §5);converter 由 text 解析
   "stats": {                             // 依 type 填(§5)
     "willpower": 2, "intellect": 4, "combat": 3, "agility": 3,
     "health": 7, "sanity": 7
@@ -122,6 +124,8 @@ content/
   },
   "elderSignEffect": "+1. If you succeed, draw 1 card and gain 1 resource.",
   "encounterSet": null,                  // 遭遇卡所屬集合(如 "spreading_flames")
+  "encounterPosition": null,             // 遭遇組內序號(卡面 "X/N" 的分子;對應 ArkhamDB encounter_position)
+  "victory": null,                       // 勝利點 Victory X(敵人/詭計/地點/幕才有;無則省略)
   "quantity": 1,                         // 該盒內張數
   "orientation": "portrait",             // portrait/landscape(§4 例外)
   "effects": null,                       // ⛔ 本次留空:結構化效果日後補(docs/02 §4)

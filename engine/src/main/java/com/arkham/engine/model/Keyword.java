@@ -15,5 +15,8 @@ public enum Keyword {
     PATROL,
     PREY,
     PERIL,
-    FAST
+    FAST,
+    SWARMING,
+    SURGE,
+    HIDDEN
 }
