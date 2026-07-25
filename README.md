@@ -27,6 +27,7 @@
 | [`engine/`](engine/) | **Java 規則引擎**(headless、確定性、可測):GameState、ChaosBag、SkillTest、RulesEngine。 |
 | [`server/`](server/) | **Java 遊戲伺服器**(Spring Boot + WebSocket):把引擎包成連線服務。 |
 | [`client/`](client/) | **前端客戶端**(TypeScript + Vite + PixiJS):渲染 + 送意圖。 |
+| [`scripts/`](scripts/) | **啟動與工具腳本**,依用途分層:`start/`(啟動使用)、`setup/`(資料準備)、`test/`(測試),各含 `.bat`/`.command`/`.sh` 三平台版本。 |
 
 ## 快速開始
 
@@ -34,7 +35,7 @@
 
 **一鍵端到端**(伺服器 + 前端,Ctrl+C 一起關閉):
 ```bash
-./run-dev.sh     # 前端 http://localhost:5173 · 伺服器 ws://localhost:8080/ws/game
+./scripts/start/run-dev.sh     # 前端 http://localhost:5173 · 伺服器 ws://localhost:8080/ws/game
 ```
 
 或分開跑:
@@ -55,15 +56,15 @@ python3 -m http.server 8131 --directory prototype   # 開 http://localhost:8131
 
 主機(誰都行)開兩個終端機:
 ```bash
-./start-server.sh     # A:印出你的區網 IP,例如 192.168.1.50
-./start-client.sh     # B
+./scripts/start/start-server.sh     # A:印出你的區網 IP,例如 192.168.1.50
+./scripts/start/start-client.sh     # B
 ```
 所有人用瀏覽器開(各挑不同調查員,同房 = 同一場):
 ```
 http://192.168.1.50:5173/?inv=joe_diamond      # 你
 http://192.168.1.50:5173/?inv=daniela           # 隊友
 ```
-(或每人各自 `./start-client.sh 192.168.1.50` 再開自己的 localhost。)
+(或每人各自 `./scripts/start/start-client.sh 192.168.1.50` 再開自己的 localhost。)
 
 ## 現況
 

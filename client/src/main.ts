@@ -158,7 +158,7 @@ async function main() {
   } catch {
     hideMask();
     lobby.showIdentity();
-    window.alert("⚠️ 無法連線伺服器。請先在 host 端啟動 start-server.bat(Windows)或 ./start-server.sh");
+    window.alert("⚠️ 無法連線伺服器。請先在 host 端啟動 scripts\\start\\start-server.bat(Windows)或 ./scripts/start/start-server.sh");
   }
 }
 

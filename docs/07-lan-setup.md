@@ -23,10 +23,10 @@
 ### 方法一(最簡單):主機一台跑兩個,大家用瀏覽器
 **主機**(誰都行)——直接**雙擊**這兩個檔(或在終端機執行):
 ```bat
-start-server.bat      :: 視窗 A:會印出你的區網 IP,例如 192.168.1.50
-start-client.bat      :: 視窗 B
+scripts\start\start-server.bat      :: 視窗 A:會印出你的區網 IP,例如 192.168.1.50
+scripts\start\start-client.bat      :: 視窗 B
 ```
-> 也可以只雙擊 **`run-dev.bat`** 一鍵開這兩個視窗。
+> 也可以只雙擊 **`scripts\start\run-dev.bat`** 一鍵開這兩個視窗。
 
 **所有人(含主機自己)** 用瀏覽器開,各挑不同調查員:
 ```
@@ -35,10 +35,10 @@ http://192.168.1.50:5173/?inv=daniela          # 隊友
 ```
 
 ### 方法二:每人各自跑 client
-**主機**:雙擊 `start-server.bat`(記下印出的 IP)。
+**主機**:雙擊 `scripts\start\start-server.bat`(記下印出的 IP)。
 **每位玩家**在自己電腦開終端機:
 ```bat
-start-client.bat 192.168.1.50      :: ← 主機的 IP(不是 localhost)
+scripts\start\start-client.bat 192.168.1.50      :: ← 主機的 IP(不是 localhost)
 :: 然後開 http://localhost:5173/?inv=daniela
 ```
 
@@ -47,10 +47,10 @@ start-client.bat 192.168.1.50      :: ← 主機的 IP(不是 localhost)
 ## 🍎 macOS / Linux
 同樣兩種方法,換成 `.sh`:
 ```bash
-./start-server.sh                 # 主機:印出區網 IP
-./start-client.sh                 # 同機:連本機伺服器
-./start-client.sh 192.168.1.50    # 別機:連主機 IP
-# 或一鍵:./run-dev.sh
+./scripts/start/start-server.sh                 # 主機:印出區網 IP
+./scripts/start/start-client.sh                 # 同機:連本機伺服器
+./scripts/start/start-client.sh 192.168.1.50    # 別機:連主機 IP
+# 或一鍵:./scripts/start/run-dev.sh
 ```
 
 ---
@@ -71,8 +71,8 @@ start-client.bat 192.168.1.50      :: ← 主機的 IP(不是 localhost)
 ## ✅ 端到端測試(e2e,邊改邊修用)
 一鍵驗證「伺服器 + 協定 + 引擎 + 存檔/續玩 + 前端建置」整條是否還健康:
 
-- **Windows**:雙擊 `e2e.bat`(或終端機 `node e2e\run.mjs`)
-- **macOS / Linux**:`./e2e.sh`(或 `node e2e/run.mjs`)
+- **Windows**:雙擊 `scripts\test\e2e.bat`(或終端機 `node e2e\run.mjs`)
+- **macOS / Linux**:`./scripts/test/e2e.sh`(或 `node e2e/run.mjs`)
 
 它會:①建置並啟動伺服器(以**真實 WebSocket 握手**判定就緒)→ ②用**兩個客戶端**跑完整流程(join → 調查〔多人投入屏障〕→ 移動〔揭示+生怪〕→ 回合推進 → 全員投票存檔 → 續玩還原)→ ③前端 `tsc` 型別檢查 + 打包 → ④**可靠收掉伺服器**(等埠釋放,必要時硬殺)。全過離開碼 0。
 

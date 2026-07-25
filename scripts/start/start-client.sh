@@ -4,11 +4,11 @@
 #  前置:Node 18+、網路(首次 npm install)。
 #
 #  用法:
-#    ./start-client.sh              # 連「本機」的伺服器(server 與 client 同一台)
-#    ./start-client.sh 192.168.1.50 # 連「別台」的伺服器(那台跑 start-server.sh)
+#    ./scripts/start/start-client.sh              # 連「本機」的伺服器(server 與 client 同一台)
+#    ./scripts/start/start-client.sh 192.168.1.50 # 連「別台」的伺服器(那台跑 start-server.sh)
 # ════════════════════════════════════════════════════════════════════
 set -euo pipefail
-cd "$(dirname "$0")/client"
+cd "$(dirname "$0")/../../client"
 
 SERVER_HOST="${1:-localhost}"
 export VITE_SERVER="ws://${SERVER_HOST}:8080"

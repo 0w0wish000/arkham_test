@@ -4,8 +4,8 @@
 
 > ## ⚠️ 新 clone 必讀
 > 完整卡片文字是 FFG 版權,**不進 git** —— 剛 clone 下來**沒有** `cards/generated/`(4,400+ 張卡)。
-> **跑一次就好**:repo 根目錄 `./setup-content.sh`(macOS/Linux)或雙擊 `setup-content.bat`(Windows);
-> 或直接啟動 `start-server.*` —— 首次啟動會自動抓(失敗不擋遊戲)。
+> **跑一次就好**:repo 根目錄 `./scripts/setup/setup-content.sh`(macOS/Linux)或雙擊 `scripts\setup\setup-content.bat`(Windows);
+> 或直接啟動 `scripts/start/start-server.*` —— 首次啟動會自動抓(失敗不擋遊戲)。
 > 出新擴充 / 改調查員白名單後:`setup-content --refresh` 重抓。
 
 ## 結構

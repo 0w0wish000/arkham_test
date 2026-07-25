@@ -5,16 +5,16 @@
 #  首席調查員(lead)無關。跑起來後把印出的網址給隊友即可。
 #
 #  前置:一套 JDK(理想 21;較舊版 Gradle 會自動抓 21)、網路(首次)。
-#  用法:  ./start-server.sh
+#  用法:  ./scripts/start/start-server.sh
 # ════════════════════════════════════════════════════════════════════
 set -euo pipefail
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/../.."
 
 # 首次啟動:卡片資料(FFG 版權,不進 git,docs/06 §9)不存在就自動抓一次。
-# 失敗(無 python3 / 無網路)不擋遊戲 —— 目前對局用內建卡目錄;之後可手動跑 ./setup-content.sh
+# 失敗(無 python3 / 無網路)不擋遊戲 —— 目前對局用內建卡目錄;之後可手動跑 ./scripts/setup/setup-content.sh
 if ! ls content/cards/generated/*.json >/dev/null 2>&1; then
   echo "▶ 首次啟動:載入卡片資料(僅此一次)…"
-  bash ./setup-content.sh || echo "⚠️ 卡片資料載入失敗,先略過(不影響目前遊玩);之後可手動跑 ./setup-content.sh"
+  bash ./scripts/setup/setup-content.sh || echo "⚠️ 卡片資料載入失敗,先略過(不影響目前遊玩);之後可手動跑 ./scripts/setup/setup-content.sh"
 fi
 
 # 取得本機區網 IP(給隊友連)
@@ -36,11 +36,11 @@ cat <<EOF
   伺服器監聽:  ws://$IP:8080/ws/game
 
   隊友怎麼加入(擇一):
-   ①【最簡單】在這台「再開一個終端機」跑  ./start-client.sh
+   ①【最簡單】在這台「再開一個終端機」跑  ./scripts/start/start-client.sh
       然後大家用瀏覽器開(每人挑不同調查員):
          你   → http://$IP:5173/?inv=joe_diamond
          隊友 → http://$IP:5173/?inv=daniela
-   ②【各自跑】隊友在自己電腦跑  ./start-client.sh $IP
+   ②【各自跑】隊友在自己電腦跑  ./scripts/start/start-client.sh $IP
       再開自己的 http://localhost:5173/?inv=daniela
 
   同一房間 = 同一場遊戲(預設房名 demo-session;可加 ?room=xxx)

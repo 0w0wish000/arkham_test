@@ -7,12 +7,12 @@
 #    content/cards/generated/*.json(核心+主線戰役,含調查員/劇本卡)
 #
 #  用法:
-#    ./setup-content.sh            # 已有資料就略過(冪等)
-#    ./setup-content.sh --refresh  # 清快取重抓(出新擴充 / 改調查員白名單後)
+#    ./scripts/setup/setup-content.sh            # 已有資料就略過(冪等)
+#    ./scripts/setup/setup-content.sh --refresh  # 清快取重抓(出新擴充 / 改調查員白名單後)
 #  前置:python3、網路(首次;之後有快取可離線重建)。
 # ════════════════════════════════════════════════════════════════════
 set -euo pipefail
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/../.."
 
 GEN="content/cards/generated"
 
@@ -21,7 +21,7 @@ if [ "${1:-}" = "--refresh" ]; then
   rm -f content/tools/.cache/arkhamdb_all.json
   rm -rf "$GEN"
 elif ls "$GEN"/*.json >/dev/null 2>&1; then
-  echo "✓ 卡片資料已就緒($(ls "$GEN"/*.json | wc -l | tr -d ' ') 檔)。要更新請跑:./setup-content.sh --refresh"
+  echo "✓ 卡片資料已就緒($(ls "$GEN"/*.json | wc -l | tr -d ' ') 檔)。要更新請跑:./scripts/setup/setup-content.sh --refresh"
   exit 0
 fi
 

@@ -4,12 +4,12 @@ rem  Arkham 前端啟動器（Windows / 用瀏覽器玩）
 rem  前置：Node 18+、網路（首次 npm install）。
 rem
 rem  用法：
-rem    start-client.bat                # 連「本機」的伺服器（server 與 client 同一台）
-rem    start-client.bat 192.168.1.50   # 連「別台」的伺服器（那台跑 start-server.bat）
+rem    scripts\start\start-client.bat                # 連「本機」的伺服器（server 與 client 同一台）
+rem    scripts\start\start-client.bat 192.168.1.50   # 連「別台」的伺服器（那台跑 start-server.bat）
 rem ════════════════════════════════════════════════════════════════════
 setlocal enabledelayedexpansion
 chcp 65001 >nul
-cd /d "%~dp0\client"
+cd /d "%~dp0..\..\client"
 
 set "SERVER_HOST=%~1"
 if "%SERVER_HOST%"=="" set "SERVER_HOST=localhost"

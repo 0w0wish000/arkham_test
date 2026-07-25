@@ -38,6 +38,8 @@
 | [09-lobby-save-handshake.md](09-lobby-save-handshake.md) | **大廳、存檔與交握** — 用「身分 + 存檔」取代 room;主選單、牌組/載入兩種屏障、動態名冊(中離/亂入/接手)、死亡換角投票、經驗上限。含分期實作進度(P1–P5 已完成)。 |
 | [11-engine-backlog.md](11-engine-backlog.md) | **完整引擎開發清單(多劇本)** — 把 lite 引擎升級成「完整規則引擎 + 全內容 + 戰役」的功能盤點:場景資料化、能力/時機引擎、全卡腳本化、戰役系統、回合 fidelity、牌組驗證、內容管線;含相依鏈、規模、建置順序與里程碑。 |
 
+| [12-packaging-distribution.md](12-packaging-distribution.md) | **打包與發行** — 讓第三方「下載一包就能玩」:Portable Zip(bootJar + 靜態前端 + 內嵌 JRE)、jpackage / Tauri / Docker 方案比較、版權紅線(發行包不帶卡片資料)、分階段執行順序。 |
+
 ## 建議閱讀順序
 
 1. 先讀本頁(定位與結論)

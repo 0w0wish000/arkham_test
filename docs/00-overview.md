@@ -93,11 +93,13 @@ stateDiagram-v2
 
 ### 最省事:主機一台跑兩個,其他人只要瀏覽器
 
+腳本集中在 **`scripts/`**,依用途分層:`scripts/start/`(啟動)、`scripts/setup/`(資料準備)、`scripts/test/`(測試)。
+
 | 平台 | 伺服器 | 前端 | 一鍵兩者 | 卡片資料(clone 後一次) |
 |---|---|---|---|---|
-| 🪟 **Windows** | 雙擊 `start-server.bat` | 雙擊 `start-client.bat` | 雙擊 `run-dev.bat` | 雙擊 `setup-content.bat` |
-| 🍎 **macOS** | 雙擊 `start-server.command` | 雙擊 `start-client.command` | 雙擊 `run-dev.command` | 雙擊 `setup-content.command` |
-| 🐧 終端機 | `./start-server.sh` | `./start-client.sh` | `./run-dev.sh` | `./setup-content.sh` |
+| 🪟 **Windows** | 雙擊 `scripts\start\start-server.bat` | 雙擊 `scripts\start\start-client.bat` | 雙擊 `scripts\start\run-dev.bat` | 雙擊 `scripts\setup\setup-content.bat` |
+| 🍎 **macOS** | 雙擊 `scripts/start/start-server.command` | 雙擊 `scripts/start/start-client.command` | 雙擊 `scripts/start/run-dev.command` | 雙擊 `scripts/setup/setup-content.command` |
+| 🐧 終端機 | `./scripts/start/start-server.sh` | `./scripts/start/start-client.sh` | `./scripts/start/run-dev.sh` | `./scripts/setup/setup-content.sh` |
 
 > 卡片完整文字為 FFG 版權**不進 git**(docs/06 §9)—— 新 clone 沒有 `content/cards/generated/`。
 > `setup-content` 只需跑一次(需 Python 3);**忘了跑也沒關係:`start-server` 首次啟動會自動抓**,失敗不擋遊戲。更新用 `--refresh`。
@@ -117,11 +119,11 @@ sequenceDiagram
 ```
 
 - 首次啟動 Windows 防火牆跳出 → 勾**私人網路**允許(放行 8080 / 5173)。
-- 連別台主機:`start-client.sh 192.168.1.50`(macOS/Linux)或 `start-client.bat 192.168.1.50`(Windows)。
+- 連別台主機:`./scripts/start/start-client.sh 192.168.1.50`(macOS/Linux)或 `scripts\start\start-client.bat 192.168.1.50`(Windows)。
 - 完整說明見 [docs/07 LAN 連線](07-lan-setup.md)。
 
 ### ✅ 自我測試(不用真人也能驗)
-- 🪟 `e2e.bat`　🍎 `e2e.command`　🐧 `./e2e.sh`(或 `node e2e/run.mjs`)
+- 🪟 `scripts\test\e2e.bat`　🍎 `scripts/test/e2e.command`　🐧 `./scripts/test/e2e.sh`(或 `node e2e/run.mjs`)
 - 會自動起暫時伺服器 → 兩客戶端跑完整協定(大廳 / 開打 / 存檔續玩)→ 前端建置 → 收尾。全過離開碼 0。
 
 ---

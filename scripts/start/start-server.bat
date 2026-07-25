@@ -5,11 +5,11 @@ rem  任何一位玩家都能在自己電腦跑 —— 誰跑誰就是「主機�
 rem  首席調查員（lead）無關。跑起來後把印出的網址給隊友即可。
 rem
 rem  前置：一套 JDK（理想 21；較舊版 Gradle 會自動抓 21）、網路（首次）。
-rem  用法：直接雙擊本檔，或在終端機執行  start-server.bat
+rem  用法：直接雙擊本檔，或在終端機執行  scripts\start\start-server.bat
 rem ════════════════════════════════════════════════════════════════════
 setlocal enabledelayedexpansion
 chcp 65001 >nul
-cd /d "%~dp0"
+cd /d "%~dp0..\.."
 
 rem 首次啟動：卡片資料（FFG 版權，不進 git）不存在就自動抓一次；失敗不擋遊戲。
 if not exist "content\cards\generated\*.json" (
@@ -18,9 +18,9 @@ if not exist "content\cards\generated\*.json" (
   where py >nul 2>nul && set "PYCMD=py -3"
   if not defined PYCMD ( where python >nul 2>nul && set "PYCMD=python" )
   if defined PYCMD (
-    !PYCMD! content\tools\build_cards.py || echo ⚠️ 載入失敗，先略過（不影響目前遊玩）；之後可執行 setup-content.bat
+    !PYCMD! content\tools\build_cards.py || echo ⚠️ 載入失敗，先略過（不影響目前遊玩）；之後可執行 scripts\setup\setup-content.bat
   ) else (
-    echo ⚠️ 找不到 Python，先略過（不影響目前遊玩）；安裝 Python 3 後執行 setup-content.bat
+    echo ⚠️ 找不到 Python，先略過（不影響目前遊玩）；安裝 Python 3 後執行 scripts\setup\setup-content.bat
   )
 )
 
@@ -35,11 +35,11 @@ echo   Arkham 遊戲伺服器（LAN） —— 主機：這台電腦（!IP!）
 echo   伺服器監聽：  ws://!IP!:8080/ws/game
 echo(
 echo   隊友怎麼加入（擇一）：
-echo    (1) 最簡單：在這台「再開一個視窗」執行  start-client.bat
+echo    (1) 最簡單：在這台「再開一個視窗」執行  scripts\start\start-client.bat
 echo        然後大家用瀏覽器開（每人挑不同調查員）：
 echo           你   -^> http://!IP!:5173/?inv=joe_diamond
 echo           隊友 -^> http://!IP!:5173/?inv=daniela
-echo    (2) 各自跑：隊友在自己電腦執行  start-client.bat !IP!
+echo    (2) 各自跑：隊友在自己電腦執行  scripts\start\start-client.bat !IP!
 echo        再開自己的 http://localhost:5173/?inv=daniela
 echo(
 echo   同一房間 = 同一場遊戲（預設房名 demo-session；可加 ?room=xxx）

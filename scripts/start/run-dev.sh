@@ -6,15 +6,15 @@
 #   - Node.js 18+
 #   - 網路(首次執行會下載 Gradle、JDK、相依套件)
 #
-# 用法:  ./run-dev.sh        （Ctrl+C 會一起關閉伺服器與前端）
+# 用法:  ./scripts/start/run-dev.sh        （Ctrl+C 會一起關閉伺服器與前端）
 
 set -euo pipefail
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/../.."
 
-# 首次啟動:卡片資料不存在就自動抓一次(失敗不擋遊戲;詳見 setup-content.sh)
+# 首次啟動:卡片資料不存在就自動抓一次(失敗不擋遊戲;詳見 scripts/setup/setup-content.sh)
 if ! ls content/cards/generated/*.json >/dev/null 2>&1; then
   echo "▶ 首次啟動:載入卡片資料(僅此一次)…"
-  bash ./setup-content.sh || echo "⚠️ 卡片資料載入失敗,先略過;之後可手動跑 ./setup-content.sh"
+  bash ./scripts/setup/setup-content.sh || echo "⚠️ 卡片資料載入失敗,先略過;之後可手動跑 ./scripts/setup/setup-content.sh"
 fi
 
 SERVER_PID=""
