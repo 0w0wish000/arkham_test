@@ -33,3 +33,30 @@ tasks.named('test') {
 tasks.withType(JavaCompile).configureEach {
     options.compilerArgs << '-parameters'
 }
+
+// ── 打包(docs/12 ①):client 靜態檔進 bootJar ──────────────────────────
+// npm run build 產出 ../client/dist → 塞進 jar 的 classpath:/static/,
+// Spring Boot 同埠(8080)直接服務前端;WebSocket 同源(client 用 location.host)。
+// 沒裝 Node 的環境:-PskipClient 只建純伺服器 jar(開發用 bootRun 不受影響)。
+def winHost = System.getProperty('os.name').toLowerCase().contains('windows')
+
+tasks.register('npmCiClient', Exec) {
+    description = 'npm ci(client 相依,僅打包用)'
+    workingDir rootProject.file('client')
+    commandLine = (winHost ? ['cmd', '/c', 'npm'] : ['npm']) + ['ci', '--no-audit', '--no-fund']
+    onlyIf { !project.hasProperty('skipClient') }
+}
+
+tasks.register('npmBuildClient', Exec) {
+    description = 'npm run build(tsc + vite build → client/dist)'
+    dependsOn 'npmCiClient'
+    workingDir rootProject.file('client')
+    commandLine = (winHost ? ['cmd', '/c', 'npm'] : ['npm']) + ['run', 'build']
+    onlyIf { !project.hasProperty('skipClient') }
+}
+
+tasks.named('bootJar') {
+    dependsOn 'npmBuildClient'
+    // client/dist → BOOT-INF/classes/static/(= classpath:/static/,含 deckbuilder.html)
+    from(rootProject.file('client/dist')) { into 'BOOT-INF/classes/static' }
+}

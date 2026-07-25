@@ -2,6 +2,12 @@
 
 > 目標:用戶下載**一個壓縮檔**(或安裝檔),解壓 → 雙擊 → server + client 一起起來,瀏覽器開 `http://localhost:8080` 就能玩;隊友開 `http://<主機IP>:8080` 加入。**不需要**預先安裝 JDK / Node / Python。
 
+> ✅ **實作狀態:Phase 1(①–④)已落地。**
+> `./gradlew distBundle` 一鍵出包(client 進 bootJar → jlink JRE → 啟動器 → zip);
+> 啟動器與說明在 `packaging/`;CI(`.github/workflows/package.yml`)以
+> windows/macos matrix 各出一包(手動觸發或推 `v*` tag 附上 Release)。
+> 未做:⑤ 首跑抓卡 Java 化(發行包開箱先用內建卡目錄)、Phase 2(jpackage/Tauri)。
+
 ## 0. 為什麼這件事其實不難 —— 現有架構已經對打包友善
 
 盤點現狀,三個關鍵事實讓打包路線非常短:

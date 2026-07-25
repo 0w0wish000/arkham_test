@@ -1,0 +1,47 @@
+# 一鍵發行包 CI(docs/12):windows/macos 各出一個 Portable Zip。
+# 觸發:手動(workflow_dispatch)、推 v* tag(並附到 Release)、推本功能分支(驗證用)。
+name: package
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feat/one-click-package]
+    tags: ['v*']
+
+permissions:
+  contents: write   # tag 時上傳 Release 資產
+
+jobs:
+  bundle:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            label: win64
+          - os: macos-latest
+            label: macos
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build one-click bundle
+        shell: bash
+        run: ./gradlew --no-daemon distBundle
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: arkham-${{ matrix.label }}
+          path: build/dist/*.zip
+          if-no-files-found: error
+      - name: Attach to release (tags only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/dist/*.zip
