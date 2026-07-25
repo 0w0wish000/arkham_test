@@ -12,8 +12,10 @@ build_cards.py — 從 ArkhamDB 抓「官方 核心 + 主線 8 戰役」卡料,
 
 用法:  python3 content/tools/build_cards.py
 """
-import json, os, re, urllib.request
+import json, os, re, sys, urllib.request
 from pathlib import Path
+
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")   # Windows cp950 主控台不炸在 ✓ 等符號
 
 ROOT  = Path(__file__).resolve().parents[2]          # repo root
 REF   = ROOT / "content" / "reference"
@@ -24,7 +26,7 @@ API   = "https://arkhamdb.com/api/public/cards/?encounter=1"   # 全卡(玩家 +
 def _load_artwork():
     f = ROOT / "content" / "reference" / "artwork.json"
     try:
-        return json.loads(f.read_text()) if f.exists() else {}
+        return json.loads(f.read_text(encoding="utf-8")) if f.exists() else {}
     except Exception:
         return {}
 ARTWORK = _load_artwork()   # 繪師/美術(build_artwork.py 產出);有就併進卡定義
@@ -38,7 +40,7 @@ def fetch_all():
     cache = CACHE / "arkhamdb_all.json"
     if cache.exists():
         print(f"使用快取 {cache}")
-        return json.loads(cache.read_text())
+        return json.loads(cache.read_text(encoding="utf-8"))
     print("下載 ArkhamDB 全卡…")
     with urllib.request.urlopen(API, timeout=90) as r:
         data = r.read()
@@ -46,7 +48,7 @@ def fetch_all():
     return json.loads(data)
 
 def scope_pack_codes():
-    packs = json.loads((REF / "packs.json").read_text())
+    packs = json.loads((REF / "packs.json").read_text(encoding="utf-8"))
     return {p["code"] for p in packs if p.get("category") in ("core", "campaign")}
 
 def investigator_whitelist():
@@ -54,7 +56,7 @@ def investigator_whitelist():
     if not f.exists():
         return None
     try:
-        data = json.loads(f.read_text())
+        data = json.loads(f.read_text(encoding="utf-8"))
     except Exception:
         return None
     codes = data.get("codes") if isinstance(data, dict) else data
@@ -194,7 +196,7 @@ def main():
     for c in kept:
         by_pack.setdefault(c["pack_code"], []).append(transform(c))
     for pk, lst in sorted(by_pack.items()):
-        (OUT / f"{pk}.json").write_text(json.dumps(lst, ensure_ascii=False, indent=1))
+        (OUT / f"{pk}.json").write_text(json.dumps(lst, ensure_ascii=False, indent=1), encoding="utf-8")
 
     invs = [c for c in kept if c.get("type_code") == "investigator"]
     print(f"\nscope 卡盒 {len(scope)} 個 · 收錄卡 {len(kept)} 張 → 輸出 {len(by_pack)} 檔到 content/cards/generated/")

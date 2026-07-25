@@ -10,8 +10,10 @@ build_campaigns.py — 從 generated 卡資料推導「每條戰役的章節清�
 
 用法:  python3 content/tools/build_campaigns.py   (需先跑 build_cards.py)
 """
-import json, re
+import json, re, sys
 from pathlib import Path
+
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")   # Windows cp950 主控台不炸在 ✓ 等符號
 
 ROOT = Path(__file__).resolve().parents[2]
 REF  = ROOT / "content" / "reference"
@@ -20,14 +22,14 @@ GEN  = ROOT / "content" / "cards" / "generated"
 def main():
     if not GEN.exists() or not any(GEN.glob("*.json")):
         raise SystemExit("找不到 content/cards/generated/ —— 先跑 setup-content 或 build_cards.py")
-    packs = {p["code"]: p for p in json.loads((REF / "packs.json").read_text())}
+    packs = {p["code"]: p for p in json.loads((REF / "packs.json").read_text(encoding="utf-8"))}
 
     by_cycle = {}
     for f in sorted(GEN.glob("*.json")):
         pack = packs.get(f.stem)
         if not pack or pack.get("category") not in ("core", "campaign"):
             continue
-        for c in json.loads(f.read_text()):
+        for c in json.loads(f.read_text(encoding="utf-8")):
             if c.get("type") == "scenario":
                 by_cycle.setdefault(pack["cycle"], []).append(
                     {"code": c.get("code", ""), "pack": f.stem, "name": c.get("name", "")})
@@ -58,7 +60,7 @@ def main():
         "_comment": "由 build_campaigns.py 從卡資料推導的戰役章節索引(僅名稱/順序;無敘事/分支)。",
         "campaigns": campaigns,
     }
-    (REF / "campaigns.json").write_text(json.dumps(out, ensure_ascii=False, indent=1))
+    (REF / "campaigns.json").write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"✓ {len(campaigns)} 條戰役 → content/reference/campaigns.json")
     for c in campaigns:
         print(f"  cycle {c['cycle']:>2}  {c['name']:<28} {len(c['chapters'])} 章(key={c['key']})")

@@ -11,6 +11,8 @@ FFG 文字不入庫;譯完把「純譯文」搬進 locales/zh-Hant/<pack>.json �
 import json, sys
 from pathlib import Path
 
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")   # Windows cp950 主控台不炸在 ✓ 等符號
+
 ROOT = Path(__file__).resolve().parents[2]
 GEN, LOC = ROOT/"content/cards/generated", ROOT/"content/locales"
 
@@ -21,9 +23,9 @@ def run(pack):
     done = {}
     f = LOC / "zh-Hant" / f"{pack}.json"
     if f.exists():
-        done = {k: v for k, v in json.loads(f.read_text()).items() if not k.startswith("_")}
+        done = {k: v for k, v in json.loads(f.read_text(encoding="utf-8")).items() if not k.startswith("_")}
     todo = {}
-    for c in json.loads(src.read_text()):
+    for c in json.loads(src.read_text(encoding="utf-8")):
         code = c.get("code")
         if not code or code in done:
             continue
@@ -33,7 +35,7 @@ def run(pack):
         entry["_en"] = {k: c[k] for k in ("name", "subtitle", "traits", "text") if c.get(k)}
         todo[code] = entry
     out = LOC / "_templates"; out.mkdir(parents=True, exist_ok=True)
-    (out / f"{pack}.zh-Hant.todo.json").write_text(json.dumps(todo, ensure_ascii=False, indent=1))
+    (out / f"{pack}.zh-Hant.todo.json").write_text(json.dumps(todo, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"✓ {pack}:待譯 {len(todo)} 張(已譯 {len(done)})→ locales/_templates/{pack}.zh-Hant.todo.json")
 
 for p in (sys.argv[1:] or ["core_2026"]):

@@ -11,6 +11,8 @@ build_artwork.py — 把「Arkham Artwork.xlsx」(繪師/美術歸屬)轉成我�
 """
 import json, re, sys
 from pathlib import Path
+
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")   # Windows cp950 主控台不炸在 ✓ 等符號
 try:
     import openpyxl
 except ImportError:
@@ -79,8 +81,8 @@ for r in cr[1:]:
         chars.append(row)
 
 OUT.mkdir(parents=True, exist_ok=True)
-(OUT / "artwork.json").write_text(json.dumps(art, ensure_ascii=False, indent=1))
-(OUT / "characters-in-art.json").write_text(json.dumps(chars, ensure_ascii=False, indent=1))
+(OUT / "artwork.json").write_text(json.dumps(art, ensure_ascii=False, indent=1), encoding="utf-8")
+(OUT / "characters-in-art.json").write_text(json.dumps(chars, ensure_ascii=False, indent=1), encoding="utf-8")
 print(f"artwork.json:{len(art)} 張卡(套用 {fixed} 筆 Artist Fixes)")
 print(f"characters-in-art.json:{len(chars)} 筆")
 if art:
