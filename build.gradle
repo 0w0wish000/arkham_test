@@ -2,7 +2,78 @@
 // Each module (engine/, server/) is self-contained and declares its own plugins,
 // repositories, Java toolchain (21) and dependencies. This file only shares the
 // group/version coordinates so the two modules stay aligned.
+plugins {
+    id 'jvm-toolchains'   // distBundle 用 javaToolchains 取得 JDK(jlink)位置
+}
+
 allprojects {
     group = 'com.arkham'
     version = '0.1.0'
+}
+
+// ── 一鍵發行包(docs/12 Phase 1:Portable Zip)──────────────────────────
+// ./gradlew distBundle → build/dist/arkham-<版本>-<平台>.zip
+// 內容:jre/(jlink 裁剪)+ app/arkham-server.jar(含前端)+ 啟動器 + content 索引。
+// 注意:zip「不含」FFG 版權卡片資料(docs/12 §4);開箱用內建卡目錄即可玩。
+// CI:.github/workflows/package.yml 以 windows/macos matrix 各出一包。
+
+def hostOs = System.getProperty('os.name').toLowerCase()
+def winHost = hostOs.contains('windows')
+def bundlePlatform = winHost ? 'win64' : (hostOs.contains('mac') ? 'macos' : 'linux')
+
+// Spring Boot fat jar 所需模組(+ java.net.http 預留首跑抓卡 Java 化,docs/12 §2.2⑤)
+def jreModules = 'java.base,java.logging,java.xml,java.sql,java.naming,java.desktop,' +
+                 'java.management,java.instrument,java.security.jgss,java.net.http,' +
+                 'jdk.unsupported,jdk.crypto.ec'
+
+tasks.register('distBundle') {
+    group = 'distribution'
+    description = '組一鍵發行包:jlink JRE + bootJar(含前端)+ 啟動器 → zip'
+    dependsOn ':server:bootJar'
+    doLast {
+        def bundleName = "arkham-${version}-${bundlePlatform}"
+        def outRoot = file('build/dist')
+        def distDir = new File(outRoot, bundleName)
+        def zipFile = new File(outRoot, "${bundleName}.zip")
+        delete distDir, zipFile
+
+        // 1) jlink 裁 JRE(用建置同一顆 JDK 21;產物綁平台)
+        def jdkHome = javaToolchains.launcherFor { it.languageVersion = JavaLanguageVersion.of(21) }
+                .get().metadata.installationPath.asFile
+        exec {
+            commandLine new File(jdkHome, winHost ? 'bin/jlink.exe' : 'bin/jlink').absolutePath,
+                    '--add-modules', jreModules,
+                    '--strip-debug', '--no-man-pages', '--no-header-files', '--compress=zip-6',
+                    '--output', new File(distDir, 'jre').absolutePath
+        }
+
+        // 2) 伺服器 jar(含前端靜態檔)
+        def serverJar = project(':server').tasks.named('bootJar').get().archiveFile.get().asFile
+        copy { from(serverJar); into(new File(distDir, 'app')); rename { 'arkham-server.jar' } }
+
+        // 3) 啟動器 + 說明(各平台只帶自己的啟動器)
+        copy {
+            from('packaging')
+            include(winHost ? 'ArkhamStart.bat' : 'ArkhamStart.command')
+            include 'README.txt'
+            into(distDir)
+        }
+
+        // 4) content 索引與工具(排除 generated/:FFG 版權不散布,docs/12 §4)
+        copy {
+            from('content')
+            exclude 'cards/generated/**', 'tools/.cache/**', 'images/**'
+            into(new File(distDir, 'content'))
+        }
+        new File(distDir, 'saves').mkdirs()
+
+        // 5) zip(macOS 用系統 zip 保留執行權限;Windows 無此需求用 ant)
+        if (winHost) {
+            ant.zip(destfile: zipFile, basedir: outRoot, includes: "${bundleName}/**")
+        } else {
+            exec { commandLine 'chmod', '+x', new File(distDir, 'ArkhamStart.command').absolutePath }
+            exec { workingDir outRoot; commandLine 'zip', '-qry', zipFile.name, bundleName }
+        }
+        println "✓ 發行包:${zipFile}(${(zipFile.length() / (1024 * 1024)) as int} MB)"
+    }
 }
