@@ -128,7 +128,10 @@
     #btn-save{background:#3a2d63;border-color:#7a6bb0}
     #btn-save:hover:not(:disabled){background:#4a3a78}
     #panel-hand{bottom:12px;right:10px;width:min(46vw,520px)}
-    #hand-cards{display:flex;gap:6px;flex-wrap:wrap}
+    #hand-cards{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}
+    #hand-cards .card{flex:0 0 auto;white-space:nowrap}
+    #hand-cards::-webkit-scrollbar{height:6px}
+    #hand-cards::-webkit-scrollbar-thumb{background:#2d3a4a;border-radius:3px}
     .card{border:1px solid var(--line);border-radius:8px;padding:5px 8px;background:#161d26;font-size:12px;min-width:64px}
     .card .c-name{display:block;margin-bottom:3px}
     .icons{display:inline-flex;gap:2px}
@@ -139,8 +142,8 @@
     .card.playable:hover{border-color:var(--gold);background:#1c2836}
     #play-area{display:flex;gap:6px;flex-wrap:wrap}
     #play-area .card{border-color:#5aa06b;background:#16241b}
-    #log{position:fixed;left:320px;bottom:12px;max-height:26%;overflow:auto;font-size:12px;
-      background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px;width:min(34%,360px)}
+    #log{position:fixed;left:320px;bottom:64px;max-height:26%;overflow:auto;font-size:12px;z-index:15;
+      background:#0c1219;border:1px solid var(--line);border-radius:8px;padding:8px 12px;width:min(34%,360px)}
     #log div{padding:2px 0;color:var(--dim)}
     #commit-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:50}
     #commit{background:#111823;border:1px solid var(--gold);border-radius:14px;padding:18px 20px;width:min(560px,92vw)}
