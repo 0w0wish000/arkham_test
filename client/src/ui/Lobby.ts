@@ -84,7 +84,16 @@ export class Lobby {
       f.hidden = !f.hidden;
       if (!f.hidden) this.input("new-name").focus();
     };
-    this.$("menu-load").onclick = () => this.onRefreshSaves?.();   // 重新整理本機存檔清單
+    this.$("menu-load").onclick = () => {   // 重新整理本機存檔清單,並帶使用者到清單位置
+      this.onRefreshSaves?.();
+      const box = this.$("local-saves");
+      box.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (!box.querySelector(".sess")) {
+        const empty = box.querySelector(".empty");
+        if (empty) empty.textContent =
+          "本機還沒有存檔 —— 遊戲中按「💾 保存並離開」後,存檔會出現在這裡,點「載入」即可續玩。";
+      }
+    };
     this.$("menu-rename").onclick = () => {
       const name = prompt("改名(會記住,playerId 不變):", this.currentName);
       if (name && name.trim()) this.onRename?.(name.trim());
