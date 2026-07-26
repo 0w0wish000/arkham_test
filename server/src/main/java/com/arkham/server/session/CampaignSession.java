@@ -404,10 +404,21 @@ public final class CampaignSession {
         checkBarrier();
     }
 
-    /** 主機強制越過屏障:牌組階段 → 開打;載入階段 → 直接重建對局。 */
+    /** 主機強制越過屏障:牌組階段 → 開打;載入階段 → 直接重建對局;對局已在跑 → 重送 STATE(卡名冊逃生口)。 */
     public synchronized void forceStart() throws IOException {
+        if (game != null) { reattachClients(); return; }
         if ("LOADING".equals(stage)) startFromSnapshot();
         else startScenario();
+    }
+
+    /** 把所有已連線且有角色的玩家重新接回對局(冪等;重送各自的 STATE)。 */
+    private void reattachClients() {
+        for (Map.Entry<String, WebSocketSession> e : clients.entrySet()) {
+            String inv = investigatorFor(e.getKey());
+            if (inv != null) {
+                try { game.join(inv, e.getValue()); } catch (IOException ignored) { /* 單人失敗不擋其他人 */ }
+            }
+        }
     }
 
     /** 屏障:所有 ACTIVE 成員都已選角且 ready → 開打。 */
@@ -815,16 +826,22 @@ public final class CampaignSession {
     /** 從快照重建對局 → 回放 log → 每位已連線玩家接回自己的調查員(收 STATE)。 */
     private void startFromSnapshot() throws IOException {
         if (game != null || pendingSnapshot == null) return;
-        game = GameSession.fromSnapshot(campaignId, mapper, pendingSnapshot, seed);
-        stage = "IN_SCENARIO";
-        broadcast(new ServerMessage.Event("scenario", "已載入存檔 —— 對局重建,續玩開始。"));
-        broadcast(new ServerMessage.LogHistory(pendingEventLog));
-        for (Map.Entry<String, WebSocketSession> e : clients.entrySet()) {
-            String inv = investigatorFor(e.getKey());
-            if (inv != null) game.join(inv, e.getValue());   // 送初始 STATE → client 切到戰役板
+        try {
+            game = GameSession.fromSnapshot(campaignId, mapper, pendingSnapshot, seed);
+            stage = "IN_SCENARIO";
+            broadcast(new ServerMessage.Event("scenario", "已載入存檔 —— 對局重建,續玩開始。"));
+            broadcast(new ServerMessage.LogHistory(pendingEventLog));
+            reattachClients();   // 送初始 STATE → client 切到戰役板(單人失敗不擋全桌)
+            pendingSnapshot = null;
+            pendingEventLog = List.of();   // 回放完釋放
+        } catch (RuntimeException ex) {
+            // 重建途中例外 → 若不復原,game != null 讓之後所有重試無聲 no-op(全桌卡名冊)。
+            game = null;
+            stage = "LOADING";
+            broadcast(new ServerMessage.Error("載入存檔失敗:" + ex.getMessage()
+                    + " —— 已退回載入等待,可重試(強制開始)或離開後開新對局。"));
+            broadcastRoster();
         }
-        pendingSnapshot = null;
-        pendingEventLog = List.of();   // 回放完釋放
     }
 
     public synchronized SessionSummary summary() {
@@ -841,8 +858,9 @@ public final class CampaignSession {
             members.add(new RosterMember(m.playerId, m.displayName, m.investigatorId, m.ready, m.status,
                     clients.containsKey(m.playerId), m.physicalTrauma, m.mentalTrauma));
         }
-        // 牌組/載入階段任何人都能強制越過屏障(熟人內網信任;docs/09 §8.3)。
-        boolean canForce = "DECKBUILDING".equals(stage) || "LOADING".equals(stage);
+        // 牌組/載入階段任何人都能強制越過屏障(熟人內網信任;docs/09 §8.3);
+        // 戰役中也保留:卡在名冊的玩家可按它重新接回對局(reattachClients 逃生口)。
+        boolean canForce = "DECKBUILDING".equals(stage) || "LOADING".equals(stage) || "IN_SCENARIO".equals(stage);
         return new ServerMessage.SessionRoster(campaignId, name, campaignKey, stage, difficulty, members, canForce,
                 List.copyOf(deadInvestigators), currentChapter);
     }
