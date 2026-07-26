@@ -142,9 +142,22 @@
     .card.playable:hover{border-color:var(--gold);background:#1c2836}
     #play-area{display:flex;gap:6px;flex-wrap:wrap}
     #play-area .card{border-color:#5aa06b;background:#16241b}
-    #log{position:fixed;left:320px;bottom:64px;max-height:26%;overflow:auto;font-size:12px;z-index:15;
-      background:#0c1219;border:1px solid var(--line);border-radius:8px;padding:8px 12px;width:min(34%,360px)}
+    #log{position:fixed;left:320px;bottom:64px;max-height:48px;overflow:auto;font-size:12px;z-index:15;
+      background:#0c1219;border:1px solid var(--line);border-radius:8px;padding:8px 12px;width:min(34%,360px);
+      cursor:pointer;transition:max-height .2s}
+    #log.open{max-height:30%}
     #log div{padding:2px 0;color:var(--dim)}
+    #panel-hand .panel-title{padding-right:24px}
+    #panel-hand.min #hand-cards,#panel-hand.min #play-title,#panel-hand.min #play-area{display:none}
+    #panel-hand.min{width:auto}
+    #panel-hand.min .panel-title{width:2.5em;white-space:nowrap;overflow:hidden}
+    #hand-min{position:absolute;top:6px;right:8px;width:22px;height:22px;line-height:1;padding:0;font-size:14px}
+    #hud-toast{position:fixed;top:16%;left:50%;transform:translateX(-50%);z-index:60;background:#111823;
+      border:1px solid var(--gold);border-radius:12px;padding:12px 20px;font-size:15px;max-width:80vw;
+      box-shadow:0 8px 28px rgba(0,0,0,.55);transition:opacity .4s}
+    #hud-toast.good{border-color:#5aa06b}
+    #hud-toast.bad{border-color:#c0674b}
+    #hud-toast.out{opacity:0}
     #commit-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:50}
     #commit{background:#111823;border:1px solid var(--gold);border-radius:14px;padding:18px 20px;width:min(560px,92vw)}
     #commit-title{font-size:15px;color:var(--gold);font-weight:600;margin-bottom:4px}
@@ -307,6 +320,7 @@
       <div id="here-empty">(此處無敵人)</div>
     </div>
     <div id="panel-hand" class="panel">
+      <button id="hand-min" title="收合/展開手牌(釋放視野)">–</button>
       <div class="panel-title">手牌 · 點「非技能卡」打出(技能卡於檢定投入面板使用)</div>
       <div id="hand-cards"></div>
       <div class="panel-title" id="play-title" hidden style="margin-top:8px">檯面 · 已打出支援</div>
@@ -322,7 +336,7 @@
       <button id="act-resign" title="撤退:主動退場保住成果(不會被趁隙攻擊;人數縮放不變)">🏳️ 撤退</button>
       <button id="btn-save" title="向全員發起存檔投票,存檔會複製到每位玩家本機">💾 保存並離開</button>
     </div>
-    <div id="log"></div>
+    <div id="log" title="點擊展開/收合事件紀錄"></div>
     <div id="commit-backdrop" hidden>
       <div id="commit">
         <div id="commit-title">技能檢定</div>

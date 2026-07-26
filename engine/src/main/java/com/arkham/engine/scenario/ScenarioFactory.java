@@ -81,20 +81,22 @@ public final class ScenarioFactory {
                 ? createSandbox(investigatorIds, difficulty)
                 : createFromData(dataFor(scenarioKey, chapter), investigatorIds, difficulty, flags);
         rng.shuffle(state.getEncounterDeck());   // A3-lite:遭遇牌堆開局洗牌(種子可重現;循環抽用洗後順序)
-        if (!"sandbox".equals(scenarioKey)) {
-            for (Investigator inv : state.orderedInvestigators()) {
-                List<String> names = decksByInvestigator == null ? null : decksByInvestigator.get(inv.getId());
-                if (names == null || names.isEmpty()) {
-                    names = CardCatalog.defaultDeck(inv.getId());
-                }
-                inv.getDeckPile().clear();
-                inv.getDeckPile().addAll(CardCatalog.buildDeck(inv.getId(), names));
-                shuffle(inv.getDeckPile(), rng);
+        for (Investigator inv : state.orderedInvestigators()) {
+            List<String> names = decksByInvestigator == null ? null : decksByInvestigator.get(inv.getId());
+            boolean custom = names != null && !names.isEmpty();
+            if (!custom) {
+                names = CardCatalog.defaultDeck(inv.getId());
+            }
+            inv.getDeckPile().clear();
+            inv.getDeckPile().addAll(CardCatalog.buildDeck(inv.getId(), names));
+            shuffle(inv.getDeckPile(), rng);
+            if (custom || !"sandbox".equals(scenarioKey)) {
                 inv.getHand().clear();
                 for (int k = 0; k < 5 && !inv.getDeckPile().isEmpty(); k++) {
                     inv.getHand().add(inv.getDeckPile().remove(0));   // 開局起手 5 張
                 }
             }
+            // 沙盒且未自帶牌組:保留示範起手(特殊卡),僅補滿牌堆讓「抽牌」有牌可抽
         }
         return new RulesEngine(state, rng);
     }

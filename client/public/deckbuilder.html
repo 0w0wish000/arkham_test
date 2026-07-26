@@ -454,7 +454,16 @@ const CARDIMG = (function(){
     else if(mode==='web' && folder){ url=await tryWeb(folder,code); }
     cache.set(code, url||null); return url;
   }
-  async function preload(codes){ for(const cc of [...new Set(codes)]) await fetchOne(cc); }  // 開牌組/開場批次預載
+  // 開牌組/開場批次預載;bailAfter:前 N 張全落空 → 視為無卡圖資料夾,停止探測(避免整包 404 洗版)
+  async function preload(codes, opts){
+    const uniq=[...new Set(codes)]; const bail=(opts&&opts.bailAfter)||0; let miss=0, any=false;
+    for(const cc of uniq){
+      const u=await fetchOne(cc);
+      if(u) any=true;
+      else if(bail && !any && ++miss>=bail){ folder=null; cache.clear(); return false; }
+    }
+    return true;
+  }
   return { slug, setWebBase, pickFolder, preload, get:code=>cache.get(code)||null, isTauri:()=>mode==='tauri', hasFolder:()=>!!folder };
 })();
 function allCodes(){ return [...DECK,...SIGNATURE,...POOL,...SEARCH_DB].map(CARDIMG.slug); }
@@ -645,7 +654,7 @@ loadInvestigator();
 render();
 // 卡圖:Tauri 等玩家按「載入卡圖」選資料夾;瀏覽器自動試同層 cardimg/(示範)
 (async function initCardImages(){
-  if(!CARDIMG.isTauri()){ CARDIMG.setWebBase('./cardimg/'); await CARDIMG.preload(allCodes()); render(); }
+  if(!CARDIMG.isTauri()){ CARDIMG.setWebBase('./cardimg/'); const ok=await CARDIMG.preload(allCodes(), {bailAfter:6}); if(ok) render(); }
 })();
 
 /* ---------- 大廳整合橋接(docs/09 P2-2)----------

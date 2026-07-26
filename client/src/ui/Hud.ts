@@ -104,6 +104,23 @@ export class Hud {
       (this.$("tg-body") as HTMLElement).hidden = this.guideCollapsed;
       this.$("tg-toggle").textContent = this.guideCollapsed ? "+" : "–";
     };
+    // 事件紀錄:預設收合(約兩行),點擊展開/收合,不卡視野
+    this.$("log").onclick = () => this.$("log").classList.toggle("open");
+    // 手牌面板:收合/展開(釋放右下視野)
+    this.$("hand-min").onclick = () => {
+      const p = this.$("panel-hand");
+      p.classList.toggle("min");
+      this.$("hand-min").textContent = p.classList.contains("min") ? "+" : "–";
+    };
+  }
+
+  /** 檢定結果彈窗:置中短暫顯示後淡出(成功綠框 / 失敗紅框);同訊息仍會進 log。 */
+  toast(msg: string) {
+    document.getElementById("hud-toast")?.remove();
+    const t = el("div", msg.includes("失敗") ? "bad" : "good", msg);
+    t.id = "hud-toast";
+    document.body.appendChild(t);
+    setTimeout(() => { t.classList.add("out"); setTimeout(() => t.remove(), 400); }, 2600);
   }
 
   log(msg: string) {

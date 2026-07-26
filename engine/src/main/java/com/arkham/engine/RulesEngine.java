@@ -478,16 +478,22 @@ public final class RulesEngine {
         inv.spendAction();
     }
 
-    /** 抽牌行動(官方基本行動;會引發趁隙攻擊)。 */
+    /** 抽牌行動(官方基本行動;會引發趁隙攻擊 —— 先於抽牌結算)。 */
     private void drawAction(Investigator inv, List<GameEvent> events) {
         requireInvestigationTurn(inv);
         attackOfOpportunity(inv, "抽牌", events);
         if (state.isGameOver() || inv.isEliminated()) {
             return;
         }
+        int before = inv.getHand().size();
         drawOne(inv, events);
-        events.add(GameEvent.of("DRAW", inv.getName() + " 抽了 1 張牌。"));
-        inv.spendAction();
+        if (inv.getHand().size() > before) {
+            events.add(GameEvent.of("DRAW", inv.getName() + " 抽了 1 張牌。"));
+            inv.spendAction();
+        } else {
+            // 兩堆皆空抽不到:明講且不消耗行動,避免「按了沒反應」還被扣行動
+            events.add(GameEvent.of("DRAW", "🂠 " + inv.getName() + " 牌堆與棄牌堆皆空,無牌可抽(不消耗行動)。"));
+        }
     }
 
     /** 取資源行動(官方基本行動;會引發趁隙攻擊)。 */

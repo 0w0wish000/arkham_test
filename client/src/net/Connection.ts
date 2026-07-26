@@ -16,7 +16,7 @@ interface Handlers {
   onResolutionPrompt?: (msg: ResolutionPromptMsg) => void;   // 章末結局投票(D2)
   // 戰役板
   onState?: (view: GameStateView) => void;
-  onEvent?: (message: string) => void;
+  onEvent?: (message: string, kind?: string) => void;   // kind = GameEvent 種類(如 SKILL_TEST)
   onChoiceRequest?: (msg: ChoiceRequestMsg) => void;
   onSavePrompt?: (msg: SavePromptMsg) => void;
   onSaveSnapshot?: (msg: SaveSnapshotMsg) => void;
@@ -54,7 +54,7 @@ export class Connection {
       case "CAMPAIGN_LOG": this.handlers.onCampaignLog?.(msg); break;
       case "RESOLUTION_PROMPT": this.handlers.onResolutionPrompt?.(msg); break;
       case "STATE": this.handlers.onState?.(msg.view); break;
-      case "EVENT": this.handlers.onEvent?.(msg.message); break;
+      case "EVENT": this.handlers.onEvent?.(msg.message, msg.event); break;
       case "CHOICE_REQUEST": this.handlers.onChoiceRequest?.(msg); break;
       case "SAVE_PROMPT": this.handlers.onSavePrompt?.(msg); break;
       case "SAVE_SNAPSHOT": this.handlers.onSaveSnapshot?.(msg); break;

@@ -25,7 +25,8 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const isWin = process.platform === "win32";
-const gradlew = isWin ? "gradlew.bat" : "./gradlew";
+// 絕對路徑 + 引號:不依賴子行程 cwd 的相對解析(部分受限環境會擋 cwd 相對執行)
+const gradlew = isWin ? `"${path.join(ROOT, "gradlew.bat")}"` : path.join(ROOT, "gradlew");
 const npm = isWin ? "npm.cmd" : "npm";
 const node = process.execPath;
 const PORT = Number(process.env.ARKHAM_E2E_PORT || 18080);   // e2e 專用埠(勿與日常開發的 8080 打架)

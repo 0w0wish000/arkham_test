@@ -43,8 +43,11 @@ async function main() {
     // 大廳
     onLobby: (msg) => { hideMask(); lobby.renderLobby(msg.activeSessions); },
     onSessionRoster: (msg) => { hideMask(); lobby.renderRoster(msg); },
-    // 事件旁白:在板上 → HUD log;在大廳 → 大廳 log
-    onEvent: (m) => { if (board) board.hud.log(m); else lobby.logEvent(m); },
+    // 事件旁白:在板上 → HUD log(檢定結果另跳彈窗);在大廳 → 大廳 log
+    onEvent: (m, kind) => {
+      if (board) { board.hud.log(m); if (kind === "SKILL_TEST") board.hud.toast(m); }
+      else lobby.logEvent(m);
+    },
     // 戰役板(P2+):首次進板時遮罩(PixiJS 初始化),畫好即收
     onState: async (v) => {
       if (!board) showMask("進入戰役…");
