@@ -73,7 +73,7 @@ async function main() {
   B.send({ type: "HELLO", playerId: "p-bob", displayName: "Bob" });
   await A.waitFor((m) => m.type === "LOBBY", "Alice LOBBY");
   await B.waitFor((m) => m.type === "LOBBY", "Bob LOBBY");
-  A.send({ type: "CREATE_CAMPAIGN", name: "開打團", campaignKey: "core", difficulty: "STANDARD" });
+  A.send({ type: "CREATE_CAMPAIGN", name: "開打團", campaignKey: "e2e_flames" /* 夾具:查無此劇本 → 後備 core.json 穩定測試圖 */, difficulty: "STANDARD" });
   const r1 = await A.waitFor((m) => m.type === "SESSION_ROSTER", "Alice 建桌 roster");
   const campaignId = r1.campaignId;
   B.send({ type: "JOIN_SESSION", campaignId });

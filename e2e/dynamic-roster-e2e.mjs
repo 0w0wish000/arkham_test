@@ -76,7 +76,7 @@ async function main() {
     B.send({ type: "HELLO", playerId: "so-b", displayName: "Bob" });
     await A.waitFor((m) => m.type === "LOBBY", "A LOBBY");
     await B.waitFor((m) => m.type === "LOBBY", "B LOBBY");
-    A.send({ type: "CREATE_CAMPAIGN", name: "中離團", campaignKey: "core", difficulty: "STANDARD" });
+    A.send({ type: "CREATE_CAMPAIGN", name: "中離團", campaignKey: "e2e_flames" /* 夾具:查無此劇本 → 後備 core.json 穩定測試圖 */, difficulty: "STANDARD" });
     const r = await A.waitFor(isRoster, "A roster");
     const cid = r.campaignId;
     B.send({ type: "JOIN_SESSION", campaignId: cid });
@@ -115,7 +115,7 @@ async function main() {
     B.send({ type: "HELLO", playerId: "tk-b", displayName: "Bob" });
     await A.waitFor((m) => m.type === "LOBBY", "A LOBBY");
     await B.waitFor((m) => m.type === "LOBBY", "B LOBBY");
-    A.send({ type: "CREATE_CAMPAIGN", name: "接手團", campaignKey: "core", difficulty: "STANDARD" });
+    A.send({ type: "CREATE_CAMPAIGN", name: "接手團", campaignKey: "e2e_flames" /* 夾具:查無此劇本 → 後備 core.json 穩定測試圖 */, difficulty: "STANDARD" });
     const r = await A.waitFor(isRoster, "A roster");
     const cid = r.campaignId;
     B.send({ type: "JOIN_SESSION", campaignId: cid });

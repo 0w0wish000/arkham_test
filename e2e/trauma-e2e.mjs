@@ -76,7 +76,7 @@ async function main() {
   await B.waitFor((m) => m.type === "LOBBY", "B LOBBY");
 
   section("① 開局(核心劇本)→ Joe 引怪硬吃趁隙攻擊");
-  A.send({ type: "CREATE_CAMPAIGN", name: "創傷團", campaignKey: "core", difficulty: "STANDARD" });
+  A.send({ type: "CREATE_CAMPAIGN", name: "創傷團", campaignKey: "e2e_flames" /* 夾具:查無此劇本 → 後備 core.json 穩定測試圖 */, difficulty: "STANDARD" });
   const r0 = await A.waitFor(isRoster, "A roster");
   B.send({ type: "JOIN_SESSION", campaignId: r0.campaignId });
   await B.waitFor((m) => isRoster(m) && m.members.length === 2, "B 加入");
