@@ -10,7 +10,9 @@ import org.springframework.stereotype.Component;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 /**
@@ -37,9 +39,13 @@ public class CardDataLoader implements CommandLineRunner {
             System.out.println("[content] 找不到 content/cards/generated/ —— 用內建卡目錄(可跑 setup-content 載入完整卡庫)");
             return;
         }
+        // 繁中翻譯(content/locales/zh-Hant/<pack>.json,以 code 為 key):有翻譯的卡文字用中文
+        Path locDir = dir.getParent().getParent().resolve("locales").resolve("zh-Hant");
         int loaded = 0;
+        int translated = 0;
         try (Stream<Path> files = Files.list(dir)) {
             for (Path f : files.filter(p -> p.toString().endsWith(".json")).toList()) {
+                Map<String, String> zhText = loadLocaleText(locDir, f.getFileName().toString());
                 JsonNode cards = mapper.readTree(Files.readString(f));
                 for (JsonNode c : cards) {
                     String type = c.path("type").asText("");
@@ -50,8 +56,15 @@ public class CardDataLoader implements CommandLineRunner {
                     for (JsonNode i : c.path("skillIcons")) {
                         try { icons.add(SkillIcon.valueOf(i.asText())); } catch (IllegalArgumentException ignored) { }
                     }
-                    CardCatalog.register(c.path("name").asText(), type, c.path("cost").asInt(0), icons);
-                    CardCatalog.registerText(c.path("name").asText(), c.path("text").asText(""));
+                    String name = c.path("name").asText();
+                    CardCatalog.register(name, type, c.path("cost").asInt(0), icons);
+                    String zh = zhText.get(c.path("code").asText());
+                    if (zh != null && !zh.isBlank()) {
+                        CardCatalog.registerText(name, zh);   // 翻譯優先
+                        translated++;
+                    } else if (!CardCatalog.hasBuiltinText(name)) {
+                        CardCatalog.registerText(name, c.path("text").asText(""));   // 英文原文;不蓋內建中文摘要
+                    }
                     loaded++;
                 }
             }
@@ -60,6 +73,26 @@ public class CardDataLoader implements CommandLineRunner {
             return;
         }
         System.out.println("[content] 已載入真卡資料 " + loaded + " 筆(目錄卡名 "
-                + CardCatalog.externalCount() + " 種)→ 引擎 CardCatalog");
+                + CardCatalog.externalCount() + " 種;繁中文字 " + translated + " 筆)→ 引擎 CardCatalog");
+    }
+
+    /** 讀某卡包的繁中翻譯(code → text);無檔/壞檔 → 空 map,不影響載入。 */
+    private Map<String, String> loadLocaleText(Path locDir, String packFileName) {
+        Path f = locDir.resolve(packFileName);
+        if (!Files.isRegularFile(f)) {
+            return Map.of();
+        }
+        try {
+            Map<String, String> out = new HashMap<>();
+            JsonNode root = mapper.readTree(Files.readString(f));
+            root.fields().forEachRemaining(e -> {
+                String t = e.getValue().path("text").asText("");
+                if (!e.getKey().startsWith("_") && !t.isBlank()) out.put(e.getKey(), t);
+            });
+            return out;
+        } catch (Exception ex) {
+            System.out.println("[content] 翻譯檔讀取失敗(" + f + ":" + ex.getMessage() + ")—— 以原文顯示");
+            return Map.of();
+        }
     }
 }

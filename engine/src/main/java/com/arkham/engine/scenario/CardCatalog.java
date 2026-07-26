@@ -247,6 +247,11 @@ public final class CardCatalog {
         if (name != null && text != null && !text.isBlank()) EXTERNAL_TEXT.put(name, text);
     }
 
+    /** 內建中文摘要有這張卡嗎?(載入器據此避免用英文原文蓋掉中文摘要) */
+    public static boolean hasBuiltinText(String name) {
+        return BUILTIN_TEXT.containsKey(name);
+    }
+
     /** 這張卡能幹嘛(HUD 簡述):真卡文字 → 內建簡述 → 空字串(前端按卡型給預設說明)。 */
     public static String textFor(String name) {
         String t = EXTERNAL_TEXT.get(name);
