@@ -22,6 +22,7 @@ async function main() {
 
   // ── 戰役板:第一次收到 STATE 才初始化(大廳階段不會觸發)──
   let board: { view: GameView; hud: Hud } | null = null;
+  let leaveAfterSave = false;   // 「保存並離開」:存檔快照落地本機後返回主選單(存檔區)
   async function ensureBoard(): Promise<{ view: GameView; hud: Hud }> {
     if (board) return board;
     const view = new GameView();
@@ -30,7 +31,7 @@ async function main() {
     hud.onIntent = (action, payload) => conn.intent(action, payload);
     hud.onCommit = (requestId, ids) => conn.respond(requestId, { committedCardIds: ids });
     hud.onDiscard = (requestId, ids) => conn.respond(requestId, { targetIds: ids });   // B6 超限棄牌
-    hud.onSave = () => { conn.saveRequest(); hud.log("已發起存檔請求,等待隊友確認…"); };
+    hud.onSave = () => { leaveAfterSave = true; conn.saveRequest(); hud.log("已發起存檔請求,等待隊友確認…"); };
     view.onMove = (toLocationId) => conn.intent("MOVE", { toLocationId });
     lobby.show("game");
     board = { view, hud };
@@ -70,6 +71,7 @@ async function main() {
     },
     onSavePrompt: (msg) => {
       const yes = confirm(`玩家「${msg.requestedBy}」要保存並離開。是否存檔?`);
+      if (yes) leaveAfterSave = true;   // 同意保存並離開 → 快照到手後一起回主選單
       conn.saveVote(msg.requestId, yes);
     },
     // 死亡換角投票(docs/09 §10)
@@ -82,6 +84,10 @@ async function main() {
       storeSave(msg.save);
       const line = `💾 已存檔到本機:${msg.save.name}`;
       if (board) board.hud.log(line); else lobby.logEvent(line);
+      if (leaveAfterSave) {   // 保存並離開:回到主選單存檔區(重新載入,乾淨收掉戰役板)
+        board?.hud.log("✅ 存檔完成 —— 返回主選單…");
+        setTimeout(() => { try { conn.leaveSession(); } catch { /* 連線可能已收 */ } location.reload(); }, 900);
+      }
     },
     // 載入後的紀錄回放
     onLogHistory: (msg) => {

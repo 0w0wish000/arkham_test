@@ -164,7 +164,7 @@ export interface ChooseOptionOptions { prompt: string; options: { id: string; la
 export type ChoiceOptions = CommitCardsOptions | ChooseTargetOptions | ChooseOptionOptions;
 
 // ---------- GameStateView(過濾後) ----------
-export interface HandCard { cardId: string; name: string; cardType: string; cost: number; skillIcons: SkillIcon[]; }
+export interface HandCard { cardId: string; name: string; cardType: string; cost: number; skillIcons: SkillIcon[]; text?: string; }   // text:卡片簡述(真卡文字或內建摘要;可空)
 
 export interface SelfView {
   investigatorId: string;

@@ -127,11 +127,19 @@
     #panel-actions{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:8px;align-items:center;z-index:20}
     #btn-save{background:#3a2d63;border-color:#7a6bb0}
     #btn-save:hover:not(:disabled){background:#4a3a78}
-    #panel-hand{bottom:12px;right:10px;width:min(46vw,520px)}
-    #hand-cards{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}
-    #hand-cards .card{flex:0 0 auto;white-space:nowrap}
-    #hand-cards::-webkit-scrollbar{height:6px}
+    #panel-hand{top:230px;right:10px;bottom:12px;width:264px;display:flex;flex-direction:column}
+    #panel-hand.min{bottom:auto}
+    #hand-cards{flex:1;display:flex;flex-direction:column;gap:6px;overflow-y:auto;overflow-x:hidden;padding-right:2px}
+    #hand-cards::-webkit-scrollbar{width:6px}
     #hand-cards::-webkit-scrollbar-thumb{background:#2d3a4a;border-radius:3px}
+    .hrow{display:flex;gap:8px;align-items:stretch;border:1px solid var(--line);border-radius:8px;background:#161d26;padding:6px;flex:0 0 auto}
+    .hrow.playable{cursor:pointer}
+    .hrow.playable:hover{border-color:var(--gold);background:#1c2836}
+    .hthumb{flex:0 0 44px;height:62px;border-radius:5px;background:#3a4b5c}
+    .hmain{flex:1;min-width:0}
+    .hname{font-size:12px;margin-bottom:3px}
+    .htext{font-size:11px;color:var(--dim);line-height:1.35;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+    #play-area{max-height:130px;overflow:auto}
     .card{border:1px solid var(--line);border-radius:8px;padding:5px 8px;background:#161d26;font-size:12px;min-width:64px}
     .card .c-name{display:block;margin-bottom:3px}
     .icons{display:inline-flex;gap:2px}
@@ -142,8 +150,8 @@
     .card.playable:hover{border-color:var(--gold);background:#1c2836}
     #play-area{display:flex;gap:6px;flex-wrap:wrap}
     #play-area .card{border-color:#5aa06b;background:#16241b}
-    #log{position:fixed;left:320px;bottom:64px;max-height:48px;overflow:auto;font-size:12px;z-index:15;
-      background:#0c1219;border:1px solid var(--line);border-radius:8px;padding:8px 12px;width:min(34%,360px);
+    #log{position:fixed;left:50%;transform:translateX(-50%);bottom:64px;max-height:48px;overflow:auto;font-size:12px;z-index:15;
+      background:#0c1219;border:1px solid var(--line);border-radius:8px;padding:8px 12px;width:min(46vw,560px);
       cursor:pointer;transition:max-height .2s}
     #log.open{max-height:30%}
     #log div{padding:2px 0;color:var(--dim)}

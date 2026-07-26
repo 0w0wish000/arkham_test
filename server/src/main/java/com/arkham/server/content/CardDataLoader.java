@@ -51,6 +51,7 @@ public class CardDataLoader implements CommandLineRunner {
                         try { icons.add(SkillIcon.valueOf(i.asText())); } catch (IllegalArgumentException ignored) { }
                     }
                     CardCatalog.register(c.path("name").asText(), type, c.path("cost").asInt(0), icons);
+                    CardCatalog.registerText(c.path("name").asText(), c.path("text").asText(""));
                     loaded++;
                 }
             }

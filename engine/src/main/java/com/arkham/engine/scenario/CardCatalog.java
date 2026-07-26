@@ -214,9 +214,44 @@ public final class CardCatalog {
     /** 外部登記層(G1):伺服器啟動時由 content/cards/generated/ 灌入真卡資料;查找優先於內建。 */
     private static final Map<String, Spec> EXTERNAL = new java.util.concurrent.ConcurrentHashMap<>();
 
+    /** 卡片文字(給 HUD 顯示「這張卡能幹嘛」):外部真卡文字優先,內建簡述次之。 */
+    private static final Map<String, String> EXTERNAL_TEXT = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<String, String> BUILTIN_TEXT = Map.ofEntries(
+            Map.entry("Emergency Cache", "獲得 3 資源。"),
+            Map.entry("Working a Hunch", "快速。在你所在地點發現 1 條線索。"),
+            Map.entry("Magnifying Glass", "你調查時 +1 智力。"),
+            Map.entry("Fingerprint Kit", "調查時 +1 智力;成功可多發現 1 條線索(消耗)。"),
+            Map.entry("Machete", "戰鬥 +1;若目標是唯一與你交戰的敵人,+1 傷害。"),
+            Map.entry("M1911", "戰鬥 +1、+1 傷害(消耗彈藥)。"),
+            Map.entry("Daniela's Wrench", "戰鬥 +1;敵人攻擊你後你的下次攻擊 +2 傷害。"),
+            Map.entry("First Aid", "行動:治療你或同地點夥伴 1 傷害或恐懼。"),
+            Map.entry("Bandages", "治療傷害(消耗)。"),
+            Map.entry("Bodyguard", "盟友:替你承受傷害。"),
+            Map.entry("Deduction", "投入智力檢定:調查成功時多發現 1 條線索。"),
+            Map.entry("Vicious Blow", "投入戰鬥檢定:攻擊成功時多造成 1 傷害。"),
+            Map.entry("Perception", "投入後若檢定成功,抽 1 張牌。"),
+            Map.entry("Overpower", "投入後若戰鬥檢定成功,抽 1 張牌。"),
+            Map.entry("Guts", "投入後若意志檢定成功,抽 1 張牌。"),
+            Map.entry("Unexpected Courage", "萬用圖示 ×2:可投入任何技能檢定。"),
+            Map.entry("Ward of Protection", "取消 1 張對你生效的遭遇卡(受 1 恐懼)。"),
+            Map.entry("Get behind me!", "快速。將你所在地點的 1 個敵人與你交戰。"),
+            Map.entry("Cryptic Research", "快速。你或同地點夥伴抽 3 張牌。"));
+
     /** 登記一張外部卡(type ∈ asset/event/skill;icons 為 SkillIcon 名)。 */
     public static void register(String name, String type, int cost, List<SkillIcon> icons) {
         EXTERNAL.put(name, new Spec(type, Math.max(0, cost), icons.toArray(new SkillIcon[0])));
+    }
+
+    /** 登記外部卡的卡片文字(來自 ArkhamDB;玩家本機資料,不入包)。 */
+    public static void registerText(String name, String text) {
+        if (name != null && text != null && !text.isBlank()) EXTERNAL_TEXT.put(name, text);
+    }
+
+    /** 這張卡能幹嘛(HUD 簡述):真卡文字 → 內建簡述 → 空字串(前端按卡型給預設說明)。 */
+    public static String textFor(String name) {
+        String t = EXTERNAL_TEXT.get(name);
+        if (t == null) t = BUILTIN_TEXT.get(name);
+        return t == null ? "" : t;
     }
 
     public static int externalCount() { return EXTERNAL.size(); }

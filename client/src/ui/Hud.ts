@@ -47,6 +47,61 @@ function iconEl(icon: SkillIcon): HTMLElement {
   return s;
 }
 
+/** 卡圖(玩家自帶 /cardimg/<slug>.<ext>,slug=卡名+_l0):探測一次即快取;miss → 色塊占位。 */
+const IMG_CACHE = new Map<string, string | null>();
+function cardSlug(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "") + "_l0";
+}
+function probeCardImage(name: string, onFound: (url: string) => void): void {
+  const slug = cardSlug(name);
+  if (IMG_CACHE.has(slug)) { const u = IMG_CACHE.get(slug); if (u) onFound(u); return; }
+  const exts = ["webp", "png", "jpg"]; let i = 0;
+  const tryNext = () => {
+    if (i >= exts.length) { IMG_CACHE.set(slug, null); return; }
+    const url = `/cardimg/${slug}.${exts[i++]}`;
+    const im = new Image();
+    im.onload = () => { IMG_CACHE.set(slug, url); onFound(url); };
+    im.onerror = tryNext;
+    im.src = url;
+  };
+  tryNext();
+}
+const TYPE_FALLBACK_TEXT: Record<string, string> = {
+  skill: "技能卡:於檢定投入面板使用(圖示=投入點數)。",
+  asset: "支援卡:打出後留在檯面持續生效。",
+  event: "事件卡:打出立即生效,然後棄掉。",
+  weakness: "弱點:留在手上(完整規則後續實作)。",
+};
+const TYPE_COLOR: Record<string, string> = {
+  asset: "#2d5a3a", event: "#2d4a63", skill: "#8a6d2f", weakness: "#8a3b2f",
+};
+
+/** 手牌直列列項:卡圖(或色塊)+ 名稱/費用/圖示 + 簡述(截 3 行,hover 看全文)。 */
+function handRow(c: HandCard): HTMLDivElement {
+  const row = el("div", "hrow");
+  const thumb = el("div", "hthumb");
+  thumb.style.background = TYPE_COLOR[c.cardType] ?? "#3a4b5c";
+  probeCardImage(c.name, (url) => { thumb.style.background = `url('${url}') center/cover`; });
+  row.appendChild(thumb);
+  const main = el("div", "hmain");
+  const title = el("div", "hname");
+  if (c.cardType === "asset" || c.cardType === "event") title.appendChild(el("span", "cost", `$${c.cost}`));
+  title.appendChild(document.createTextNode(c.name));
+  if (c.skillIcons.length) {
+    const icons = el("span", "icons");
+    for (const ic of c.skillIcons) icons.appendChild(iconEl(ic));
+    title.appendChild(icons);
+  }
+  main.appendChild(title);
+  const desc = (c.text ?? "").replace(/<[^>]+>/g, "").replace(/\[\[|\]\]/g, "").trim()
+      || TYPE_FALLBACK_TEXT[c.cardType] || "";
+  const txt = el("div", "htext", desc);
+  txt.title = desc;
+  main.appendChild(txt);
+  row.appendChild(main);
+  return row;
+}
+
 function cardChip(c: HandCard): HTMLDivElement {
   const d = el("div", "card");
   const name = el("span", "c-name");
@@ -257,17 +312,13 @@ export class Hud {
     box.replaceChildren();
     if (hand.length === 0) box.appendChild(el("span", "pip", "(無手牌)"));
     for (const c of hand) {
-      const chip = cardChip(c);
+      const row = handRow(c);
       if (c.cardType === "asset" || c.cardType === "event") {
-        chip.classList.add("playable");
-        chip.title = `打出 ${c.name}(費用 ${c.cost})`;
-        chip.onclick = () => this.onIntent?.("PLAY_CARD", { cardId: c.cardId });
-      } else if (c.cardType === "weakness") {
-        chip.title = "弱點:留在手上(完整規則於後續實作)";
-      } else {
-        chip.title = "技能卡:於技能檢定的投入面板使用";
+        row.classList.add("playable");
+        row.title = `點擊打出 ${c.name}(費用 ${c.cost})`;
+        row.onclick = () => this.onIntent?.("PLAY_CARD", { cardId: c.cardId });
       }
-      box.appendChild(chip);
+      box.appendChild(row);
     }
   }
 

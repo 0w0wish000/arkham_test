@@ -440,21 +440,35 @@ public final class CampaignSession {
         }
 
         // "sandbox" → 測試沙盒;難度 → 混沌袋組成;牌組 → 洗牌 + 開局抽 5(C-lite);flags → D2 設置分支
-        RulesEngine engine = ScenarioFactory.newEngine(seed, ids, campaignKey, currentChapter, difficulty, decks, activeFlags());
-        game = new GameSession(campaignId, mapper, engine, seed);
-        stage = "IN_SCENARIO";
-        broadcast(new ServerMessage.Event("scenario",
-                "隊伍準備完畢 —— 踏入戰役,共 " + ids.size() + " 位調查員。"));
-        for (Member m : playing) {
-            if (m.physicalTrauma > 0 || m.mentalTrauma > 0) {   // D4:每點創傷 = 開局 1 傷害/恐懼(官方 p20)
-                game.applyStartingTrauma(m.investigatorId, m.physicalTrauma, m.mentalTrauma);
-                broadcast(new ServerMessage.Event("trauma", "🩹 " + m.displayName + " 的「" + m.investigatorId
-                        + "」帶著創傷上陣:開局 " + m.physicalTrauma + " 傷害 / " + m.mentalTrauma + " 恐懼。"));
+        try {
+            RulesEngine engine = ScenarioFactory.newEngine(seed, ids, campaignKey, currentChapter, difficulty, decks, activeFlags());
+            game = new GameSession(campaignId, mapper, engine, seed);
+            stage = "IN_SCENARIO";
+            broadcast(new ServerMessage.Event("scenario",
+                    "隊伍準備完畢 —— 踏入戰役,共 " + ids.size() + " 位調查員。"));
+            for (Member m : playing) {
+                if (m.physicalTrauma > 0 || m.mentalTrauma > 0) {   // D4:每點創傷 = 開局 1 傷害/恐懼(官方 p20)
+                    game.applyStartingTrauma(m.investigatorId, m.physicalTrauma, m.mentalTrauma);
+                    broadcast(new ServerMessage.Event("trauma", "🩹 " + m.displayName + " 的「" + m.investigatorId
+                            + "」帶著創傷上陣:開局 " + m.physicalTrauma + " 傷害 / " + m.mentalTrauma + " 恐懼。"));
+                }
             }
-        }
-        for (Member m : playing) {
-            WebSocketSession ws = clients.get(m.playerId);
-            if (ws != null) game.join(m.investigatorId, ws);   // 送初始 STATE → client 切到戰役板
+            for (Member m : playing) {
+                WebSocketSession ws = clients.get(m.playerId);
+                if (ws != null) {
+                    try {
+                        game.join(m.investigatorId, ws);   // 送初始 STATE → client 切到戰役板
+                    } catch (IOException perClient) {
+                        // 單一玩家送不出 STATE 不拖垮全桌;該玩家重整後可經 claimSeat/重連補上
+                    }
+                }
+            }
+        } catch (RuntimeException ex) {
+            // 開局途中例外 → 若不復原,game != null 會讓自動開打/強制開始永遠 no-op,全桌無聲卡死。
+            game = null;
+            stage = "DECKBUILDING";
+            broadcast(new ServerMessage.Error("開局失敗:" + ex.getMessage() + " —— 已退回牌組大廳,可重試(強制開始)或回報。"));
+            broadcastRoster();
         }
     }
 

@@ -44,8 +44,9 @@ public record CardInstance(String cardId, String name, String cardType, int cost
         return skillIcons.stream().anyMatch(ic -> ic.matches(skill));
     }
 
-    /** Project to the wire-level card shape. */
+    /** Project to the wire-level card shape(text 由目錄查:真卡資料 → 內建簡述 → 空)。 */
     public HandCard toHandCard() {
-        return new HandCard(cardId, name, cardType, cost, skillIcons);
+        return new HandCard(cardId, name, cardType, cost, skillIcons,
+                com.arkham.engine.scenario.CardCatalog.textFor(name));
     }
 }

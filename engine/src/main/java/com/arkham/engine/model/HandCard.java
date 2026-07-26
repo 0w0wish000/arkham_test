@@ -8,8 +8,9 @@ import java.util.List;
  * card shape ever sent to a client (in the owner's {@code SelfView.hand} or in a
  * COMMIT_CARDS choice's {@code eligibleCards}).
  */
-public record HandCard(String cardId, String name, String cardType, int cost, List<SkillIcon> skillIcons) {
+public record HandCard(String cardId, String name, String cardType, int cost, List<SkillIcon> skillIcons, String text) {
     public HandCard {
         skillIcons = List.copyOf(skillIcons);
+        if (text == null) text = "";
     }
 }
