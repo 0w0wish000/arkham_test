@@ -191,10 +191,13 @@ export class Hud {
    * 訊息格式(引擎 describeResult):「抽到 <標記>;技能 X ≥/< Y → 成功/失敗」
    */
   showTestResult(msg: string) {
+    // 只對「抽到 …」的結算訊息彈窗;「技能檢定開始」等 SKILL_TEST 通知只進 log
+    // (抽標記發生在玩家按「不投入/投入並檢定」之後,彈窗時機才正確)
+    const m = msg.match(/^抽到 (.+?);技能 (\d+) (≥|<) (\d+) → (成功|失敗)$/);
+    if (!m) return;
     document.getElementById("test-overlay")?.remove();
     const ok = msg.includes("→ 成功");
-    const m = msg.match(/^抽到 (.+?);技能 (\d+) (≥|<) (\d+) → (成功|失敗)$/);
-    const tokenDesc = m ? m[1] : msg;
+    const tokenDesc = m[1];
     // 標記面:數字修正(+1/-2…)直接當面;符號(💀 骷髏(-2) 等)取開頭符號、其餘當副標
     let face = tokenDesc, sub = "";
     const paren = tokenDesc.match(/^(.*?)[(（](.+)[)）]$/);   // 半形/全形括號皆可
