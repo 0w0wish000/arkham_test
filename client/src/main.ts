@@ -44,9 +44,9 @@ async function main() {
     // 大廳
     onLobby: (msg) => { hideMask(); lobby.renderLobby(msg.activeSessions); },
     onSessionRoster: (msg) => { hideMask(); lobby.renderRoster(msg); },
-    // 事件旁白:在板上 → HUD log(檢定結果另跳彈窗);在大廳 → 大廳 log
+    // 事件旁白:在板上 → HUD log(檢定抽標記另跳動畫彈窗);在大廳 → 大廳 log
     onEvent: (m, kind) => {
-      if (board) { board.hud.log(m); if (kind === "SKILL_TEST") board.hud.toast(m); }
+      if (board) { board.hud.log(m); if (kind === "SKILL_TEST") board.hud.showTestResult(m); }
       else lobby.logEvent(m);
     },
     // 戰役板(P2+):首次進板時遮罩(PixiJS 初始化),畫好即收

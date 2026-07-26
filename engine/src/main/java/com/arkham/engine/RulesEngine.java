@@ -1385,7 +1385,15 @@ public final class RulesEngine {
         } else if (r.elderSign()) {
             tokenDesc = "⭐ 古老印記(+1)";
         } else if (r.token() instanceof ChaosToken.Symbol s) {
-            tokenDesc = s.symbol() + "(" + (r.tokenModifier() >= 0 ? "+" : "") + r.tokenModifier() + ")";
+            String zh = switch (s.symbol()) {   // 中文符號名(前端據此對應標記圖)
+                case SKULL -> "💀 骷髏";
+                case CULTIST -> "👥 異教徒";
+                case TABLET -> "🗿 石板";
+                case ELDER_THING -> "🐙 遠古之物";
+                case AUTOFAIL -> "⊗ 自動失敗";
+                case ELDER_SIGN -> "⭐ 古老印記";
+            };
+            tokenDesc = zh + "(" + (r.tokenModifier() >= 0 ? "+" : "") + r.tokenModifier() + ")";
         } else {
             tokenDesc = (r.tokenModifier() >= 0 ? "+" : "") + r.tokenModifier();
         }

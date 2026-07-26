@@ -8,7 +8,7 @@ plugins {
 
 allprojects {
     group = 'com.arkham'
-    version = '0.1.5'
+    version = '0.1.6'
 }
 
 // ── 一鍵發行包(docs/12 Phase 1:Portable Zip)──────────────────────────

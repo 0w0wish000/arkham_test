@@ -76,6 +76,22 @@ const TYPE_COLOR: Record<string, string> = {
   asset: "#2d5a3a", event: "#2d4a63", skill: "#8a6d2f", weakness: "#8a3b2f",
 };
 
+/** 混沌標記 → /tokens/<name>.svg(自繪預設圖組;認不得 → null 用文字面)。 */
+function tokenImageFor(desc: string): string | null {
+  if (desc.includes("骷髏")) return "skull";
+  if (desc.includes("異教徒")) return "cultist";
+  if (desc.includes("石板")) return "tablet";
+  if (desc.includes("遠古")) return "elder_thing";
+  if (desc.includes("古老印記")) return "elder_sign";
+  if (desc.includes("自動失敗")) return "autofail";
+  const n = desc.match(/^([+-]?\d+)/);
+  if (n) {
+    const v = parseInt(n[1], 10);
+    return v > 0 ? `plus${v}` : v === 0 ? "zero" : `minus${-v}`;
+  }
+  return null;
+}
+
 /** 手牌直列列項:卡圖(或色塊)+ 名稱/費用/圖示 + 簡述(截 3 行,hover 看全文)。 */
 function handRow(c: HandCard): HTMLDivElement {
   const row = el("div", "hrow");
@@ -169,13 +185,45 @@ export class Hud {
     };
   }
 
-  /** 檢定結果彈窗:置中短暫顯示後淡出(成功綠框 / 失敗紅框);同訊息仍會進 log。 */
-  toast(msg: string) {
-    document.getElementById("hud-toast")?.remove();
-    const t = el("div", msg.includes("失敗") ? "bad" : "good", msg);
-    t.id = "hud-toast";
-    document.body.appendChild(t);
-    setTimeout(() => { t.classList.add("out"); setTimeout(() => t.remove(), 400); }, 2600);
+  /**
+   * 檢定抽標記彈窗:大顆標記面翻轉出場 + 技能/難度 + 成功/失敗大字。
+   * 自動淡出、點擊立即關閉;同訊息仍進 log 供回溯。標記面目前為預設樣式,之後可換圖。
+   * 訊息格式(引擎 describeResult):「抽到 <標記>;技能 X ≥/< Y → 成功/失敗」
+   */
+  showTestResult(msg: string) {
+    document.getElementById("test-overlay")?.remove();
+    const ok = msg.includes("→ 成功");
+    const m = msg.match(/^抽到 (.+?);技能 (\d+) (≥|<) (\d+) → (成功|失敗)$/);
+    const tokenDesc = m ? m[1] : msg;
+    // 標記面:數字修正(+1/-2…)直接當面;符號(💀 骷髏(-2) 等)取開頭符號、其餘當副標
+    let face = tokenDesc, sub = "";
+    const paren = tokenDesc.match(/^(.*?)[(（](.+)[)）]$/);   // 半形/全形括號皆可
+    if (paren) { face = paren[1].trim(); sub = paren[2]; }
+    const sp = face.indexOf(" ");
+    if (sp > 0) { sub = face.slice(sp + 1) + (sub ? "(" + sub + ")" : ""); face = face.slice(0, sp); }
+
+    const overlay = el("div");
+    overlay.id = "test-overlay";
+    const card = el("div", "test-card " + (ok ? "good" : "bad"));
+    const img = tokenImageFor(tokenDesc);
+    const chip = el("div", "token-chip", img ? undefined : face);
+    if (img) {
+      const pic = document.createElement("img");
+      pic.className = "token-img";
+      pic.src = `/tokens/${img}.svg`;
+      pic.alt = tokenDesc;
+      pic.onerror = () => { pic.remove(); chip.textContent = face; };   // 缺圖退回文字面
+      chip.appendChild(pic);
+    }
+    card.appendChild(chip);
+    if (sub) card.appendChild(el("div", "test-sub", sub));
+    if (m) card.appendChild(el("div", "test-line", `技能 ${m[2]} ${m[3]} 難度 ${m[4]}`));
+    card.appendChild(el("div", "test-verdict " + (ok ? "good" : "bad"), ok ? "✓ 成功" : "✗ 失敗"));
+    overlay.appendChild(card);
+    const close = () => { overlay.classList.add("out"); setTimeout(() => overlay.remove(), 300); };
+    overlay.onclick = close;
+    document.body.appendChild(overlay);
+    setTimeout(() => { if (document.body.contains(overlay)) close(); }, 2800);
   }
 
   log(msg: string) {

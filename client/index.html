@@ -160,12 +160,25 @@
     #panel-hand.min{width:auto}
     #panel-hand.min .panel-title{width:2.5em;white-space:nowrap;overflow:hidden}
     #hand-min{position:absolute;top:6px;right:8px;width:22px;height:22px;line-height:1;padding:0;font-size:14px}
-    #hud-toast{position:fixed;top:16%;left:50%;transform:translateX(-50%);z-index:60;background:#111823;
-      border:1px solid var(--gold);border-radius:12px;padding:12px 20px;font-size:15px;max-width:80vw;
-      box-shadow:0 8px 28px rgba(0,0,0,.55);transition:opacity .4s}
-    #hud-toast.good{border-color:#5aa06b}
-    #hud-toast.bad{border-color:#c0674b}
-    #hud-toast.out{opacity:0}
+    /* 檢定抽標記彈窗:標記翻轉 + 成功/失敗大字(標記面之後可換圖) */
+    #test-overlay{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;
+      background:rgba(6,10,16,.45);cursor:pointer;transition:opacity .3s}
+    #test-overlay.out{opacity:0}
+    .test-card{background:#111823;border:2px solid var(--line);border-radius:18px;padding:24px 40px;text-align:center;
+      box-shadow:0 10px 36px rgba(0,0,0,.6);animation:tc-in .22s ease-out}
+    .test-card.good{border-color:#5aa06b}
+    .test-card.bad{border-color:#c0674b}
+    .token-chip{width:104px;height:104px;border-radius:50%;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;
+      font-size:34px;font-weight:700;color:var(--ink);background:radial-gradient(circle at 35% 30%,#1d2836,#0b1017);
+      border:3px solid var(--gold);animation:chip-flip .55s ease-out;overflow:hidden}
+    .token-img{width:100%;height:100%;display:block}
+    .test-sub{font-size:12px;color:var(--dim);margin-bottom:2px}
+    .test-line{font-size:13px;color:var(--dim);margin-top:4px}
+    .test-verdict{font-size:22px;font-weight:700;margin-top:6px}
+    .test-verdict.good{color:#5fbf6f}
+    .test-verdict.bad{color:#e0674b}
+    @keyframes chip-flip{0%{transform:rotateY(95deg) scale(.55);opacity:0}60%{transform:rotateY(-12deg) scale(1.06)}100%{transform:rotateY(0) scale(1);opacity:1}}
+    @keyframes tc-in{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
     #commit-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:50}
     #commit{background:#111823;border:1px solid var(--gold);border-radius:14px;padding:18px 20px;width:min(560px,92vw)}
     #commit-title{font-size:15px;color:var(--gold);font-weight:600;margin-bottom:4px}
