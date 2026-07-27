@@ -118,14 +118,40 @@ function showCardPreview(c: HandCard, anchor: DOMRect) {
   }
   p.appendChild(title);
   p.appendChild(el("div", "cp-text", cardDesc(c)));
+  placePreview(p, anchor);
+}
+
+/** 預覽面板定位:優先錨點左側;放不下換右側,並夾在視窗內。 */
+function placePreview(p: HTMLElement, anchor: DOMRect) {
   document.body.appendChild(p);
-  // 手牌/檯面都在右欄 → 預設顯示在列項左側;放不下就換右側,並夾在視窗內
   const w = p.offsetWidth, h = p.offsetHeight;
   let x = anchor.left - w - 10;
   if (x < 8) x = Math.min(anchor.right + 10, innerWidth - w - 8);
   const y = Math.max(8, Math.min(anchor.top, innerHeight - h - 8));
   p.style.left = `${x}px`;
   p.style.top = `${y}px`;
+}
+
+/** 敵人詳細視窗(比照手牌 hover):數值全覽 + 關鍵字 + 卡片文字(真卡/翻譯有就顯示)。 */
+function showEnemyPreview(e: EnemyView, anchor: DOMRect) {
+  hideCardPreview();
+  const p = el("div");
+  p.id = "card-preview";
+  const art = el("div", "cp-art");
+  art.style.background = "#4a2620";
+  probeCardImage(e.name, (url) => { art.style.background = `url('${url}') center/cover`; });
+  p.appendChild(art);
+  const title = el("div", "cp-name", e.name);
+  p.appendChild(title);
+  const lines = [
+    `戰鬥 ${e.fight} · 閃避 ${e.evade} · 生命 ${e.health - e.damageOn}/${e.health}`,
+    `攻擊:${e.damage} 傷害 / ${e.horror} 恐懼`,
+  ];
+  if (e.keywords.length) lines.push("關鍵字:" + e.keywords.join("、"));
+  const text = (e.text ?? "").replace(/<[^>]+>/g, "").replace(/\[\[|\]\]/g, "").trim();
+  if (text) lines.push("", text);
+  p.appendChild(el("div", "cp-text", lines.join("\n")));
+  placePreview(p, anchor);
 }
 function hideCardPreview() { document.getElementById("card-preview")?.remove(); }
 function attachPreview(elm: HTMLElement, c: HandCard) {
@@ -374,6 +400,7 @@ export class Hud {
   }
 
   private renderEnemies(view: GameStateView, canAct: boolean) {
+    hideCardPreview();   // 重繪時收掉懸浮預覽
     const here = view.you.locationId;
     const mine = view.enemies.filter((e) => e.locationId === here);
     const box = this.$("here-enemies");
@@ -388,9 +415,11 @@ export class Hud {
 
       const engaged = e.engagedWith === view.you.investigatorId;
       row.appendChild(el("div", "en-stat",
-        `戰 ${e.fight}　閃 ${e.evade}　生命 ${e.health - e.damageOn}/${e.health}` +
+        `戰 ${e.fight}　閃 ${e.evade}　生命 ${e.health - e.damageOn}/${e.health}　攻 ${e.damage}傷/${e.horror}懼` +
         (engaged ? "　· 與你交戰" : e.engagedWith ? "　· 與隊友交戰" : "　· 未交戰") +
         (e.exhausted ? "　· 已耗竭" : "")));
+      row.addEventListener("mouseenter", () => showEnemyPreview(e, row.getBoundingClientRect()));
+      row.addEventListener("mouseleave", hideCardPreview);
 
       const btns = el("div", "en-btns");
       btns.appendChild(this.enemyBtn("⚔️ 戰鬥", canAct, () => this.onIntent?.("FIGHT", { enemyId: e.id })));

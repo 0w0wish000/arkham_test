@@ -187,7 +187,9 @@ export interface LocationView {
 }
 export interface EnemyView {
   id: string; name: string; fight: number; health: number; damageOn: number;
-  evade: number; keywords: Keyword[]; engagedWith: string | null; exhausted: boolean; locationId: string;
+  evade: number; damage: number; horror: number;   // damage/horror = 這隻攻擊時造成的傷害/恐懼
+  keywords: Keyword[]; engagedWith: string | null; exhausted: boolean; locationId: string;
+  text?: string;   // 卡片文字(真卡/翻譯;自製敵人為空)—— hover 詳細視窗用
 }
 export interface ActView    { name: string; cluesSpent: number; threshold: number; }
 export interface AgendaView { name: string; doom: number; threshold: number; }

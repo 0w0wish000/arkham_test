@@ -48,23 +48,24 @@ public class CardDataLoader implements CommandLineRunner {
                 Map<String, String> zhText = loadLocaleText(locDir, f.getFileName().toString());
                 JsonNode cards = mapper.readTree(Files.readString(f));
                 for (JsonNode c : cards) {
+                    String name = c.path("name").asText();
+                    // 卡片文字對「所有卡型」註冊(敵人/詭計的 hover 詳細視窗也要);翻譯優先
+                    String zh = zhText.get(c.path("code").asText());
+                    if (zh != null && !zh.isBlank()) {
+                        CardCatalog.registerText(name, zh);
+                        translated++;
+                    } else if (!CardCatalog.hasBuiltinText(name)) {
+                        CardCatalog.registerText(name, c.path("text").asText(""));   // 英文原文;不蓋內建中文摘要
+                    }
                     String type = c.path("type").asText("");
                     if (!type.equals("asset") && !type.equals("event") && !type.equals("skill")) {
-                        continue;
+                        continue;   // 目錄規格(費用/圖示)僅玩家卡需要
                     }
                     List<SkillIcon> icons = new ArrayList<>();
                     for (JsonNode i : c.path("skillIcons")) {
                         try { icons.add(SkillIcon.valueOf(i.asText())); } catch (IllegalArgumentException ignored) { }
                     }
-                    String name = c.path("name").asText();
                     CardCatalog.register(name, type, c.path("cost").asInt(0), icons);
-                    String zh = zhText.get(c.path("code").asText());
-                    if (zh != null && !zh.isBlank()) {
-                        CardCatalog.registerText(name, zh);   // 翻譯優先
-                        translated++;
-                    } else if (!CardCatalog.hasBuiltinText(name)) {
-                        CardCatalog.registerText(name, c.path("text").asText(""));   // 英文原文;不蓋內建中文摘要
-                    }
                     loaded++;
                 }
             }

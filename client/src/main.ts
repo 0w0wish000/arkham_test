@@ -47,14 +47,23 @@ async function main() {
     onSessionRoster: (msg) => { hideMask(); lobby.renderRoster(msg); },
     // 事件旁白:在板上 → HUD log(檢定抽標記另跳動畫彈窗);在大廳 → 大廳 log
     onEvent: (m, kind) => {
-      if (board) { board.hud.log(m); if (kind === "SKILL_TEST") board.hud.showTestResult(m); }
-      else lobby.logEvent(m);
+      if (board) board.hud.log(m); else lobby.logEvent(m);
+      if (kind === "SKILL_TEST" && board) board.hud.showTestResult(m);
+      // 章末結算/創傷:發生時多半還在戰役板,隨即被名冊蓋掉 → 玩家像被「瞬移」。
+      // 補一份到大廳 log(回名冊看得到);章節總結另以 dialog 彈出,確保一定看到。
+      if (kind === "chapter" || kind === "trauma") {
+        if (board) lobby.logEvent(m);
+        if (kind === "chapter") void infoDialog(m, { title: "📜 章節結算" });
+      }
     },
     // 戰役板(P2+):首次進板時遮罩(PixiJS 初始化),畫好即收
     onState: async (v) => {
       try {
         if (!board) showMask("進入戰役…");
         const b = await ensureBoard();
+        // 關鍵:board 已存在(跨章/載入續玩/強制接回)時,ensureBoard 提早 return 不會切畫面 ——
+        // 之前 STATE 有渲染卻被名冊蓋住,看起來像「開不了戰役」。每次收 STATE 都確保戰役板在最上層。
+        lobby.show("game");
         b.view.render(v); b.hud.render(v);
         hideMask();
       } catch (ex) {   // 渲染失敗絕不無聲:收遮罩 + 顯示錯誤內容(方便截圖回報)

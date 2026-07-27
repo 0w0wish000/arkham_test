@@ -16,7 +16,10 @@ public record EnemyView(
         int health,
         int damageOn,
         int evade,
+        int damage,        // 攻擊造成的傷害(HUD 顯示「攻 X傷/Y懼」)
+        int horror,        // 攻擊造成的恐懼
         List<Keyword> keywords,
         String engagedWith,
         boolean exhausted,
-        String locationId) {}
+        String locationId,
+        String text) {}    // 卡片文字(真卡資料/翻譯;自製敵人為空)—— hover 詳細視窗用

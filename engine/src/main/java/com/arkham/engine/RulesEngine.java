@@ -1356,7 +1356,9 @@ public final class RulesEngine {
         for (EnemyCard e : state.getEnemies().values()) {
             enemies.add(new EnemyView(
                     e.getId(), e.getName(), e.getFight(), e.getHealth(), e.getDamageOn(), e.getEvade(),
-                    e.getKeywords(), e.getEngagedWith(), e.isExhausted(), e.getLocationId()));
+                    e.getDamage(), e.getHorror(),
+                    e.getKeywords(), e.getEngagedWith(), e.isExhausted(), e.getLocationId(),
+                    com.arkham.engine.scenario.CardCatalog.textFor(e.getName())));
         }
 
         Act act = state.getAct();
