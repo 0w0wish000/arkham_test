@@ -9,21 +9,34 @@ export class GameView {
   app = new Application();
   private layer = new Container();
   onMove?: (toLocationId: string) => void;
+  /** 可移動高亮框(呼吸動畫的目標;每次 render 重建)。 */
+  private pulseFrames: Graphics[] = [];
 
   async init(parent: HTMLElement) {
     await this.app.init({ background: "#0d1117", resizeTo: parent, antialias: true });
     parent.appendChild(this.app.canvas);
     this.app.stage.addChild(this.layer);
+    // 呼吸動畫:可移動格子的高亮框緩慢明滅,一眼看出「現在能走去哪」
+    this.app.ticker.add(() => {
+      if (this.pulseFrames.length === 0) return;
+      const a = 0.5 + 0.4 * Math.sin(performance.now() / 320);
+      for (const g of this.pulseFrames) g.alpha = a;
+    });
   }
 
   render(view: GameStateView) {
     this.layer.removeChildren();
+    this.pulseFrames = [];
     const W = this.app.renderer.width;
     const H = this.app.renderer.height;
     const pos = this.layout(view.locations, W, H);
     const here = view.you.locationId;
     const connectedToHere =
       view.locations.find((l) => l.id === here)?.connections ?? [];
+    // 「現在真的能移動」才亮高亮(調查階段、還有行動、未退場);不能動時只保留可點(伺服器會說明原因)
+    const canMoveNow = view.phase === "INVESTIGATION"
+      && view.you.actionsRemaining > 0
+      && !view.you.elimination;
 
     // 連線
     for (const loc of view.locations) {
@@ -33,6 +46,17 @@ export class GameView {
         if (!a || !b) continue;
         const g = new Graphics();
         g.moveTo(a.x, a.y).lineTo(b.x, b.y).stroke({ width: 2, color: 0x3a4b5c, alpha: 0.7 });
+        this.layer.addChild(g);
+      }
+    }
+    // 可走路徑亮線:你所在地 → 各相鄰格(疊在基礎連線上)
+    if (canMoveNow) {
+      const a = pos.get(here);
+      for (const c of connectedToHere) {
+        const b = pos.get(c);
+        if (!a || !b) continue;
+        const g = new Graphics();
+        g.moveTo(a.x, a.y).lineTo(b.x, b.y).stroke({ width: 3, color: 0x5fbf6f, alpha: 0.55 });
         this.layer.addChild(g);
       }
     }
@@ -72,6 +96,21 @@ export class GameView {
         card.eventMode = "static";
         card.cursor = "pointer";
         card.on("pointertap", () => this.onMove?.(loc.id));
+
+        if (canMoveNow) {
+          // 可移動高亮框:綠色呼吸外框 + 外圈光暈 + 🚶 角標
+          const glow = new Graphics()
+            .roundRect(-5, -5, 170, 98, 13)
+            .stroke({ width: 6, color: 0x5fbf6f, alpha: 0.18 })
+            .roundRect(-2, -2, 164, 92, 11)
+            .stroke({ width: 2.5, color: 0x5fbf6f });
+          card.addChildAt(glow, 0);
+          this.pulseFrames.push(glow);
+          card.addChild(new Text({ text: "🚶", style: { fontSize: 15 }, x: 138, y: 6 }));
+          // 滑過加深(呼吸之上直接拉滿)
+          card.on("pointerover", () => { glow.alpha = 1; this.pulseFrames = this.pulseFrames.filter((g) => g !== glow); });
+          card.on("pointerout", () => { this.pulseFrames.push(glow); });
+        }
       }
       this.layer.addChild(card);
     }
