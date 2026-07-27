@@ -123,6 +123,24 @@ async function main() {
   const actErr = await A.waitFor((m) => m.type === "ERROR", "重複啟動 ERROR");
   check(/已啟動過/.test(actErr.message), "每輪限一次(同輪再啟動被擋)", actErr.message);
 
+  section("⑥ 戰鬥:訓練假人開局在場 → 移動 → 交戰 → 戰鬥開檢定");
+  check(s6.view.enemies.some((e) => e.name === "訓練假人" && e.locationId === "test_yard"),
+    "訓練假人開局站在訓練場(看得到敵人)", JSON.stringify(s6.view.enemies));
+  A.send({ type: "INTENT", action: "END_TURN", payload: { force: true } });   // 啟動+打卡用掉行動 → 過回合
+  const s7 = await A.waitFor((m) => m.type === "STATE" && m.view.round === 3 && m.view.you.actionsRemaining === 3, "第 3 輪 STATE");
+  A.send({ type: "INTENT", action: "MOVE", payload: { toLocationId: "test_yard" } });
+  const s8 = await A.waitFor((m) => m.type === "STATE" && m.view.you.locationId === "test_yard", "抵達訓練場");
+  const dummyId = s8.view.enemies.find((e) => e.name === "訓練假人").id;
+  A.send({ type: "INTENT", action: "ENGAGE", payload: { enemyId: dummyId } });
+  const s9 = await A.waitFor((m) => m.type === "STATE" && m.view.you.engagedEnemyIds.length === 1, "交戰假人");
+  check(s9.view.you.engagedEnemyIds.includes(dummyId), "交戰行動生效(進威脅區)");
+  A.send({ type: "INTENT", action: "FIGHT", payload: { enemyId: dummyId } });
+  const fightReq = await A.waitFor((m) => m.type === "CHOICE_REQUEST" && m.kind === "COMMIT_CARDS", "戰鬥開技能檢定");
+  check(fightReq.options.skill === "COMBAT", "檢定技能=戰鬥", fightReq.options.skill);
+  A.send({ type: "CHOICE_RESPONSE", requestId: fightReq.requestId, choice: { committedCardIds: [] } });
+  const s10 = await A.waitFor((m) => m.type === "STATE" && m.view.you.actionsRemaining === 0, "檢定結算後 STATE");
+  check(!!s10 && s10.view.you.damage === 0, "假人 0 傷 0 懼:無論成敗都安全(適合練習)", `dmg=${s10.view.you.damage}`);
+
   A.close();
 }
 

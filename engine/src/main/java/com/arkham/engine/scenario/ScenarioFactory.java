@@ -331,9 +331,11 @@ public final class ScenarioFactory {
                 List.of());                             // 空遭遇牌堆(神話不抽卡)
 
         state.addLocation(new LocationCard("test_hub", "測試大廳", 1, 5,
-                true, List.of("test_yard"), false, null));        // 遮蔽低、線索多(clueValue5×人數)
+                true, List.of("test_yard", "brawl_alley"), false, null));   // 遮蔽低、線索多(clueValue5×人數)
         state.addLocation(new LocationCard("test_yard", "訓練場", 2, 2,
-                true, List.of("test_hub"), false, "dummy"));      // 已揭示;進入生「訓練假人」
+                true, List.of("test_hub"), false, null));         // 開局就站著訓練假人(0 傷 0 懼,安全練戰鬥/閃避/交戰)
+        state.addLocation(new LocationCard("brawl_alley", "實戰巷", 2, 1,
+                false, List.of("test_hub"), false, "sparring"));  // 未揭示;進入 → 生成「實戰教官」並交戰(會真的打你)
 
         for (String id : roster) {
             Investigator inv = buildInvestigator(id);
@@ -348,6 +350,11 @@ public final class ScenarioFactory {
         state.lockPlayerCount();
         LocationCard hub = state.location("test_hub");
         hub.setClues(hub.getClueValue() * state.getPlayerCount());
+
+        // 訓練假人開局進場(未交戰,站在訓練場等你去打)
+        com.arkham.engine.model.EnemyCard dummy = new com.arkham.engine.model.EnemyCard(
+                state.nextEnemyId(), "dummy", "訓練假人", 2, 3, 2, 0, 0, List.of(), "test_yard");
+        state.getEnemies().put(dummy.getId(), dummy);
         return state;
     }
 
@@ -365,10 +372,12 @@ public final class ScenarioFactory {
         inv.getHand().add(CardInstance.skill(prefix + "-x" + (n++), "Unexpected Courage", SkillIcon.WILD, SkillIcon.WILD));
     }
 
-    /** 訓練假人:戰2 / 生命3 / 閃2,不造成傷害/恐懼,無關鍵字 —— 安全反覆練戰鬥/閃避。 */
+    /** 沙盒敵人:訓練假人(0 傷 0 懼,安全練習)+ 實戰教官(1 傷 1 懼、反擊 —— 體驗真實戰鬥)。 */
     private static Map<String, EnemyDef> sandboxEnemyDefs() {
         Map<String, EnemyDef> defs = new LinkedHashMap<>();
         defs.put("dummy", new EnemyDef("dummy", "訓練假人", 2, 3, 2, 0, 0, List.of()));
+        defs.put("sparring", new EnemyDef("sparring", "實戰教官", 3, 4, 2, 1, 1,
+                List.of(Keyword.RETALIATE)));   // 戰鬥失敗 → 反擊;交戰中做其他行動 → 趁隙攻擊
         return defs;
     }
 
