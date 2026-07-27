@@ -52,10 +52,16 @@ async function main() {
     },
     // 戰役板(P2+):首次進板時遮罩(PixiJS 初始化),畫好即收
     onState: async (v) => {
-      if (!board) showMask("進入戰役…");
-      const b = await ensureBoard();
-      b.view.render(v); b.hud.render(v);
-      hideMask();
+      try {
+        if (!board) showMask("進入戰役…");
+        const b = await ensureBoard();
+        b.view.render(v); b.hud.render(v);
+        hideMask();
+      } catch (ex) {   // 渲染失敗絕不無聲:收遮罩 + 顯示錯誤內容(方便截圖回報)
+        hideMask();
+        void infoDialog("戰役畫面渲染失敗:" + (ex instanceof Error ? `${ex.name}: ${ex.message}` : String(ex))
+            + "\n請截圖回報;可嘗試重新整理頁面。", { title: "⚠️ 渲染錯誤" });
+      }
     },
     onChoiceRequest: (req) => {
       if (req.kind === "COMMIT_CARDS" && board) {

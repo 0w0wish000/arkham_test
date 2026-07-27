@@ -57,7 +57,8 @@ public class GameSocketHandler extends TextWebSocketHandler {
             return;
         }
 
-        switch (msg) {
+        try {
+            switch (msg) {
             case ClientMessage.Join join -> {
                 GameSession session = sessions.getOrCreate(join.sessionId());
                 ws.getAttributes().put(ATTR_SESSION, join.sessionId());
@@ -216,6 +217,11 @@ public class GameSocketHandler extends TextWebSocketHandler {
                 if (cs != null) cs.resolveChapter(playerId(ws), rc.resolutionId());
             }
             case ClientMessage.Ping ignored -> send(ws, new ServerMessage.Pong());
+            }
+        } catch (Exception ex) {
+            // 全域例外網:任何指令處理失敗都回給發送者 —— 寧可彈錯誤,不可「按了沒反應」
+            send(ws, new ServerMessage.Error("伺服器處理失敗:" + ex.getClass().getSimpleName()
+                    + (ex.getMessage() == null ? "" : " — " + ex.getMessage())));
         }
     }
 

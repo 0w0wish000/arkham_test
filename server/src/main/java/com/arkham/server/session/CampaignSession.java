@@ -404,21 +404,38 @@ public final class CampaignSession {
         checkBarrier();
     }
 
-    /** 主機強制越過屏障:牌組階段 → 開打;載入階段 → 直接重建對局;對局已在跑 → 重送 STATE(卡名冊逃生口)。 */
+    /** 主機強制越過屏障:牌組階段 → 開打;載入階段 → 直接重建對局;對局已在跑 → 重新接回(卡名冊逃生口)。 */
     public synchronized void forceStart() throws IOException {
-        if (game != null) { reattachClients(); return; }
+        if (game != null) {
+            String err = reattachClients();
+            // 逃生口必須有可見回饋:成功广播接回、失敗把例外訊息端給全桌(否則「按了沒反應」無從回報)
+            broadcast(err == null
+                    ? new ServerMessage.Event("takeover", "🔁 強制開始:已把連線中的玩家重新接回對局。")
+                    : new ServerMessage.Error("重新接回失敗:" + err + " —— 請截圖回報;可嘗試離開桌次後重新載入存檔。"));
+            return;
+        }
         if ("LOADING".equals(stage)) startFromSnapshot();
         else startScenario();
     }
 
-    /** 把所有已連線且有角色的玩家重新接回對局(冪等;重送各自的 STATE)。 */
-    private void reattachClients() {
+    /**
+     * 把所有已連線且有角色的玩家重新接回對局(冪等;送 STATE + 補發待決決策 —— 用 reattach,
+     * 存檔若卡在投入/棄牌屏障也能續打)。回傳 null=全部成功;否則為第一個失敗原因。
+     */
+    private String reattachClients() {
+        String firstError = null;
         for (Map.Entry<String, WebSocketSession> e : clients.entrySet()) {
             String inv = investigatorFor(e.getKey());
-            if (inv != null) {
-                try { game.join(inv, e.getValue()); } catch (IOException ignored) { /* 單人失敗不擋其他人 */ }
+            if (inv == null) continue;
+            try {
+                game.reattach(inv, e.getValue());
+            } catch (Exception ex) {   // 單人失敗不擋其他人,但要留下原因
+                if (firstError == null) {
+                    firstError = ex.getClass().getSimpleName() + (ex.getMessage() == null ? "" : " — " + ex.getMessage());
+                }
             }
         }
+        return firstError;
     }
 
     /** 屏障:所有 ACTIVE 成員都已選角且 ready → 開打。 */
