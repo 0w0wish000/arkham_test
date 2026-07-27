@@ -21,6 +21,7 @@ interface Handlers {
   onSavePrompt?: (msg: SavePromptMsg) => void;
   onSaveSnapshot?: (msg: SaveSnapshotMsg) => void;
   onError?: (message: string) => void;
+  onDisconnect?: (reason: string) => void;   // WS 被切/斷線(如訊息過大 1009);page unload 不算
 }
 
 /**
@@ -41,6 +42,10 @@ export class Connection {
       ws.onopen = () => resolve();
       ws.onerror = (e) => reject(e);
       ws.onmessage = (ev) => this.handle(JSON.parse(ev.data) as ServerMessage);
+      ws.onclose = (ev) => {
+        if (ev.code === 1000 || ev.code === 1001) return;   // 正常關閉/離開頁面
+        this.handlers.onDisconnect?.(ev.code === 1009 ? "訊息過大被伺服器拒絕" : `代碼 ${ev.code}`);
+      };
     });
   }
 

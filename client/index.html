@@ -148,8 +148,22 @@
       padding:0 5px;font-size:10px;margin-right:4px;color:#cfe0f0}
     .card.playable{cursor:pointer}
     .card.playable:hover{border-color:var(--gold);background:#1c2836}
-    #play-area{display:flex;gap:6px;flex-wrap:wrap}
-    #play-area .card{border-color:#5aa06b;background:#16241b}
+    #play-area{display:flex;flex-direction:column;gap:6px}
+    .hrow.prow{border-color:#5aa06b;background:#16241b;cursor:pointer}
+    .hrow.prow:hover{border-color:var(--gold)}
+    dialog.app-dialog{background:#111823;color:var(--ink);border:1px solid var(--gold);border-radius:14px;
+      padding:18px 22px;min-width:300px;max-width:min(440px,90vw)}
+    dialog.app-dialog::backdrop{background:rgba(6,10,16,.55)}
+    .dlg-title{font-size:15px;color:var(--gold);font-weight:600;margin-bottom:8px}
+    .dlg-body{font-size:13px;line-height:1.55;color:var(--ink);white-space:pre-wrap}
+    .dlg-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+    .dlg-ok{background:#2d5a3a;border-color:#5aa06b}
+    .dlg-ok:hover:not(:disabled){background:#356a45}
+    #card-preview{position:fixed;z-index:65;width:240px;background:#111823;border:1px solid var(--gold);
+      border-radius:12px;padding:12px;box-shadow:0 10px 32px rgba(0,0,0,.6);pointer-events:none}
+    .cp-art{width:100%;height:150px;border-radius:8px;margin-bottom:8px;background:#3a4b5c}
+    .cp-name{font-size:14px;margin-bottom:6px}
+    .cp-text{font-size:12px;color:var(--dim);line-height:1.45;white-space:pre-wrap}
     #log{position:fixed;left:50%;transform:translateX(-50%);bottom:64px;max-height:48px;overflow:auto;font-size:12px;z-index:15;
       background:#0c1219;border:1px solid var(--line);border-radius:8px;padding:8px 12px;width:min(46vw,560px);
       cursor:pointer;transition:max-height .2s}

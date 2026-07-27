@@ -2,6 +2,7 @@ import type {
   GameStateView, EnemyView, HandCard, LocationView,
   SkillType, SkillIcon, IntentAction, CommitCardsOptions, ChooseTargetOptions,
 } from "../protocol";
+import { confirmDialog } from "./dialogs";
 
 /**
  * DOM 抬頭顯示(HUD):把伺服器下發的 GameStateView 畫成可操作的介面 ——
@@ -92,7 +93,47 @@ function tokenImageFor(desc: string): string | null {
   return null;
 }
 
-/** 手牌直列列項:卡圖(或色塊)+ 名稱/費用/圖示 + 簡述(截 3 行,hover 看全文)。 */
+/** 卡片簡述:真卡/翻譯文字(去標記)→ 卡型通用說明。 */
+function cardDesc(c: HandCard): string {
+  return (c.text ?? "").replace(/<[^>]+>/g, "").replace(/\[\[|\]\]/g, "").trim()
+      || TYPE_FALLBACK_TEXT[c.cardType] || "";
+}
+
+/** 懸浮預覽卡(手牌/檯面共用):大縮圖 + 名稱/費用/圖示 + 完整文字。 */
+function showCardPreview(c: HandCard, anchor: DOMRect) {
+  hideCardPreview();
+  const p = el("div");
+  p.id = "card-preview";
+  const art = el("div", "cp-art");
+  art.style.background = TYPE_COLOR[c.cardType] ?? "#3a4b5c";
+  probeCardImage(c.name, (url) => { art.style.background = `url('${url}') center/cover`; });
+  p.appendChild(art);
+  const title = el("div", "cp-name");
+  if (c.cardType === "asset" || c.cardType === "event") title.appendChild(el("span", "cost", `$${c.cost}`));
+  title.appendChild(document.createTextNode(c.name));
+  if (c.skillIcons.length) {
+    const icons = el("span", "icons");
+    for (const ic of c.skillIcons) icons.appendChild(iconEl(ic));
+    title.appendChild(icons);
+  }
+  p.appendChild(title);
+  p.appendChild(el("div", "cp-text", cardDesc(c)));
+  document.body.appendChild(p);
+  // 手牌/檯面都在右欄 → 預設顯示在列項左側;放不下就換右側,並夾在視窗內
+  const w = p.offsetWidth, h = p.offsetHeight;
+  let x = anchor.left - w - 10;
+  if (x < 8) x = Math.min(anchor.right + 10, innerWidth - w - 8);
+  const y = Math.max(8, Math.min(anchor.top, innerHeight - h - 8));
+  p.style.left = `${x}px`;
+  p.style.top = `${y}px`;
+}
+function hideCardPreview() { document.getElementById("card-preview")?.remove(); }
+function attachPreview(elm: HTMLElement, c: HandCard) {
+  elm.addEventListener("mouseenter", () => showCardPreview(c, elm.getBoundingClientRect()));
+  elm.addEventListener("mouseleave", hideCardPreview);
+}
+
+/** 手牌直列列項:卡圖(或色塊)+ 名稱/費用/圖示 + 簡述(截 3 行,hover 大圖預覽)。 */
 function handRow(c: HandCard): HTMLDivElement {
   const row = el("div", "hrow");
   const thumb = el("div", "hthumb");
@@ -109,12 +150,9 @@ function handRow(c: HandCard): HTMLDivElement {
     title.appendChild(icons);
   }
   main.appendChild(title);
-  const desc = (c.text ?? "").replace(/<[^>]+>/g, "").replace(/\[\[|\]\]/g, "").trim()
-      || TYPE_FALLBACK_TEXT[c.cardType] || "";
-  const txt = el("div", "htext", desc);
-  txt.title = desc;
-  main.appendChild(txt);
+  main.appendChild(el("div", "htext", cardDesc(c)));
   row.appendChild(main);
+  attachPreview(row, c);
   return row;
 }
 
@@ -149,20 +187,32 @@ export class Hud {
 
   private $ = (id: string) => document.getElementById(id)!;
 
+  /** 防誤觸確認框;交戰中的抽牌/資源附趁隙攻擊提醒。確認後才送意圖。 */
+  private confirmAction(title: string, message: string, action: IntentAction, payload?: Record<string, unknown>) {
+    const engaged = (this.view?.you.engagedEnemyIds?.length ?? 0) > 0;
+    const aoo = engaged && (action === "DRAW" || action === "GAIN_RESOURCE")
+      ? "\n⚠️ 你正與敵人交戰:此行動會引發趁隙攻擊。" : "";
+    void confirmDialog(message + aoo, { title, okText: "執行" })
+      .then((ok) => { if (ok) this.onIntent?.(action, payload); });
+  }
+
   constructor() {
-    this.$("act-draw").onclick = () => this.onIntent?.("DRAW");
-    this.$("act-resource").onclick = () => this.onIntent?.("GAIN_RESOURCE");
+    // 防誤觸:所有行動先彈確認框(dialog,非阻塞),確認才送意圖;行動點由伺服器在執行時才扣
+    this.$("act-draw").onclick = () => this.confirmAction("🎴 抽牌", "花 1 行動抽 1 張牌?", "DRAW");
+    this.$("act-resource").onclick = () => this.confirmAction("💰 資源", "花 1 行動獲得 1 資源?", "GAIN_RESOURCE");
     this.$("act-resign").onclick = () => {
-      if (confirm("確定撤退?你將退出本劇本(成果保留;人數縮放不變)。")) this.onIntent?.("RESIGN");
+      void confirmDialog("確定撤退?你將退出本劇本(成果保留;人數縮放不變)。", { title: "🏳️ 撤退", okText: "撤退" })
+        .then((ok) => { if (ok) this.onIntent?.("RESIGN"); });
     };
-    this.$("act-investigate").onclick = () => this.onIntent?.("INVESTIGATE");
-    this.$("act-endturn").onclick = () => this.onIntent?.("END_TURN");   // 「我打完了」(屏障)
+    this.$("act-investigate").onclick = () =>
+      this.confirmAction("🔍 調查", "發起調查檢定?(接著開投入面板;擲混沌袋後才結算行動)", "INVESTIGATE");
+    this.$("act-endturn").onclick = () =>
+      this.confirmAction("✋ 我打完了", "結束你本輪的行動?(全員完成即進行回合結算)", "END_TURN");
     this.$("act-endround").onclick = () => {
-      if (confirm("強制結束全體回合?未用完的行動會消失(建議先在語音確認)。")) {
-        this.onIntent?.("END_TURN", { force: true });
-      }
+      void confirmDialog("強制結束全體回合?未用完的行動會消失(建議先在語音確認)。", { title: "⏭️ 全體結束", okText: "強制結束" })
+        .then((ok) => { if (ok) this.onIntent?.("END_TURN", { force: true }); });
     };
-    this.$("act-advance").onclick = () => this.onIntent?.("ADVANCE_ACT");
+    this.$("act-advance").onclick = () => this.confirmAction("📖 推進幕", "花費線索推進幕?", "ADVANCE_ACT");
     this.$("btn-save").onclick = () => this.onSave?.();
     this.$("commit-go").onclick = () => {
       if (this.discardReq) { this.submitDiscard(); return; }
@@ -359,6 +409,7 @@ export class Hud {
   }
 
   private renderHand(hand: HandCard[]) {
+    hideCardPreview();   // 重繪時收掉懸浮預覽(mouseleave 可能來不及觸發)
     const box = this.$("hand-cards");
     box.replaceChildren();
     if (hand.length === 0) box.appendChild(el("span", "pip", "(無手牌)"));
@@ -367,23 +418,32 @@ export class Hud {
       if (c.cardType === "asset" || c.cardType === "event") {
         row.classList.add("playable");
         row.title = `點擊打出 ${c.name}(費用 ${c.cost})`;
-        row.onclick = () => this.onIntent?.("PLAY_CARD", { cardId: c.cardId });
+        row.onclick = () => {
+          const aoo = (this.view?.you.engagedEnemyIds?.length ?? 0) > 0 ? "\n⚠️ 交戰中打牌會引發趁隙攻擊。" : "";
+          void confirmDialog(`打出「${c.name}」(費用 $${c.cost})?${aoo}`, { title: "🃏 打出卡片", okText: "打出" })
+            .then((ok) => { if (ok) this.onIntent?.("PLAY_CARD", { cardId: c.cardId }); });
+        };
       }
       box.appendChild(row);
     }
   }
 
-  /** 檯面已打出的支援(沙盒:放大鏡 / 大砍刀 等)。 */
+  /** 檯面已打出的支援:含簡述的列項(hover 大圖預覽;點擊啟動能力)。 */
   private renderPlayArea(playArea: HandCard[]) {
+    hideCardPreview();
     const box = this.$("play-area");
     box.replaceChildren();
     (this.$("play-title") as HTMLElement).hidden = playArea.length === 0;
     for (const c of playArea) {
-      const chip = cardChip(c);
-      chip.title = "點擊啟動這張卡的能力(⚡ 花 1 行動;沒有啟動能力伺服器會告訴你)";
-      chip.style.cursor = "pointer";
-      chip.onclick = () => this.onIntent?.("ACTIVATE", { cardId: c.cardId });   // C2 啟動
-      box.appendChild(chip);
+      const row = handRow(c);
+      row.classList.add("prow");
+      row.title = "點擊啟動這張卡的能力(⚡ 花 1 行動;沒有啟動能力伺服器會告訴你)";
+      row.onclick = () => {
+        void confirmDialog(`啟動「${c.name}」的能力?(⚡ 花 1 行動;若無啟動能力伺服器會提示)`,
+            { title: "⚡ 啟動能力", okText: "啟動" })
+          .then((ok) => { if (ok) this.onIntent?.("ACTIVATE", { cardId: c.cardId }); });   // C2 啟動
+      };
+      box.appendChild(row);
     }
   }
 

@@ -2,6 +2,7 @@ import type {
   CampaignLogEntry, ApplyLogAction, SessionSummary, RosterMember, SessionRosterMsg, Difficulty, CampaignSave,
   ResolutionPromptMsg } from "../protocol";
 import campaignsData from "../../../content/reference/campaigns.json";
+import { confirmDialog } from "./dialogs";
 
 /**
  * 大廳畫面(docs/09 P1):身分輸入 → 主選單(新檔/載入/離開)→ 名冊 waiting。
@@ -247,7 +248,9 @@ export class Lobby {
     const del = el("button", "s-del", "🗑");
     del.title = "刪除這份本機存檔(不影響其他玩家的備份)";
     del.onclick = () => {
-      if (confirm(`刪除本機存檔「${s.name}」?(其他玩家本機的備份不受影響)`)) this.onDeleteSave?.(s.campaignId);
+      void confirmDialog(`刪除本機存檔「${s.name}」?(其他玩家本機的備份不受影響)`,
+          { title: "🗑 刪除存檔", okText: "刪除" })
+        .then((ok) => { if (ok) this.onDeleteSave?.(s.campaignId); });
     };
     row.appendChild(del);
     return row;

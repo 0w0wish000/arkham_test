@@ -6,6 +6,7 @@ import type { CommitCardsOptions, ChooseOptionOptions } from "./protocol";
 // 戰役板(進戰役才載入;docs/09 P2 由 START_SCENARIO/STATE 觸發)
 import { GameView } from "./render/GameView";
 import { Hud } from "./ui/Hud";
+import { confirmDialog, infoDialog } from "./ui/dialogs";
 
 async function main() {
   const lobby = new Lobby();
@@ -63,19 +64,25 @@ async function main() {
         // B6:整備超限棄牌(棄完才能行動)
         board.hud.showDiscard(req.requestId, req.options as import("./protocol").ChooseTargetOptions);
       } else if (req.kind === "CHOOSE_OPTION") {
-        // 反應能力(如 Joe 成功調查後抽牌):彈窗問「使用/跳過」
+        // 反應能力(如 Joe 成功調查後抽牌):dialog 問「使用/跳過」(非阻塞)
         const opts = req.options as ChooseOptionOptions;
-        const yes = confirm(opts.prompt);
-        conn.respond(req.requestId, { optionId: yes ? "use" : "skip" });
+        void confirmDialog(opts.prompt, { title: "✨ 反應能力", okText: "使用", cancelText: "跳過" })
+          .then((yes) => conn.respond(req.requestId, { optionId: yes ? "use" : "skip" }));
       }
     },
     onSavePrompt: (msg) => {
-      const yes = confirm(`玩家「${msg.requestedBy}」要保存並離開。是否存檔?`);
-      if (yes) leaveAfterSave = true;   // 同意保存並離開 → 快照到手後一起回主選單
-      conn.saveVote(msg.requestId, yes);
+      void confirmDialog(`玩家「${msg.requestedBy}」要保存並離開。是否存檔?`,
+          { title: "💾 保存並離開", okText: "存檔", cancelText: "不存" })
+        .then((yes) => {
+          if (yes) leaveAfterSave = true;   // 同意保存並離開 → 快照到手後一起回主選單
+          conn.saveVote(msg.requestId, yes);
+        });
     },
     // 死亡換角投票(docs/09 §10)
-    onVotePrompt: (msg) => { conn.vote(msg.requestId, confirm("🗳️ " + msg.reason)); },
+    onVotePrompt: (msg) => {
+      void confirmDialog("🗳️ " + msg.reason, { okText: "同意", cancelText: "反對" })
+        .then((yes) => conn.vote(msg.requestId, yes));
+    },
     onCampaignLog: (msg) => lobby.renderLog(msg.entries),   // 戰役日誌(D6)
     onResolutionPrompt: (msg) => lobby.showResolutionPrompt(msg),   // 章末結局投票(D2)
     onSaveSnapshot: (msg) => { board?.hud.log(`💾 已存檔:第 ${msg.round} 輪(${msg.scenario})。`); },
@@ -96,7 +103,12 @@ async function main() {
       if (board) lines.forEach((l) => board!.hud.log(l));
       else pendingLog.push(...lines);
     },
-    onError: (m) => { hideMask(); window.alert("⚠️ " + m); },   // 遮罩先收,避免錯誤時蓋死畫面
+    onError: (m) => { hideMask(); void infoDialog(m, { title: "⚠️ 伺服器訊息" }); },   // 遮罩先收,避免錯誤時蓋死畫面
+    // 連線被切(如舊版伺服器的 8KB 上限):收遮罩並明講,不再無聲卡「載入中」
+    onDisconnect: (reason) => {
+      hideMask();
+      void infoDialog(`與伺服器的連線已中斷(${reason})。\n請重新整理頁面再試;若持續發生,重啟伺服器。`, { title: "⚠️ 連線中斷" });
+    },
   });
 
   // ── 大廳 callbacks ──
@@ -167,7 +179,8 @@ async function main() {
   } catch {
     hideMask();
     lobby.showIdentity();
-    window.alert("⚠️ 無法連線伺服器。請先在 host 端啟動 scripts\\start\\start-server.bat(Windows)或 ./scripts/start/start-server.sh");
+    void infoDialog("無法連線伺服器。請先在 host 端啟動 scripts\\start\\start-server.bat(Windows)或 ./scripts/start/start-server.sh",
+        { title: "⚠️ 連線失敗" });
   }
 }
 
