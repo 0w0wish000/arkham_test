@@ -211,6 +211,8 @@ export class Hud {
   private discardReq?: { requestId: string; need: number; sel: Set<string> };   // B6 超限棄牌
   /** 受擊偵測:上一次視圖的血/理智(跨章 round 倒退時重置,不誤報回復)。 */
   private prevVitals?: { id: string; round: number; damage: number; horror: number; hp: number; san: number };
+  /** 敵人血量追蹤:id → 已受傷害(偵測「敵人被打」與「被擊敗」做特效)。 */
+  private prevEnemies?: { round: number; map: Map<string, { dmg: number; name: string; loc: string }> };
   private guideCollapsed = false;
 
   private $ = (id: string) => document.getElementById(id)!;
@@ -405,7 +407,40 @@ export class Hud {
       this.statBadge("🂠", you.deckCount ?? 0, null, "牌堆", "#93a4b3", false, true),
     );
 
+    // ── 敵人受擊/擊敗偵測(先算差值,面板重繪後套特效)──
+    const em = new Map(view.enemies.map((e2) => [e2.id, { dmg: e2.damageOn, name: e2.name, loc: e2.locationId }]));
+    const pe = this.prevEnemies;
+    const hits: { id: string; n: number }[] = [];
+    if (pe && view.round >= pe.round) {
+      for (const [id, cur] of em) {
+        const old = pe.map.get(id);
+        if (old && cur.dmg > old.dmg) hits.push({ id, n: cur.dmg - old.dmg });
+      }
+      for (const [id, old] of pe.map) {
+        if (!em.has(id) && old.loc === you.locationId) {
+          this.floatNum(`☠️ 擊敗 ${old.name}!`, "#ffd45a");
+        }
+      }
+    }
+    this.prevEnemies = { round: view.round, map: em };
+
     this.renderEnemies(view, canAct);
+    for (const h of hits) {   // 敵人卡震動 + 掉血數字(不在視野的由 log 敘述)
+      const card = document.querySelector(`.enemy[data-eid="${h.id}"]`) as HTMLElement | null;
+      if (!card) continue;
+      card.classList.remove("hit");
+      void card.offsetWidth;
+      card.classList.add("hit");
+      const r = card.getBoundingClientRect();
+      const f = el("div", "float-num", `-${h.n}`);
+      f.style.color = "#ff8672";
+      f.style.fontSize = "26px";
+      f.style.left = `${r.left + r.width / 2}px`;
+      f.style.top = `${r.top - 4}px`;
+      f.style.transform = "translateX(-50%)";
+      document.body.appendChild(f);
+      setTimeout(() => f.remove(), 1600);
+    }
     this.renderHand(you.hand);
     this.renderPlayArea(you.playArea ?? []);
     this.updateActionButtons(view, canAct);
@@ -453,14 +488,27 @@ export class Hud {
         now.append(el("b", undefined, "調查階段 · 自由行動"));
         now.append(` — 你還有 ${view.you.actionsRemaining} 個行動(完成 ${doneCount}/${total})`);
         hint.append("可做:🚶移動 🔎調查 ⚔️戰鬥 💨閃避 🤝交戰 🃏打卡 · 打完按「✋我打完了」。");
+        this.appendEngagedWarning(view, hint);
       } else {
         now.append(`🎯 行動已用完 — 完成 ${doneCount}/${total}`);
         hint.append("按「✋我打完了」告訴隊友;全員完成才進敵人/神話階段(不強制順序)。");
+        this.appendEngagedWarning(view, hint);
       }
     } else {
       now.append(`⏳ ${PHASE_ZH[view.phase] ?? view.phase}結算中…`);
       hint.append("系統正在結算此階段(敵人移動/攻擊、神話抽卡等),稍候會回到調查階段。");
     }
+  }
+
+  /** 被「就緒」敵人纏住時的教學警示:先閃避(或擊敗)再結束回合,敵人階段就不會挨打。 */
+  private appendEngagedWarning(view: GameStateView, hint: HTMLElement) {
+    const threats = view.enemies.filter(
+      (e) => e.engagedWith === view.you.investigatorId && !e.exhausted);
+    if (threats.length === 0) return;
+    hint.appendChild(el("div", "tg-warn",
+      `⚠️ 你被 ${threats.map((e) => e.name).join("、")} 纏住!直接結束回合 → 敵人階段會挨打` +
+      `(共 ${threats.reduce((a, e) => a + e.damage, 0)}傷/${threats.reduce((a, e) => a + e.horror, 0)}懼)。` +
+      "先 💨閃避(成功=牠耗竭,本輪不攻擊、不趁隙)或 ⚔️擊敗牠,再按「✋我打完了」。"));
   }
 
   private renderEnemies(view: GameStateView, canAct: boolean) {
@@ -473,21 +521,55 @@ export class Hud {
 
     for (const e of mine) {
       const row = el("div", "enemy");
+      row.dataset.eid = e.id;
+      if (e.exhausted) row.classList.add("exhausted");
       const name = el("div", "en-name", e.name);
       for (const kw of e.keywords) name.appendChild(el("span", "kw", kw));
       row.appendChild(name);
 
+      // 血條 + 大數字(掉血一眼可見;顏色隨剩餘量變化)
+      const hpNow = e.health - e.damageOn;
+      const pct = Math.max(0, Math.round((hpNow / e.health) * 100));
+      const hpColor = pct > 66 ? "#e0674b" : pct > 33 ? "#e8c14b" : "#8fd39a";  // 敵血:紅→黃→綠(越低越好打)
+      const hpRow = el("div", "en-hp");
+      const hpTxt = el("span", undefined, `❤️ ${hpNow}/${e.health}`);
+      hpTxt.style.color = "#f0b8a8";
+      hpRow.appendChild(hpTxt);
+      const bar = el("div", "en-hpbar");
+      const fill = el("div", "en-hpfill");
+      fill.style.width = `${pct}%`;
+      fill.style.background = hpColor;
+      bar.appendChild(fill);
+      hpRow.appendChild(bar);
+      row.appendChild(hpRow);
+
       const engaged = e.engagedWith === view.you.investigatorId;
-      row.appendChild(el("div", "en-stat",
-        `戰 ${e.fight}　閃 ${e.evade}　生命 ${e.health - e.damageOn}/${e.health}　攻 ${e.damage}傷/${e.horror}懼` +
-        (engaged ? "　· 與你交戰" : e.engagedWith ? "　· 與隊友交戰" : "　· 未交戰") +
-        (e.exhausted ? "　· 已耗竭" : "")));
+      row.appendChild(el("div", "en-stat", `戰 ${e.fight}　閃 ${e.evade}　攻擊 ${e.damage}傷/${e.horror}懼`));
+
+      // 狀態徽章:交戰威脅 / 耗竭安全 / 與隊友交戰 / 未交戰
+      const chips = el("div", "en-chips");
+      if (e.exhausted) {
+        chips.appendChild(el("span", "chip safe", "😴 已耗竭 · 本輪不會攻擊、不趁隙"));
+      } else if (engaged) {
+        chips.appendChild(el("span", "chip threat", "⚠️ 與你交戰 · 結束回合會被打"));
+      } else if (e.engagedWith) {
+        chips.appendChild(el("span", "chip mate", "與隊友交戰中"));
+      } else {
+        chips.appendChild(el("span", "chip", "未交戰(不會攻擊你)"));
+      }
+      row.appendChild(chips);
       row.addEventListener("mouseenter", () => showEnemyPreview(e, row.getBoundingClientRect()));
       row.addEventListener("mouseleave", hideCardPreview);
 
       const btns = el("div", "en-btns");
-      btns.appendChild(this.enemyBtn("⚔️ 戰鬥", canAct, () => this.onIntent?.("FIGHT", { enemyId: e.id })));
-      btns.appendChild(this.enemyBtn("💨 閃避", canAct, () => this.onIntent?.("EVADE", { enemyId: e.id })));
+      const fight = this.enemyBtn("⚔️ 戰鬥", canAct, () => this.onIntent?.("FIGHT", { enemyId: e.id }));
+      fight.title = `戰鬥檢定(你的戰鬥 vs 牠的戰值 ${e.fight});成功造成傷害`;
+      btns.appendChild(fight);
+      const evade = this.enemyBtn("💨 閃避", canAct && !e.exhausted, () => this.onIntent?.("EVADE", { enemyId: e.id }));
+      evade.title = e.exhausted
+        ? "牠已耗竭,本輪不會攻擊 —— 不用再閃避"
+        : `閃避檢定(你的敏捷 vs 牠的閃避 ${e.evade});成功 → 牠耗竭+解交戰:本輪不攻擊、不趁隙`;
+      btns.appendChild(evade);
       btns.appendChild(this.enemyBtn("🤝 交戰", canAct && !engaged, () => this.onIntent?.("ENGAGE", { enemyId: e.id })));
       row.appendChild(btns);
       box.appendChild(row);
