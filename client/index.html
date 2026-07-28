@@ -109,7 +109,34 @@
     #tg-now{font-size:13px;color:var(--ink);margin-bottom:6px}
     #tg-now b{color:var(--gold)}
     #tg-hint{font-size:12px;color:var(--dim);line-height:1.65}
-    #panel-self{top:10px;left:10px;min-width:210px;font-size:13px}
+    #panel-self{top:10px;left:10px;min-width:236px;font-size:13px}
+    /* 自身數據大徽章:圖標 + 大數字,一眼看到血/理智 */
+    .stat-grid{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .stat{display:flex;flex-direction:column;align-items:center;min-width:52px;padding:6px 8px 5px;
+      background:#0d141d;border:1px solid var(--line);border-radius:10px}
+    .stat .st-ic{font-size:19px;line-height:1.1}
+    .stat .st-num{font-size:21px;font-weight:800;line-height:1.15;letter-spacing:.02em}
+    .stat .st-num .st-max{font-size:11px;font-weight:400;color:var(--dim)}
+    .stat .st-lb{font-size:10px;color:var(--dim);margin-top:1px}
+    .stat.small{min-width:44px;padding:4px 6px}
+    .stat.small .st-ic{font-size:15px}
+    .stat.small .st-num{font-size:16px}
+    .stat.flash{animation:stat-pop .55s ease-out}
+    @keyframes stat-pop{30%{transform:scale(1.22)}100%{transform:scale(1)}}
+
+    /* 全域受擊特效:紅(傷害)/紫(恐懼)閃光 + 浮動數字 */
+    #hit-flash{position:fixed;inset:0;z-index:290;pointer-events:none;opacity:0}
+    #hit-flash.dmg{animation:hit-vignette .65s ease-out;
+      background:radial-gradient(ellipse at center, transparent 42%, rgba(205,45,30,.5) 100%)}
+    #hit-flash.hor{animation:hit-vignette .75s ease-out;
+      background:radial-gradient(ellipse at center, transparent 42%, rgba(120,60,215,.5) 100%)}
+    @keyframes hit-vignette{0%{opacity:0}14%{opacity:1}100%{opacity:0}}
+    .float-num{position:fixed;z-index:295;pointer-events:none;font-weight:900;font-size:36px;
+      text-shadow:0 2px 10px rgba(0,0,0,.85), 0 0 22px rgba(0,0,0,.5);
+      animation:float-up 1.5s ease-out forwards}
+    @keyframes float-up{0%{opacity:0;transform:translateY(14px) scale(.75)}
+      14%{opacity:1;transform:translateY(0) scale(1.2)}30%{transform:scale(1)}
+      100%{opacity:0;transform:translateY(-80px)}}
     #panel-self .name{font-size:14px;color:var(--gold);font-weight:600;margin-bottom:4px}
     #panel-self .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:3px}
     .skill{display:inline-flex;align-items:center;gap:2px}
@@ -210,6 +237,7 @@
 </head>
 <body>
   <!-- 加載遮罩(轉場時蓋住全畫面)-->
+  <div id="hit-flash"></div>
   <div id="loading-mask" hidden>
     <div class="lm-box"><div class="lm-spin"></div><div id="lm-text">載入中…</div></div>
   </div>
@@ -346,8 +374,8 @@
     <div id="panel-self" class="panel">
       <div class="name" id="self-name">—</div>
       <div class="row" id="self-skills"></div>
-      <div class="row" id="self-vitals"></div>
-      <div class="row" id="self-econ"></div>
+      <div class="stat-grid" id="self-vitals"></div>
+      <div class="stat-grid" id="self-econ"></div>
     </div>
     <div id="panel-here" class="panel">
       <div class="panel-title">你所在地點 · 敵人</div>

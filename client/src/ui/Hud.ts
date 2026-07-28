@@ -209,6 +209,8 @@ export class Hud {
   private view?: GameStateView;
   private commit?: CommitState;
   private discardReq?: { requestId: string; need: number; sel: Set<string> };   // B6 超限棄牌
+  /** 受擊偵測:上一次視圖的血/理智(跨章 round 倒退時重置,不誤報回復)。 */
+  private prevVitals?: { id: string; round: number; damage: number; horror: number; hp: number; san: number };
   private guideCollapsed = false;
 
   private $ = (id: string) => document.getElementById(id)!;
@@ -305,6 +307,40 @@ export class Hud {
     setTimeout(() => { if (document.body.contains(overlay)) close(); }, 2800);
   }
 
+  /** 一顆數據徽章:圖標 + 大數字(+ 上限);flash=數值剛變動時彈跳一下。 */
+  private statBadge(icon: string, num: number, max: number | null, label: string,
+                    color: string, flash: boolean, small = false): HTMLElement {
+    const d = el("div", "stat" + (small ? " small" : "") + (flash ? " flash" : ""));
+    d.appendChild(el("div", "st-ic", icon));
+    const n = el("div", "st-num");
+    n.style.color = color;
+    n.append(String(num));
+    if (max != null) n.appendChild(el("span", "st-max", `/${max}`));
+    d.appendChild(n);
+    d.appendChild(el("div", "st-lb", label));
+    return d;
+  }
+
+  /** 全螢幕受擊閃光(dmg=紅 / hor=紫)+ 浮動數字。 */
+  private hitEffect(kind: "dmg" | "hor", text: string) {
+    const flash = this.$("hit-flash");
+    flash.className = "";
+    void (flash as HTMLElement).offsetWidth;   // 重觸發 CSS 動畫
+    flash.className = kind;
+    this.floatNum(text, kind === "dmg" ? "#ff5a48" : "#a678ff");
+  }
+
+  /** 浮動數字:畫面中上緣飄起淡出(多筆同時來時隨機錯開)。 */
+  private floatNum(text: string, color: string) {
+    const f = el("div", "float-num", text);
+    f.style.color = color;
+    f.style.left = `calc(50% + ${Math.round((Math.random() - 0.5) * 120)}px)`;
+    f.style.top = "34%";
+    f.style.transform = "translateX(-50%)";
+    document.body.appendChild(f);
+    setTimeout(() => f.remove(), 1600);
+  }
+
   log(msg: string) {
     const box = this.$("log");
     box.appendChild(el("div", undefined, msg));
@@ -336,10 +372,38 @@ export class Hud {
       wrap.appendChild(el("b", undefined, String(you.skills[key])));
       skills.appendChild(wrap);
     });
-    this.$("self-vitals").textContent =
-      `❤️ ${you.health - you.damage}/${you.health}　🧠 ${you.sanity - you.horror}/${you.sanity}`;
-    this.$("self-econ").textContent =
-      `💰 ${you.resources}　🔎 ${you.cluesHeld}　⚡ 行動 ${you.actionsRemaining}　🂠 牌堆 ${you.deckCount ?? 0}`;
+    // ── 全域受擊特效:只要扣血/扣理智就跳(紅/紫閃 + 浮動數字);回復顯示綠/藍 + ──
+    const pv = this.prevVitals;
+    const sameRun = pv && pv.id === you.investigatorId && view.round >= pv.round;
+    if (sameRun) {
+      const d = you.damage - pv.damage;
+      const h = you.horror - pv.horror;
+      if (d > 0) this.hitEffect("dmg", `-${d} ❤️`);
+      if (h > 0) this.hitEffect("hor", `-${h} 🧠`);
+      if (d < 0) this.floatNum(`+${-d} ❤️`, "#5fbf6f");
+      if (h < 0) this.floatNum(`+${-h} 🧠`, "#6fa8ff");
+    }
+    const hpNow = you.health - you.damage;
+    const sanNow = you.sanity - you.horror;
+    const vitalsChanged = !!sameRun && (you.damage !== pv.damage || you.horror !== pv.horror);
+    this.prevVitals = { id: you.investigatorId, round: view.round,
+      damage: you.damage, horror: you.horror, hp: hpNow, san: sanNow };
+
+    // ── 自身數據大徽章:圖標 + 大數字(血/理智依剩餘比例變色)──
+    const tier = (cur: number, max: number, full: string) =>
+      cur * 3 > max * 2 ? full : cur * 3 > max ? "#e8c14b" : "#e0674b";
+    const vit = this.$("self-vitals");
+    vit.replaceChildren(
+      this.statBadge("❤️", hpNow, you.health, "生命", tier(hpNow, you.health, "#5fbf6f"), vitalsChanged && you.damage !== pv?.damage),
+      this.statBadge("🧠", sanNow, you.sanity, "理智", tier(sanNow, you.sanity, "#6fa8ff"), vitalsChanged && you.horror !== pv?.horror),
+    );
+    const econ = this.$("self-econ");
+    econ.replaceChildren(
+      this.statBadge("💰", you.resources, null, "資源", "#e8c14b", false, true),
+      this.statBadge("🔎", you.cluesHeld, null, "線索", "#c9a24b", false, true),
+      this.statBadge("⚡", you.actionsRemaining, null, "行動", "#e8e2d0", false, true),
+      this.statBadge("🂠", you.deckCount ?? 0, null, "牌堆", "#93a4b3", false, true),
+    );
 
     this.renderEnemies(view, canAct);
     this.renderHand(you.hand);
